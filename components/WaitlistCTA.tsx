@@ -68,8 +68,8 @@ export default function WaitlistCTA() {
 
         <motion.p variants={item} className="text-base md:text-lg text-[#F8F4E3]/55 mb-10 max-w-md mx-auto leading-relaxed">
           Join the waitlist. Get early access +{" "}
-          <span className="text-[#F4C430] font-medium">50% off</span> your
-          first month.
+          <span className="text-[#F4C430] font-medium">a personalized 90-day glow-up plan</span>{" "}
+          on launch day.
         </motion.p>
 
         <motion.form

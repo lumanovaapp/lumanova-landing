@@ -97,9 +97,9 @@ export default function Hero() {
               animate="show"
               className="text-base md:text-lg text-[#F8F4E3]/55 max-w-sm leading-[1.6]"
             >
-              Multi-ethnic looksmaxxing transformation.{" "}
+              AI-powered self-care coaching built for every face.{" "}
               <span className="text-[#F8F4E3]/85 font-medium">
-                90 days to your peak self.
+                90 days to your best self.
               </span>
             </motion.p>
 

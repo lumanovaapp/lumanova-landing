@@ -4,15 +4,17 @@ import { X, Check } from "lucide-react";
 import { motion } from "framer-motion";
 
 const others = [
-  "They scan. You leave.",
-  "Eurocentric beauty standards.",
-  "One score. No path forward.",
+  "They scan. They rate. They leave.",
+  "One number defines you.",
+  "Built for Western features only.",
+  "No plan. No path forward.",
 ];
 
 const lumanova = [
   "We coach you for 90 days.",
-  "Multi-ethnic AI scoring.",
-  "Real plan. Weekly progress.",
+  "Built for every ethnicity.",
+  "Focus on daily habits.",
+  "Real transformation, not a rating.",
 ];
 
 const container = {
@@ -38,10 +40,10 @@ export default function Problem() {
         {/* Headline */}
         <motion.div variants={item} className="text-center mb-16 md:mb-20">
           <h2 className="text-3xl md:text-5xl font-manrope font-bold text-white leading-[1.15] text-balance">
-            Most looksmaxxing apps{" "}
+            Most face-rating apps{" "}
             <span className="text-white/40">judge you.</span>
             <br />
-            <span className="text-[#F4C430]">We coach you.</span>
+            <span className="text-[#F4C430]">Lumanova coaches you.</span>
           </h2>
         </motion.div>
 

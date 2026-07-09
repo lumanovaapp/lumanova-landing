@@ -19,13 +19,13 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Lumanova — Your AI Glow-Up Coach",
+  title: "Lumanova — Your AI Self-Care Coach",
   description:
-    "Multi-ethnic looksmaxxing transformation. From day 1 to your peak self. AI-powered glow-up coaching for men.",
+    "AI-powered self-care coaching for men. Personalized 90-day plans for skin, grooming, fitness, and confidence. Built for every ethnicity.",
   openGraph: {
-    title: "Lumanova — Your AI Glow-Up Coach",
+    title: "Lumanova — Your AI Self-Care Coach",
     description:
-      "Multi-ethnic looksmaxxing transformation. 90 days to your peak self.",
+      "AI-powered self-care coaching for men. Personalized 90-day plans for skin, grooming, fitness, and confidence. Built for every ethnicity.",
     type: "website",
   },
 };
