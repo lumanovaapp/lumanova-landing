@@ -2,7 +2,14 @@
   "permissions": {
     "allow": [
       "Bash(Get-ChildItem -Path \"E:\\\\Lumanova.app\" -Recurse -Force)",
-      "Bash(Select-Object FullName, Length)"
+      "Bash(Select-Object FullName, Length)",
+      "Bash(npm install *)",
+      "Bash(npx tsc *)",
+      "Bash(MSYS_NO_PATHCONV=1 curl -s -o /tmp/r1.html -w \"root=%{http_code}\\\\n\" http://localhost:3001/)",
+      "Bash(MSYS_NO_PATHCONV=1 curl -s -o /tmp/r2.html -w \"signup=%{http_code}\\\\n\" http://localhost:3001/signup)",
+      "Bash(MSYS_NO_PATHCONV=1 curl -s -o /tmp/r3.html -w \"login=%{http_code}\\\\n\" http://localhost:3001/login)",
+      "Bash(MSYS_NO_PATHCONV=1 curl -s -o /tmp/r4.html -w \"dashboard=%{http_code}\\\\n\" http://localhost:3001/dashboard)",
+      "Bash(MSYS_NO_PATHCONV=1 curl -s -o /tmp/r5.html -w \"onboarding=%{http_code}\\\\n\" http://localhost:3001/onboarding)"
     ]
   }
 }

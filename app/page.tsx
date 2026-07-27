@@ -3,6 +3,7 @@ import Hero from "@/components/Hero";
 import FeaturesBar from "@/components/FeaturesBar";
 import Transformations from "@/components/Transformations";
 import Problem from "@/components/Problem";
+import WhyDifferent from "@/components/WhyDifferent";
 import HowItWorks from "@/components/HowItWorks";
 import Testimonials from "@/components/Testimonials";
 import WaitlistCTA from "@/components/WaitlistCTA";
@@ -22,6 +23,8 @@ export default function Home() {
       <Transformations />
       <GoldDivider />
       <Problem />
+      <GoldDivider />
+      <WhyDifferent />
       <GoldDivider />
       <HowItWorks />
       <GoldDivider />

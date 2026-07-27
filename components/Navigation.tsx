@@ -56,7 +56,7 @@ export default function Navigation() {
         {/* Right: desktop nav links + mobile hamburger */}
         <div className="flex items-center justify-end gap-6">
           <a
-            href="#"
+            href="/login"
             className="hidden lg:block text-[#F8F4E3]/65 text-sm font-medium hover:text-[#F4C430] transition-colors duration-200"
           >
             Sign in
@@ -90,7 +90,7 @@ export default function Navigation() {
           >
             <div className="px-4 sm:px-6 py-4 flex flex-col gap-2">
               <a
-                href="#"
+                href="/login"
                 onClick={() => setMenuOpen(false)}
                 className="flex items-center justify-center min-h-[48px] text-[#F8F4E3]/65 text-sm font-medium hover:text-[#F4C430] transition-colors duration-200 rounded-xl hover:bg-white/[0.04]"
               >
