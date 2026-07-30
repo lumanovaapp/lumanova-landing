@@ -18,7 +18,7 @@ export type Goal =
 
 export type PhotoType = "baseline" | "day_30" | "day_60" | "day_90";
 
-export interface User {
+export type User = {
   id: string;
   email: string;
   full_name: string | null;
@@ -28,41 +28,41 @@ export interface User {
   onboarding_completed: boolean;
   created_at: string;
   updated_at: string;
-}
+};
 
-export interface Photo {
+export type Photo = {
   id: string;
   user_id: string;
   storage_path: string;
   photo_type: PhotoType;
   created_at: string;
-}
+};
 
-export interface Plan {
+export type Plan = {
   id: string;
   user_id: string;
   plan_json: Record<string, unknown>;
   day_started: string;
   current_day: number;
   created_at: string;
-}
+};
 
-export interface DailyCheckin {
+export type DailyCheckin = {
   id: string;
   user_id: string;
   date: string;
   habits_completed: string[];
   notes: string | null;
   created_at: string;
-}
+};
 
-export interface Streak {
+export type Streak = {
   id: string;
   user_id: string;
   current_streak: number;
   longest_streak: number;
   last_checkin_date: string | null;
-}
+};
 
 export interface Database {
   public: {
@@ -71,27 +71,34 @@ export interface Database {
         Row: User;
         Insert: Partial<User> & { id: string; email: string };
         Update: Partial<User>;
+        Relationships: [];
       };
       photos: {
         Row: Photo;
         Insert: Partial<Photo> & { user_id: string; storage_path: string; photo_type: PhotoType };
         Update: Partial<Photo>;
+        Relationships: [];
       };
       plans: {
         Row: Plan;
         Insert: Partial<Plan> & { user_id: string; plan_json: Record<string, unknown> };
         Update: Partial<Plan>;
+        Relationships: [];
       };
       daily_checkins: {
         Row: DailyCheckin;
         Insert: Partial<DailyCheckin> & { user_id: string; date: string };
         Update: Partial<DailyCheckin>;
+        Relationships: [];
       };
       streaks: {
         Row: Streak;
         Insert: Partial<Streak> & { user_id: string };
         Update: Partial<Streak>;
+        Relationships: [];
       };
     };
+    Views: Record<string, never>;
+    Functions: Record<string, never>;
   };
 }

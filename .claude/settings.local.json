@@ -9,7 +9,14 @@
       "Bash(MSYS_NO_PATHCONV=1 curl -s -o /tmp/r2.html -w \"signup=%{http_code}\\\\n\" http://localhost:3001/signup)",
       "Bash(MSYS_NO_PATHCONV=1 curl -s -o /tmp/r3.html -w \"login=%{http_code}\\\\n\" http://localhost:3001/login)",
       "Bash(MSYS_NO_PATHCONV=1 curl -s -o /tmp/r4.html -w \"dashboard=%{http_code}\\\\n\" http://localhost:3001/dashboard)",
-      "Bash(MSYS_NO_PATHCONV=1 curl -s -o /tmp/r5.html -w \"onboarding=%{http_code}\\\\n\" http://localhost:3001/onboarding)"
+      "Bash(MSYS_NO_PATHCONV=1 curl -s -o /tmp/r5.html -w \"onboarding=%{http_code}\\\\n\" http://localhost:3001/onboarding)",
+      "Bash(curl -sI http://localhost:3000/onboarding)",
+      "Bash(curl -sI http://localhost:3000/dashboard)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:3000/signup)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:3000/login)",
+      "Bash(lsof -ti:3000 -sTCP:LISTEN)",
+      "Bash(xargs -r kill)",
+      "Bash(npx eslint *)"
     ]
   }
 }

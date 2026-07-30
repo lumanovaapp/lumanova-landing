@@ -12,7 +12,20 @@ export default async function DashboardPage() {
     redirect("/login");
   }
 
-  const fullName = (user.user_metadata?.full_name as string | undefined) || user.email;
+  const { data: profile } = await supabase
+    .from("users")
+    .select("full_name, onboarding_completed")
+    .eq("id", user.id)
+    .single();
+
+  if (!profile?.onboarding_completed) {
+    redirect("/onboarding");
+  }
+
+  const fullName =
+    profile?.full_name ||
+    (user.user_metadata?.full_name as string | undefined) ||
+    user.email;
 
   return (
     <main className="min-h-screen bg-pure-black flex items-center justify-center px-6 py-10 [padding-top:max(2.5rem,env(safe-area-inset-top))] [padding-bottom:max(2.5rem,env(safe-area-inset-bottom))]">
