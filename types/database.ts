@@ -1,3 +1,5 @@
+import { Analysis, Comparison, Plan, PhotoMilestone } from "@/lib/types";
+
 export type Ethnicity =
   | "south_asian"
   | "east_asian"
@@ -16,7 +18,7 @@ export type Goal =
   | "sleep"
   | "style";
 
-export type PhotoType = "baseline" | "day_30" | "day_60" | "day_90";
+export type PhotoStatus = "analyzing" | "complete" | "failed";
 
 export type User = {
   id: string;
@@ -34,26 +36,26 @@ export type Photo = {
   id: string;
   user_id: string;
   storage_path: string;
-  photo_type: PhotoType;
+  status: PhotoStatus;
+  analysis: Analysis | null;
+  photo_type: PhotoMilestone | null;
+  comparison: Comparison | null;
   created_at: string;
 };
 
-export type Plan = {
+export type PlanRow = {
   id: string;
   user_id: string;
-  plan_json: Record<string, unknown>;
-  day_started: string;
-  current_day: number;
+  plan_json: Plan;
   created_at: string;
 };
 
 export type DailyCheckin = {
   id: string;
   user_id: string;
+  habit_id: string;
   date: string;
-  habits_completed: string[];
-  notes: string | null;
-  created_at: string;
+  done: boolean;
 };
 
 export type Streak = {
@@ -62,6 +64,8 @@ export type Streak = {
   current_streak: number;
   longest_streak: number;
   last_checkin_date: string | null;
+  freezes: number;
+  last_freeze_award: number;
 };
 
 export interface Database {
@@ -75,19 +79,24 @@ export interface Database {
       };
       photos: {
         Row: Photo;
-        Insert: Partial<Photo> & { user_id: string; storage_path: string; photo_type: PhotoType };
+        Insert: Partial<Photo> & { user_id: string; storage_path: string };
         Update: Partial<Photo>;
         Relationships: [];
       };
       plans: {
-        Row: Plan;
-        Insert: Partial<Plan> & { user_id: string; plan_json: Record<string, unknown> };
-        Update: Partial<Plan>;
+        Row: PlanRow;
+        Insert: Partial<PlanRow> & { user_id: string; plan_json: Plan };
+        Update: Partial<PlanRow>;
         Relationships: [];
       };
       daily_checkins: {
         Row: DailyCheckin;
-        Insert: Partial<DailyCheckin> & { user_id: string; date: string };
+        Insert: Partial<DailyCheckin> & {
+          user_id: string;
+          habit_id: string;
+          date: string;
+          done: boolean;
+        };
         Update: Partial<DailyCheckin>;
         Relationships: [];
       };

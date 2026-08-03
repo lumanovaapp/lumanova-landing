@@ -1,0 +1,415 @@
+"use client";
+
+import { useEffect, useRef, useState } from "react";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
+import toast from "react-hot-toast";
+import { Check, Flame, Shield } from "lucide-react";
+import { Plan } from "@/lib/types";
+import { ACCENT_THEME, ACCENT_ORDER } from "@/lib/accent";
+
+const MAX_FREEZES = 2;
+
+interface PlanViewProps {
+  plan: Plan;
+  createdAt: string;
+  todayChecks: Record<string, boolean>;
+  currentStreak: number;
+  bestStreak: number;
+  freezes: number;
+}
+
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
+
+function computeDay(createdAt: string): number {
+  const start = new Date(createdAt);
+  const startUTC = Date.UTC(
+    start.getUTCFullYear(),
+    start.getUTCMonth(),
+    start.getUTCDate()
+  );
+  const now = new Date();
+  const nowUTC = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+  const day = Math.floor((nowUTC - startUTC) / MS_PER_DAY) + 1;
+  return Math.min(90, Math.max(1, day));
+}
+
+export default function PlanView({
+  plan,
+  createdAt,
+  todayChecks,
+  currentStreak,
+  bestStreak,
+  freezes,
+}: PlanViewProps) {
+  const reduceMotion = !!useReducedMotion();
+
+  const day = computeDay(createdAt);
+  const currentPhaseNumber = Math.min(3, Math.ceil(day / 30)) as 1 | 2 | 3;
+  const progressPct = Math.round((day / 90) * 100);
+  const todayStr = new Date().toISOString().slice(0, 10);
+
+  const [checks, setChecks] = useState<Record<string, boolean>>(todayChecks);
+  const [streak, setStreak] = useState(currentStreak);
+  const [best, setBest] = useState(bestStreak);
+  const [freezeCount, setFreezeCount] = useState(freezes);
+  const [freezePop, setFreezePop] = useState(false);
+  const [poppedId, setPoppedId] = useState<string | null>(null);
+  const [errorId, setErrorId] = useState<string | null>(null);
+  const [celebrate, setCelebrate] = useState(false);
+  const prevAllDoneRef = useRef(false);
+
+  // BUG FIX: this component can stay mounted across a router.refresh() (e.g.
+  // triggered elsewhere on the page), and useState's initializer only runs on
+  // mount — without this, stale local state would silently fight fresh server
+  // data, which is exactly what makes a checkbox look like it "reverts."
+  useEffect(() => {
+    setChecks(todayChecks);
+  }, [todayChecks]);
+
+  useEffect(() => {
+    setStreak(currentStreak);
+  }, [currentStreak]);
+
+  useEffect(() => {
+    setBest(bestStreak);
+  }, [bestStreak]);
+
+  useEffect(() => {
+    setFreezeCount(freezes);
+  }, [freezes]);
+
+  const activeHabits = plan.daily_habits.filter(
+    (h) => h.phase_start <= currentPhaseNumber
+  );
+  const allDone =
+    activeHabits.length > 0 && activeHabits.every((h) => checks[h.id]);
+
+  useEffect(() => {
+    if (allDone && !prevAllDoneRef.current) {
+      setCelebrate(true);
+      const timer = setTimeout(() => setCelebrate(false), 1600);
+      prevAllDoneRef.current = allDone;
+      return () => clearTimeout(timer);
+    }
+    prevAllDoneRef.current = allDone;
+  }, [allDone]);
+
+  async function toggleHabit(habitId: string) {
+    const next = !checks[habitId];
+    setChecks((prev) => ({ ...prev, [habitId]: next }));
+    setErrorId(null);
+
+    if (next && !reduceMotion) {
+      setPoppedId(habitId);
+      window.setTimeout(() => {
+        setPoppedId((current) => (current === habitId ? null : current));
+      }, 400);
+    }
+
+    try {
+      const response = await fetch("/api/checkin", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ habit_id: habitId, date: todayStr, done: next }),
+      });
+      if (!response.ok) throw new Error("Failed to save check-in");
+
+      const data = (await response.json()) as {
+        current: number;
+        best: number;
+        freezes: number;
+        freezeUsedToday: boolean;
+        freezeEarnedToday: boolean;
+      };
+      setStreak(data.current);
+      setBest(data.best);
+      setFreezeCount(data.freezes);
+
+      if (data.freezeUsedToday) {
+        toast("🛡️ Streak freeze used — streak saved!");
+      }
+      if (data.freezeEarnedToday) {
+        toast.success("Freeze earned! You can miss a day without breaking your streak.");
+        if (!reduceMotion) {
+          setFreezePop(true);
+          window.setTimeout(() => setFreezePop(false), 500);
+        }
+      }
+    } catch {
+      setChecks((prev) => ({ ...prev, [habitId]: !next }));
+      setErrorId(habitId);
+      window.setTimeout(() => {
+        setErrorId((current) => (current === habitId ? null : current));
+      }, 3000);
+    }
+  }
+
+  const currentPhase = plan.phases.find((p) => p.number === currentPhaseNumber);
+  const streakTheme = ACCENT_THEME.refine;
+
+  return (
+    <div className="max-w-6xl mx-auto px-4 sm:px-6">
+      {/* Header: overview/progress left, streak right (asymmetric on desktop) */}
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6 lg:gap-10 items-start">
+        <motion.div
+          initial={{ opacity: 0, y: reduceMotion ? 0 : 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: reduceMotion ? 0.25 : 0.5 }}
+        >
+          <p className="text-xs uppercase tracking-widest text-lumen-gold font-medium mb-3">
+            Your 90-Day Plan
+          </p>
+          <p className="font-manrope font-semibold text-2xl sm:text-3xl text-cream-ivory leading-relaxed">
+            {plan.overview}
+          </p>
+
+          <div className="mt-8 max-w-md">
+            <div className="flex items-baseline justify-between mb-2">
+              <span className="font-manrope font-bold text-lg text-cream-ivory">
+                Day {day}{" "}
+                <span className="text-cream-ivory/40 font-normal text-sm">/ 90</span>
+              </span>
+              <span className="text-xs text-cream-ivory/50">{progressPct}%</span>
+            </div>
+            <div className="w-full h-3 bg-white/10 rounded-full overflow-hidden">
+              <motion.div
+                className="h-full bg-lumen-gold rounded-full"
+                initial={{ width: 0 }}
+                animate={{ width: `${progressPct}%` }}
+                transition={{ duration: reduceMotion ? 0.25 : 0.8, ease: "easeOut" }}
+              />
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Bold streak card */}
+        <motion.div
+          initial={{ opacity: 0, y: reduceMotion ? 0 : 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: reduceMotion ? 0.25 : 0.5, delay: reduceMotion ? 0 : 0.1 }}
+          className={`rounded-3xl border ${streakTheme.border} bg-gradient-to-br from-lumen-gold/15 to-transparent p-6 flex items-center justify-around gap-6`}
+        >
+          <div className="flex flex-col items-center">
+            <Flame className="w-9 h-9 sm:w-10 sm:h-10 text-lumen-gold fill-lumen-gold" />
+            <span className="font-manrope font-black text-4xl sm:text-5xl text-lumen-gold mt-1">
+              {streak}
+            </span>
+            <span className="text-[11px] uppercase tracking-widest text-cream-ivory/50 mt-1">
+              Day Streak
+            </span>
+          </div>
+          <div className="h-16 w-px bg-white/10" />
+          <div className="flex flex-col items-center">
+            <span className="font-manrope font-bold text-2xl sm:text-3xl text-cream-ivory">
+              {best}
+            </span>
+            <span className="text-[11px] uppercase tracking-widest text-cream-ivory/50 mt-1">
+              Best
+            </span>
+          </div>
+          <div className="h-16 w-px bg-white/10" />
+          <div className="flex flex-col items-center">
+            <motion.div
+              className="flex items-center gap-1"
+              animate={freezePop ? { scale: [1, 1.35, 1] } : { scale: 1 }}
+              transition={{ duration: 0.5 }}
+            >
+              {Array.from({ length: MAX_FREEZES }, (_, i) => (
+                <Shield
+                  key={i}
+                  className={`w-5 h-5 sm:w-6 sm:h-6 ${
+                    i < freezeCount
+                      ? "text-aurora-mist fill-aurora-mist/30"
+                      : "text-cream-ivory/15"
+                  }`}
+                />
+              ))}
+            </motion.div>
+            <span className="text-[11px] uppercase tracking-widest text-cream-ivory/50 mt-1">
+              Freezes
+            </span>
+          </div>
+        </motion.div>
+      </div>
+
+      {/* Today's habits */}
+      <motion.div
+        animate={
+          celebrate && !reduceMotion
+            ? {
+                boxShadow: [
+                  "0 0 0 0px rgba(127,224,211,0.5)",
+                  "0 0 0 14px rgba(127,224,211,0)",
+                ],
+              }
+            : {}
+        }
+        transition={{ duration: 0.9 }}
+        className="mt-8 overflow-visible rounded-2xl border border-white/10 bg-white/5 p-6 sm:p-8"
+      >
+        <div className="flex items-center justify-between mb-1">
+          <h2 className="font-manrope font-bold text-xl text-cream-ivory">
+            Today&apos;s Habits
+          </h2>
+          {currentPhase && (
+            <span className="text-xs text-cream-ivory/50">
+              Phase {currentPhase.number}: {currentPhase.title}
+            </span>
+          )}
+        </div>
+        <p className="font-inter text-sm text-cream-ivory/60 mb-5">
+          Check them off as you go — consistency builds the streak.
+        </p>
+
+        <div className="p-1 overflow-visible">
+          {activeHabits.map((habit) => {
+            const done = !!checks[habit.id];
+            const hasError = errorId === habit.id;
+            const doneTheme = ACCENT_THEME.maintain;
+            return (
+              <div key={habit.id} className="mb-3 last:mb-0">
+                <button
+                  type="button"
+                  onClick={() => toggleHabit(habit.id)}
+                  className={`overflow-visible w-full flex items-center gap-4 rounded-xl border p-4 text-left transition-all duration-300 ${
+                    done
+                      ? `${doneTheme.border} ${doneTheme.bgSoft} ${doneTheme.ring}`
+                      : "border-white/10 bg-pure-black/20 hover:border-white/20"
+                  }`}
+                >
+                  <motion.span
+                    animate={
+                      poppedId === habit.id ? { scale: [1, 1.3, 1] } : { scale: 1 }
+                    }
+                    transition={{ duration: 0.4 }}
+                    className={`flex-shrink-0 w-8 h-8 rounded-full border-2 flex items-center justify-center ${
+                      done
+                        ? `${doneTheme.bgSolid} border-transparent`
+                        : "border-white/20 bg-transparent"
+                    }`}
+                  >
+                    {done && <Check className={`w-4 h-4 ${doneTheme.solidText}`} />}
+                  </motion.span>
+                  <div className="flex-1 min-w-0">
+                    <p
+                      className={`text-base font-medium ${
+                        done ? "text-cream-ivory/50 line-through" : "text-cream-ivory"
+                      }`}
+                    >
+                      {habit.label}
+                    </p>
+                    <p className="text-sm text-cream-ivory/50 mt-0.5">
+                      {habit.detail}
+                    </p>
+                  </div>
+                </button>
+                {hasError && (
+                  <p className="mt-1.5 px-1 text-xs text-warm-coral">
+                    Couldn&apos;t save that — reverted. Try again.
+                  </p>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        <AnimatePresence>
+          {celebrate && (
+            <motion.div
+              initial={{ opacity: 0, scale: reduceMotion ? 1 : 0.85 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: reduceMotion ? 1 : 1.05 }}
+              transition={{ duration: 0.35 }}
+              className="mt-4 flex items-center justify-center gap-2 rounded-xl border border-aurora-mist/40 bg-aurora-mist/10 py-3 text-center"
+            >
+              <span className="text-lg">🎉</span>
+              <span className="font-manrope font-bold text-sm text-aurora-mist uppercase tracking-wide">
+                All done for today
+              </span>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </motion.div>
+
+      {/* Phases — horizontal timeline, one accent per phase */}
+      <div className="mt-10">
+        <h2 className="font-manrope font-bold text-xl text-cream-ivory mb-6">
+          Your Phases
+        </h2>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 relative overflow-visible">
+          <div className="hidden sm:block absolute top-6 left-[16.6%] right-[16.6%] h-px bg-white/10 -z-10" />
+          {plan.phases.map((phase, i) => {
+            const isCurrent = phase.number === currentPhaseNumber;
+            const isPast = phase.number < currentPhaseNumber;
+            const accent = ACCENT_ORDER[i % ACCENT_ORDER.length];
+            const theme = ACCENT_THEME[accent];
+
+            return (
+              <motion.div
+                key={phase.number}
+                initial={{ opacity: 0, y: reduceMotion ? 0 : 24 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, amount: 0.3 }}
+                transition={{
+                  duration: reduceMotion ? 0.25 : 0.5,
+                  delay: reduceMotion ? 0 : i * 0.12,
+                }}
+                className="overflow-visible"
+              >
+                <div className="flex sm:flex-col items-center sm:items-start gap-3 sm:gap-0 mb-3">
+                  <span
+                    className={`flex-shrink-0 w-12 h-12 rounded-full border-2 flex items-center justify-center text-sm font-bold ${
+                      isCurrent
+                        ? `${theme.bgSolid} border-transparent ${theme.solidText}`
+                        : isPast
+                        ? "bg-white/10 border-white/20 text-cream-ivory/50"
+                        : "bg-pure-black border-white/20 text-cream-ivory/40"
+                    }`}
+                  >
+                    {phase.number}
+                  </span>
+                </div>
+
+                <div
+                  className={`overflow-visible rounded-2xl border p-6 transition-shadow duration-500 ${
+                    isCurrent
+                      ? `${theme.border} ${theme.bgSoft} ${theme.ring}`
+                      : "border-white/10 bg-white/5 opacity-60"
+                  }`}
+                >
+                  <div className="flex flex-wrap items-center gap-3 mb-2">
+                    <h3 className="font-manrope font-bold text-lg text-cream-ivory">
+                      {phase.title}
+                    </h3>
+                    {isCurrent && (
+                      <span
+                        className={`text-[11px] uppercase tracking-wide font-semibold ${theme.text} ${theme.bgSoft} border ${theme.border} px-2 py-0.5 rounded-full`}
+                      >
+                        Current
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-cream-ivory/50 mb-3">{phase.day_range}</p>
+                  <p className="text-sm text-cream-ivory/70 mb-4">{phase.focus}</p>
+                  <ul className="space-y-1.5">
+                    {phase.milestones.map((milestone, mi) => (
+                      <li
+                        key={mi}
+                        className="flex items-start gap-2 text-sm text-cream-ivory/80"
+                      >
+                        <Check
+                          className={`w-4 h-4 ${theme.text} flex-shrink-0 mt-0.5`}
+                        />
+                        <span>{milestone}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </motion.div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}

@@ -15,6 +15,7 @@ const config: Config = {
         "cream-ivory": "#F8F4E3",
         "pure-black": "#0A0A0A",
         charcoal: "#1A1A1A",
+        "warm-coral": "#FF6F59",
       },
       fontFamily: {
         manrope: ["var(--font-manrope)", "sans-serif"],

@@ -16,7 +16,21 @@
       "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:3000/login)",
       "Bash(lsof -ti:3000 -sTCP:LISTEN)",
       "Bash(xargs -r kill)",
-      "Bash(npx eslint *)"
+      "Bash(npx eslint *)",
+      "mcp__ide__getDiagnostics",
+      "PowerShell(Get-Command *)",
+      "Bash(curl -sf http://localhost:3001/dev-preview-dashboard -o /dev/null -w \"%{http_code}\\\\n\")",
+      "Bash(node -e ' *)",
+      "Bash(npx --yes playwright screenshot --help)",
+      "Bash(npm init *)",
+      "Bash(node check-console.js http://localhost:3001)",
+      "Bash(curl -s -o /dev/null -w \"favicon: %{http_code}\\\\n\" http://localhost:3001/favicon.ico)",
+      "Bash(curl -s -o /dev/null -w \"login: %{http_code}\\\\n\" http://localhost:3001/login)",
+      "Bash(curl -s -o /dev/null -w \"login redirect follow: %{http_code} -> %{url_effective}\\\\n\" -L http://localhost:3001/dashboard)",
+      "Bash(curl -s -o /dev/null -w \"video1: %{http_code}\\\\n\" http://localhost:3001/transformations/transform-01-arjun.mp4)",
+      "Bash(curl -s -o /dev/null -w \"video2: %{http_code}\\\\n\" http://localhost:3001/transformations/transform-02-mateo.mp4)",
+      "Bash(npx next *)",
+      "Bash(npx supabase *)"
     ]
   }
 }

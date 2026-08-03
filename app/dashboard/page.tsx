@@ -1,6 +1,8 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
-import LogoutButton from "@/components/auth/LogoutButton";
+import { getUserState } from "@/lib/user-state";
+import DashboardShell from "@/components/dashboard/DashboardShell";
+import DashboardView from "@/components/dashboard/DashboardView";
 
 export default async function DashboardPage() {
   const supabase = createClient();
@@ -14,7 +16,7 @@ export default async function DashboardPage() {
 
   const { data: profile } = await supabase
     .from("users")
-    .select("full_name, onboarding_completed")
+    .select("full_name, age, ethnicity, goals, onboarding_completed")
     .eq("id", user.id)
     .single();
 
@@ -23,25 +25,24 @@ export default async function DashboardPage() {
   }
 
   const fullName =
-    profile?.full_name ||
+    profile.full_name ||
     (user.user_metadata?.full_name as string | undefined) ||
-    user.email;
+    user.email ||
+    "there";
+
+  const state = await getUserState(supabase, user.id);
 
   return (
-    <main className="min-h-screen bg-pure-black flex items-center justify-center px-6 py-10 [padding-top:max(2.5rem,env(safe-area-inset-top))] [padding-bottom:max(2.5rem,env(safe-area-inset-bottom))]">
-      <div className="w-full max-w-md text-center flex flex-col items-center">
-        <h1 className="font-manrope font-bold text-3xl sm:text-4xl text-cream-ivory leading-tight">
-          Welcome to Lumanova, {fullName}!
-        </h1>
-        <p className="font-inter text-base text-cream-ivory/70 mt-4">
-          You&apos;re user #1 of the glow-up revolution.
-        </p>
-        <p className="font-inter text-sm text-cream-ivory/50 mt-2">
-          Full dashboard coming soon...
-        </p>
-
-        <LogoutButton />
-      </div>
-    </main>
+    <DashboardShell fullName={fullName} email={user.email}>
+      <DashboardView
+        fullName={fullName}
+        age={profile.age}
+        ethnicity={profile.ethnicity}
+        goals={profile.goals ?? []}
+        hasAnalysis={state.hasAnalysis}
+        hasPlan={state.hasPlan}
+        latestPhotoId={state.latestPhotoId}
+      />
+    </DashboardShell>
   );
 }
