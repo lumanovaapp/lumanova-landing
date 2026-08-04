@@ -74,7 +74,7 @@ export default function MobileNav({ fullName, email }: MobileNavProps) {
               transition={{ type: "tween", duration: 0.25, ease: "easeInOut" }}
               className="fixed inset-y-0 left-0 z-50 w-[82%] max-w-xs bg-pure-black border-r border-white/10 flex flex-col px-4 py-6 lg:hidden [padding-top:max(1.5rem,env(safe-area-inset-top))] [padding-bottom:max(1.5rem,env(safe-area-inset-bottom))]"
             >
-              <div className="flex items-center justify-between mb-8 px-2">
+              <div className="flex items-center justify-between mb-6 px-2">
                 <span className="font-manrope font-bold text-cream-ivory text-lg">
                   Lumanova
                 </span>
@@ -88,11 +88,11 @@ export default function MobileNav({ fullName, email }: MobileNavProps) {
                 </button>
               </div>
 
-              <div className="flex-1 overflow-y-auto">
+              <UserFooter fullName={fullName} email={email} />
+
+              <div className="flex-1 overflow-y-auto mt-6 pt-4 border-t border-white/10">
                 <NavList onNavigate={() => setOpen(false)} />
               </div>
-
-              <UserFooter fullName={fullName} email={email} />
             </motion.div>
           </>
         )}
