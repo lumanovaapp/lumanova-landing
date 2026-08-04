@@ -5,13 +5,15 @@ import { useRouter } from "next/navigation";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { Star, Check, X, Loader2, Shield, Lock } from "lucide-react";
 import { Plan, PhotoMilestone, MilestonePhotoSummary } from "@/lib/types";
-import { ACCENT_THEME } from "@/lib/accent";
+import { ACCENT_THEME, ACCENT_ORDER } from "@/lib/accent";
 import MilestoneUpload from "@/components/dashboard/plan/MilestoneUpload";
 
 interface PlanCalendarProps {
   plan: Plan;
   createdAt: string;
   checkinsByDate: Record<string, Record<string, boolean>>;
+  onToggleHabit: (habitId: string) => void;
+  errorHabitId: string | null;
   milestonePhotos: Partial<Record<PhotoMilestone, MilestonePhotoSummary>>;
   frozenDays: number[];
   baselinePhotoUrl: string | null;
@@ -44,29 +46,40 @@ function dateToStr(d: Date): string {
   return d.toISOString().slice(0, 10);
 }
 
+// Mirrors Tailwind's `md` breakpoint — the desktop layout keeps Today's
+// Habits in the side panel, so today's cell shouldn't also open the drawer.
+const DESKTOP_BREAKPOINT_PX = 768;
+
+function useIsDesktop(): boolean {
+  const [isDesktop, setIsDesktop] = useState(false);
+
+  useEffect(() => {
+    const mql = window.matchMedia(`(min-width: ${DESKTOP_BREAKPOINT_PX}px)`);
+    setIsDesktop(mql.matches);
+    const handleChange = (e: MediaQueryListEvent) => setIsDesktop(e.matches);
+    mql.addEventListener("change", handleChange);
+    return () => mql.removeEventListener("change", handleChange);
+  }, []);
+
+  return isDesktop;
+}
+
 export default function PlanCalendar({
   plan,
   createdAt,
   checkinsByDate,
+  onToggleHabit,
+  errorHabitId,
   milestonePhotos,
   frozenDays,
   baselinePhotoUrl,
 }: PlanCalendarProps) {
   const router = useRouter();
   const reduceMotion = !!useReducedMotion();
+  const isDesktop = useIsDesktop();
   const frozenDaySet = new Set(frozenDays);
 
-  const [localCheckins, setLocalCheckins] =
-    useState<Record<string, Record<string, boolean>>>(checkinsByDate);
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
-  const [errorHabitId, setErrorHabitId] = useState<string | null>(null);
-
-  // BUG FIX: resync when fresh server data arrives via a re-render (e.g. a
-  // router.refresh() from the milestone flow) instead of trusting stale local
-  // state left over from before that refresh.
-  useEffect(() => {
-    setLocalCheckins(checkinsByDate);
-  }, [checkinsByDate]);
 
   const planStart = toDateOnlyUTC(new Date(createdAt));
   const today = toDateOnlyUTC(new Date());
@@ -92,7 +105,7 @@ export default function PlanCalendar({
   ): "done" | "frozen" | "missed" | "neutral" | "future" {
     const dateStr = dateToStr(dateForDay(day));
     const activeHabits = activeHabitsForDay(day);
-    const doneMap = localCheckins[dateStr] ?? {};
+    const doneMap = checkinsByDate[dateStr] ?? {};
     const allDone =
       activeHabits.length > 0 && activeHabits.every((h) => doneMap[h.id]);
     if (dateStr > todayStr) return "future";
@@ -101,36 +114,12 @@ export default function PlanCalendar({
     return "neutral";
   }
 
-  async function toggleHabit(day: number, habitId: string) {
+  function handleDayClick(day: number) {
     const dateStr = dateToStr(dateForDay(day));
-    if (dateStr !== todayStr) return;
-
-    const current = !!localCheckins[dateStr]?.[habitId];
-    const next = !current;
-
-    setLocalCheckins((prev) => ({
-      ...prev,
-      [dateStr]: { ...(prev[dateStr] ?? {}), [habitId]: next },
-    }));
-    setErrorHabitId(null);
-
-    try {
-      const response = await fetch("/api/checkin", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ habit_id: habitId, date: dateStr, done: next }),
-      });
-      if (!response.ok) throw new Error("Failed to save check-in");
-    } catch {
-      setLocalCheckins((prev) => ({
-        ...prev,
-        [dateStr]: { ...(prev[dateStr] ?? {}), [habitId]: current },
-      }));
-      setErrorHabitId(habitId);
-      window.setTimeout(() => {
-        setErrorHabitId((id) => (id === habitId ? null : id));
-      }, 3000);
-    }
+    // On desktop, today's habits already live in the side panel — opening
+    // the drawer too would just show the same list twice.
+    if (dateStr === todayStr && isDesktop) return;
+    setSelectedDay(day);
   }
 
   const selectedDateStr =
@@ -145,37 +134,52 @@ export default function PlanCalendar({
   const selectedIsFrozen = selectedDay !== null && frozenDaySet.has(selectedDay);
 
   return (
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 mb-10">
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="font-manrope font-bold text-xl text-cream-ivory">
+    <div className="w-full">
+      <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+        <h2 className="font-manrope font-semibold text-sm text-cream-ivory">
           Your 90 Days
         </h2>
-        <div className="flex items-center gap-3 text-[11px] text-cream-ivory/50">
+        <div className="flex items-center gap-2 text-[10px] text-cream-ivory/50">
           <span className="flex items-center gap-1">
-            <span className="w-2.5 h-2.5 rounded-full bg-aurora-mist inline-block" />
+            <span className="w-2 h-2 rounded-full bg-aurora-mist inline-block" />
             Done
           </span>
           <span className="flex items-center gap-1">
-            <span className="w-2.5 h-2.5 rounded-full bg-warm-coral inline-block" />
+            <span className="w-2 h-2 rounded-full bg-warm-coral inline-block" />
             Missed
           </span>
           <span className="flex items-center gap-1">
-            <span className="w-2.5 h-2.5 rounded-full bg-deep-teal border border-aurora-mist/50 inline-block" />
+            <span className="w-2 h-2 rounded-full bg-deep-teal border border-aurora-mist/50 inline-block" />
             Frozen
           </span>
         </div>
       </div>
 
-      {plan.phases.map((phase) => {
+      {plan.phases.map((phase, phaseIndex) => {
         const startDay = (phase.number - 1) * 30 + 1;
         const days = Array.from({ length: 30 }, (_, i) => startDay + i);
+        const phaseAccent = ACCENT_ORDER[phaseIndex % ACCENT_ORDER.length];
+        const phaseTheme = ACCENT_THEME[phaseAccent];
+        const daysDoneInPhase = days.filter(
+          (d) => dayVisualState(d) === "done" || dayVisualState(d) === "frozen"
+        ).length;
 
         return (
-          <div key={phase.number} className="mb-6">
-            <p className="text-xs uppercase tracking-widest text-cream-ivory/50 font-medium mb-2">
-              Phase {phase.number} · {phase.title}
-            </p>
-            <div className="grid grid-cols-6 sm:grid-cols-10 gap-2 p-1 overflow-visible">
+          <div key={phase.number} className="mb-3 last:mb-0">
+            <div className="flex items-center gap-1.5 mb-1.5">
+              <span
+                className={`flex-shrink-0 w-4 h-4 rounded-full ${phaseTheme.bgSoft} border ${phaseTheme.border} ${phaseTheme.text} text-[9px] font-bold flex items-center justify-center`}
+              >
+                {phase.number}
+              </span>
+              <p className="text-[10px] uppercase tracking-widest text-cream-ivory/60 font-semibold">
+                {phase.title}
+              </p>
+              <span className="text-[10px] text-cream-ivory/35">
+                {daysDoneInPhase}/30
+              </span>
+            </div>
+            <div className="grid grid-cols-6 sm:grid-cols-10 gap-1 overflow-visible">
               {days.map((day) => {
                 const visualState = dayVisualState(day);
                 const dateStr = dateToStr(dateForDay(day));
@@ -192,14 +196,14 @@ export default function PlanCalendar({
                   <button
                     key={day}
                     type="button"
-                    onClick={() => setSelectedDay(day)}
+                    onClick={() => handleDayClick(day)}
                     title={milestoneNeedsAction ? "Tap to check in" : undefined}
                     aria-label={
                       milestoneNeedsAction
                         ? `Day ${day} milestone — tap to check in`
                         : `Day ${day}`
                     }
-                    className={`relative aspect-square overflow-visible rounded-lg flex items-center justify-center text-xs font-semibold transition-colors cursor-pointer ${
+                    className={`relative aspect-square overflow-visible rounded-md flex items-center justify-center text-[10px] font-semibold transition-all duration-200 cursor-pointer hover:scale-110 hover:brightness-110 hover:z-10 ${
                       visualState === "done"
                         ? `${ACCENT_THEME.maintain.bgSolid} ${ACCENT_THEME.maintain.solidText}`
                         : visualState === "frozen"
@@ -211,20 +215,20 @@ export default function PlanCalendar({
                         : "bg-white/10 text-cream-ivory"
                     } ${
                       isToday
-                        ? "ring-2 ring-lumen-gold ring-offset-2 ring-offset-pure-black"
+                        ? "ring-2 ring-lumen-gold ring-offset-1 ring-offset-pure-black"
                         : ""
                     }`}
                   >
                     {day}
                     {visualState === "frozen" && (
-                      <Shield className="absolute -top-1 -right-1 w-3 h-3 text-aurora-mist fill-aurora-mist/30" />
+                      <Shield className="absolute -top-1 -right-1 w-2.5 h-2.5 text-aurora-mist fill-aurora-mist/30" />
                     )}
                     {isMilestoneMarker && visualState !== "frozen" && (
-                      <Star className="absolute -top-1 -right-1 w-3 h-3 text-lumen-gold fill-lumen-gold" />
+                      <Star className="absolute -top-1 -right-1 w-2.5 h-2.5 text-lumen-gold fill-lumen-gold" />
                     )}
                     {milestoneNeedsAction && (
                       <motion.span
-                        className="absolute -bottom-1 -left-1 w-2 h-2 rounded-full bg-lumen-gold"
+                        className="absolute -bottom-1 -left-1 w-1.5 h-1.5 rounded-full bg-lumen-gold"
                         animate={
                           reduceMotion
                             ? {}
@@ -328,7 +332,7 @@ export default function PlanCalendar({
               </p>
               <div className="p-1 overflow-visible">
                 {selectedHabits.map((habit) => {
-                  const done = !!localCheckins[selectedDateStr ?? ""]?.[habit.id];
+                  const done = !!checkinsByDate[selectedDateStr ?? ""]?.[habit.id];
                   const interactive = isSelectedToday;
                   const theme = ACCENT_THEME.maintain;
                   return (
@@ -336,9 +340,7 @@ export default function PlanCalendar({
                       <button
                         type="button"
                         disabled={!interactive}
-                        onClick={() =>
-                          selectedDay !== null && toggleHabit(selectedDay, habit.id)
-                        }
+                        onClick={() => interactive && onToggleHabit(habit.id)}
                         className={`w-full flex items-center gap-3 overflow-visible rounded-xl border p-3 text-left transition-all duration-300 ${
                           done
                             ? `${theme.border} ${theme.bgSoft} ${theme.ring}`

@@ -32,6 +32,45 @@ export default async function DashboardPage() {
 
   const state = await getUserState(supabase, user.id);
 
+  // Read-only — same queries the plan page already runs, just also surfaced
+  // here so the dashboard can show a real streak snapshot and today's habits
+  // instead of a static placeholder. No streak/checkin computation happens
+  // here; that logic still lives solely in /api/checkin.
+  let streak = 0;
+  let freezes = 0;
+  let planDay = 0;
+  const todayChecks: Record<string, boolean> = {};
+
+  if (state.hasPlan && state.plan && state.planCreatedAt) {
+    const today = new Date().toISOString().slice(0, 10);
+
+    const [{ data: streakRow }, { data: checkinRows }] = await Promise.all([
+      supabase
+        .from("streaks")
+        .select("current_streak, freezes")
+        .eq("user_id", user.id)
+        .maybeSingle(),
+      supabase
+        .from("daily_checkins")
+        .select("habit_id, date, done")
+        .eq("user_id", user.id)
+        .eq("date", today),
+    ]);
+
+    streak = streakRow?.current_streak ?? 0;
+    freezes = streakRow?.freezes ?? 0;
+
+    const start = new Date(state.planCreatedAt);
+    const startUTC = Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), start.getUTCDate());
+    const now = new Date();
+    const nowUTC = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+    planDay = Math.min(90, Math.max(1, Math.floor((nowUTC - startUTC) / 86400000) + 1));
+
+    for (const row of checkinRows ?? []) {
+      if (row.done) todayChecks[row.habit_id] = true;
+    }
+  }
+
   return (
     <DashboardShell fullName={fullName} email={user.email}>
       <DashboardView
@@ -42,6 +81,11 @@ export default async function DashboardPage() {
         hasAnalysis={state.hasAnalysis}
         hasPlan={state.hasPlan}
         latestPhotoId={state.latestPhotoId}
+        plan={state.plan}
+        planDay={planDay}
+        streak={streak}
+        freezes={freezes}
+        todayChecks={todayChecks}
       />
     </DashboardShell>
   );

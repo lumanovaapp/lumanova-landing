@@ -1,21 +1,25 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, CSSProperties } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import toast from "react-hot-toast";
 import { Check, Flame, Shield } from "lucide-react";
-import { Plan } from "@/lib/types";
+import { Plan, PhotoMilestone, MilestonePhotoSummary } from "@/lib/types";
 import { ACCENT_THEME, ACCENT_ORDER } from "@/lib/accent";
+import PlanCalendar from "@/components/PlanCalendar";
 
 const MAX_FREEZES = 2;
 
 interface PlanViewProps {
   plan: Plan;
   createdAt: string;
-  todayChecks: Record<string, boolean>;
   currentStreak: number;
   bestStreak: number;
   freezes: number;
+  checkinsByDate: Record<string, Record<string, boolean>>;
+  milestonePhotos: Partial<Record<PhotoMilestone, MilestonePhotoSummary>>;
+  frozenDays: number[];
+  baselinePhotoUrl: string | null;
 }
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
@@ -36,10 +40,13 @@ function computeDay(createdAt: string): number {
 export default function PlanView({
   plan,
   createdAt,
-  todayChecks,
   currentStreak,
   bestStreak,
   freezes,
+  checkinsByDate: checkinsByDateProp,
+  milestonePhotos,
+  frozenDays,
+  baselinePhotoUrl,
 }: PlanViewProps) {
   const reduceMotion = !!useReducedMotion();
 
@@ -48,7 +55,9 @@ export default function PlanView({
   const progressPct = Math.round((day / 90) * 100);
   const todayStr = new Date().toISOString().slice(0, 10);
 
-  const [checks, setChecks] = useState<Record<string, boolean>>(todayChecks);
+  const [checkinsByDate, setCheckinsByDate] =
+    useState<Record<string, Record<string, boolean>>>(checkinsByDateProp);
+  const checks = checkinsByDate[todayStr] ?? {};
   const [streak, setStreak] = useState(currentStreak);
   const [best, setBest] = useState(bestStreak);
   const [freezeCount, setFreezeCount] = useState(freezes);
@@ -63,8 +72,8 @@ export default function PlanView({
   // mount — without this, stale local state would silently fight fresh server
   // data, which is exactly what makes a checkbox look like it "reverts."
   useEffect(() => {
-    setChecks(todayChecks);
-  }, [todayChecks]);
+    setCheckinsByDate(checkinsByDateProp);
+  }, [checkinsByDateProp]);
 
   useEffect(() => {
     setStreak(currentStreak);
@@ -96,7 +105,10 @@ export default function PlanView({
 
   async function toggleHabit(habitId: string) {
     const next = !checks[habitId];
-    setChecks((prev) => ({ ...prev, [habitId]: next }));
+    setCheckinsByDate((prev) => ({
+      ...prev,
+      [todayStr]: { ...(prev[todayStr] ?? {}), [habitId]: next },
+    }));
     setErrorId(null);
 
     if (next && !reduceMotion) {
@@ -136,7 +148,10 @@ export default function PlanView({
         }
       }
     } catch {
-      setChecks((prev) => ({ ...prev, [habitId]: !next }));
+      setCheckinsByDate((prev) => ({
+        ...prev,
+        [todayStr]: { ...(prev[todayStr] ?? {}), [habitId]: !next },
+      }));
       setErrorId(habitId);
       window.setTimeout(() => {
         setErrorId((current) => (current === habitId ? null : current));
@@ -148,187 +163,192 @@ export default function PlanView({
   const streakTheme = ACCENT_THEME.refine;
 
   return (
+    <>
     <div className="max-w-6xl mx-auto px-4 sm:px-6">
-      {/* Header: overview/progress left, streak right (asymmetric on desktop) */}
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6 lg:gap-10 items-start">
-        <motion.div
-          initial={{ opacity: 0, y: reduceMotion ? 0 : 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: reduceMotion ? 0.25 : 0.5 }}
-        >
-          <p className="text-xs uppercase tracking-widest text-lumen-gold font-medium mb-3">
-            Your 90-Day Plan
-          </p>
-          <p className="font-manrope font-semibold text-2xl sm:text-3xl text-cream-ivory leading-relaxed">
-            {plan.overview}
-          </p>
-
-          <div className="mt-8 max-w-md">
-            <div className="flex items-baseline justify-between mb-2">
-              <span className="font-manrope font-bold text-lg text-cream-ivory">
-                Day {day}{" "}
-                <span className="text-cream-ivory/40 font-normal text-sm">/ 90</span>
-              </span>
-              <span className="text-xs text-cream-ivory/50">{progressPct}%</span>
-            </div>
-            <div className="w-full h-3 bg-white/10 rounded-full overflow-hidden">
-              <motion.div
-                className="h-full bg-lumen-gold rounded-full"
-                initial={{ width: 0 }}
-                animate={{ width: `${progressPct}%` }}
-                transition={{ duration: reduceMotion ? 0.25 : 0.8, ease: "easeOut" }}
-              />
-            </div>
-          </div>
-        </motion.div>
-
-        {/* Bold streak card */}
-        <motion.div
-          initial={{ opacity: 0, y: reduceMotion ? 0 : 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: reduceMotion ? 0.25 : 0.5, delay: reduceMotion ? 0 : 0.1 }}
-          className={`rounded-3xl border ${streakTheme.border} bg-gradient-to-br from-lumen-gold/15 to-transparent p-6 flex items-center justify-around gap-6`}
-        >
-          <div className="flex flex-col items-center">
-            <Flame className="w-9 h-9 sm:w-10 sm:h-10 text-lumen-gold fill-lumen-gold" />
-            <span className="font-manrope font-black text-4xl sm:text-5xl text-lumen-gold mt-1">
+      {/* Slim status header — compact streak + thin progress bar, side by side */}
+      <motion.div
+        initial={{ opacity: 0, y: reduceMotion ? 0 : 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: reduceMotion ? 0.25 : 0.5, delay: reduceMotion ? 0 : 0.1 }}
+        style={{ "--glow-color": "rgba(244, 196, 48, 0.22)" } as CSSProperties}
+        className={`hero-glow rounded-xl border ${streakTheme.border} bg-gradient-to-br from-lumen-gold/15 to-transparent px-4 py-3 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6 glow-gold-sm`}
+      >
+        <div className="flex items-center gap-4 flex-shrink-0">
+          <div className="flex items-center gap-1.5">
+            <Flame className="w-4 h-4 text-lumen-gold fill-lumen-gold drop-shadow-[0_0_6px_rgba(244,196,48,0.6)]" />
+            <span className="font-manrope font-black text-lg bg-gradient-to-br from-lumen-gold to-amber-300 bg-clip-text text-transparent">
               {streak}
             </span>
-            <span className="text-[11px] uppercase tracking-widest text-cream-ivory/50 mt-1">
-              Day Streak
+            <span className="text-[10px] uppercase tracking-widest text-cream-ivory/50">
+              Streak
             </span>
           </div>
-          <div className="h-16 w-px bg-white/10" />
-          <div className="flex flex-col items-center">
-            <span className="font-manrope font-bold text-2xl sm:text-3xl text-cream-ivory">
+          <div className="h-6 w-px bg-white/10" />
+          <div className="flex items-center gap-1.5">
+            <span className="font-manrope font-bold text-sm text-cream-ivory">
               {best}
             </span>
-            <span className="text-[11px] uppercase tracking-widest text-cream-ivory/50 mt-1">
+            <span className="text-[10px] uppercase tracking-widest text-cream-ivory/50">
               Best
             </span>
           </div>
-          <div className="h-16 w-px bg-white/10" />
-          <div className="flex flex-col items-center">
-            <motion.div
-              className="flex items-center gap-1"
-              animate={freezePop ? { scale: [1, 1.35, 1] } : { scale: 1 }}
-              transition={{ duration: 0.5 }}
-            >
-              {Array.from({ length: MAX_FREEZES }, (_, i) => (
-                <Shield
-                  key={i}
-                  className={`w-5 h-5 sm:w-6 sm:h-6 ${
-                    i < freezeCount
-                      ? "text-aurora-mist fill-aurora-mist/30"
-                      : "text-cream-ivory/15"
-                  }`}
-                />
-              ))}
-            </motion.div>
-            <span className="text-[11px] uppercase tracking-widest text-cream-ivory/50 mt-1">
-              Freezes
-            </span>
-          </div>
-        </motion.div>
-      </div>
-
-      {/* Today's habits */}
-      <motion.div
-        animate={
-          celebrate && !reduceMotion
-            ? {
-                boxShadow: [
-                  "0 0 0 0px rgba(127,224,211,0.5)",
-                  "0 0 0 14px rgba(127,224,211,0)",
-                ],
-              }
-            : {}
-        }
-        transition={{ duration: 0.9 }}
-        className="mt-8 overflow-visible rounded-2xl border border-white/10 bg-white/5 p-6 sm:p-8"
-      >
-        <div className="flex items-center justify-between mb-1">
-          <h2 className="font-manrope font-bold text-xl text-cream-ivory">
-            Today&apos;s Habits
-          </h2>
-          {currentPhase && (
-            <span className="text-xs text-cream-ivory/50">
-              Phase {currentPhase.number}: {currentPhase.title}
-            </span>
-          )}
+          <div className="h-6 w-px bg-white/10" />
+          <motion.div
+            className="flex items-center gap-1"
+            animate={freezePop ? { scale: [1, 1.35, 1] } : { scale: 1 }}
+            transition={{ duration: 0.5 }}
+          >
+            {Array.from({ length: MAX_FREEZES }, (_, i) => (
+              <Shield
+                key={i}
+                className={`w-3.5 h-3.5 ${
+                  i < freezeCount
+                    ? "text-aurora-mist fill-aurora-mist/30"
+                    : "text-cream-ivory/15"
+                }`}
+              />
+            ))}
+          </motion.div>
         </div>
-        <p className="font-inter text-sm text-cream-ivory/60 mb-5">
-          Check them off as you go — consistency builds the streak.
-        </p>
 
-        <div className="p-1 overflow-visible">
-          {activeHabits.map((habit) => {
-            const done = !!checks[habit.id];
-            const hasError = errorId === habit.id;
-            const doneTheme = ACCENT_THEME.maintain;
-            return (
-              <div key={habit.id} className="mb-3 last:mb-0">
-                <button
-                  type="button"
-                  onClick={() => toggleHabit(habit.id)}
-                  className={`overflow-visible w-full flex items-center gap-4 rounded-xl border p-4 text-left transition-all duration-300 ${
-                    done
-                      ? `${doneTheme.border} ${doneTheme.bgSoft} ${doneTheme.ring}`
-                      : "border-white/10 bg-pure-black/20 hover:border-white/20"
-                  }`}
-                >
-                  <motion.span
-                    animate={
-                      poppedId === habit.id ? { scale: [1, 1.3, 1] } : { scale: 1 }
-                    }
-                    transition={{ duration: 0.4 }}
-                    className={`flex-shrink-0 w-8 h-8 rounded-full border-2 flex items-center justify-center ${
+        <div className="flex-1 min-w-[120px]">
+          <div className="flex items-baseline justify-between mb-1">
+            <span className="text-xs font-medium text-cream-ivory">
+              Day {day} <span className="text-cream-ivory/40">/ 90</span>
+            </span>
+            <span className="text-[11px] text-cream-ivory/50">{progressPct}%</span>
+          </div>
+          <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
+            <motion.div
+              className="h-full bg-lumen-gold rounded-full"
+              initial={{ width: 0 }}
+              animate={{ width: `${progressPct}%` }}
+              transition={{ duration: reduceMotion ? 0.25 : 0.8, ease: "easeOut" }}
+            />
+          </div>
+        </div>
+      </motion.div>
+
+      {/* Calendar (left) + Today's Habits (right, desktop only) — mobile relies
+          on the calendar drawer instead, so the two never show the same list. */}
+      <div className="mt-6 mb-10 grid grid-cols-1 md:grid-cols-[1fr_320px] gap-6 items-start">
+        <PlanCalendar
+          plan={plan}
+          createdAt={createdAt}
+          checkinsByDate={checkinsByDate}
+          onToggleHabit={toggleHabit}
+          errorHabitId={errorId}
+          milestonePhotos={milestonePhotos}
+          frozenDays={frozenDays}
+          baselinePhotoUrl={baselinePhotoUrl}
+        />
+
+        {/* Today's habits — compact list, desktop side panel only */}
+        <motion.div
+          animate={
+            celebrate && !reduceMotion
+              ? {
+                  boxShadow: [
+                    "0 0 0 0px rgba(127,224,211,0.5)",
+                    "0 0 0 14px rgba(127,224,211,0)",
+                  ],
+                }
+              : {}
+          }
+          transition={{ duration: 0.9 }}
+          className="hidden md:block card-lift overflow-visible rounded-2xl border border-white/10 bg-white/5 p-4"
+        >
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="font-manrope font-semibold text-sm text-cream-ivory">
+              Today&apos;s Habits
+            </h2>
+            {currentPhase && (
+              <span className="text-[10px] text-cream-ivory/50">
+                Phase {currentPhase.number}
+              </span>
+            )}
+          </div>
+
+          <div className="overflow-visible">
+            {activeHabits.map((habit) => {
+              const done = !!checks[habit.id];
+              const hasError = errorId === habit.id;
+              const doneTheme = ACCENT_THEME.maintain;
+              return (
+                <div key={habit.id} className="mb-1.5 last:mb-0">
+                  <button
+                    type="button"
+                    onClick={() => toggleHabit(habit.id)}
+                    className={`overflow-visible w-full flex items-center gap-2.5 rounded-lg border p-2.5 text-left transition-all duration-300 ${
                       done
-                        ? `${doneTheme.bgSolid} border-transparent`
-                        : "border-white/20 bg-transparent"
+                        ? `${doneTheme.border} ${doneTheme.bgSoft} ${doneTheme.ring}`
+                        : "border-white/10 bg-pure-black/20 hover:border-white/20 hover:bg-white/[0.04]"
                     }`}
                   >
-                    {done && <Check className={`w-4 h-4 ${doneTheme.solidText}`} />}
-                  </motion.span>
-                  <div className="flex-1 min-w-0">
+                    <motion.span
+                      animate={
+                        poppedId === habit.id ? { scale: [1, 1.3, 1] } : { scale: 1 }
+                      }
+                      transition={{ duration: 0.4 }}
+                      className={`flex-shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+                        done
+                          ? `${doneTheme.bgSolid} border-transparent`
+                          : "border-white/20 bg-transparent"
+                      }`}
+                    >
+                      {done && <Check className={`w-3 h-3 ${doneTheme.solidText}`} />}
+                    </motion.span>
                     <p
-                      className={`text-base font-medium ${
+                      className={`flex-1 min-w-0 text-xs font-medium ${
                         done ? "text-cream-ivory/50 line-through" : "text-cream-ivory"
                       }`}
                     >
                       {habit.label}
                     </p>
-                    <p className="text-sm text-cream-ivory/50 mt-0.5">
-                      {habit.detail}
+                  </button>
+                  {hasError && (
+                    <p className="mt-1 px-1 text-[10px] text-warm-coral">
+                      Couldn&apos;t save — reverted. Try again.
                     </p>
-                  </div>
-                </button>
-                {hasError && (
-                  <p className="mt-1.5 px-1 text-xs text-warm-coral">
-                    Couldn&apos;t save that — reverted. Try again.
-                  </p>
-                )}
-              </div>
-            );
-          })}
-        </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
 
-        <AnimatePresence>
-          {celebrate && (
-            <motion.div
-              initial={{ opacity: 0, scale: reduceMotion ? 1 : 0.85 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: reduceMotion ? 1 : 1.05 }}
-              transition={{ duration: 0.35 }}
-              className="mt-4 flex items-center justify-center gap-2 rounded-xl border border-aurora-mist/40 bg-aurora-mist/10 py-3 text-center"
-            >
-              <span className="text-lg">🎉</span>
-              <span className="font-manrope font-bold text-sm text-aurora-mist uppercase tracking-wide">
-                All done for today
-              </span>
-            </motion.div>
-          )}
-        </AnimatePresence>
+          <AnimatePresence>
+            {celebrate && (
+              <motion.div
+                initial={{ opacity: 0, scale: reduceMotion ? 1 : 0.85 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: reduceMotion ? 1 : 1.05 }}
+                transition={{ duration: 0.35 }}
+                className="mt-3 flex items-center justify-center gap-1.5 rounded-lg border border-aurora-mist/40 bg-aurora-mist/10 py-2 text-center"
+              >
+                <span className="text-sm">🎉</span>
+                <span className="font-manrope font-bold text-[11px] text-aurora-mist uppercase tracking-wide">
+                  All done for today
+                </span>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </motion.div>
+      </div>
+    </div>
+
+    <div className="max-w-6xl mx-auto px-4 sm:px-6">
+      {/* Plan overview — now sits with the rest, ahead of the phases */}
+      <motion.div
+        initial={{ opacity: 0, y: reduceMotion ? 0 : 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: reduceMotion ? 0.25 : 0.5 }}
+      >
+        <p className="text-xs uppercase tracking-widest text-lumen-gold font-medium mb-3">
+          Your 90-Day Plan
+        </p>
+        <p className="font-manrope font-semibold text-2xl sm:text-3xl text-cream-ivory leading-relaxed">
+          {plan.overview}
+        </p>
       </motion.div>
 
       {/* Phases — horizontal timeline, one accent per phase */}
@@ -371,10 +391,10 @@ export default function PlanView({
                 </div>
 
                 <div
-                  className={`overflow-visible rounded-2xl border p-6 transition-shadow duration-500 ${
+                  className={`card-lift overflow-visible rounded-2xl border p-6 transition-shadow duration-500 ${
                     isCurrent
                       ? `${theme.border} ${theme.bgSoft} ${theme.ring}`
-                      : "border-white/10 bg-white/5 opacity-60"
+                      : "border-white/10 bg-white/5 opacity-60 hover:opacity-90"
                   }`}
                 >
                   <div className="flex flex-wrap items-center gap-3 mb-2">
@@ -411,5 +431,6 @@ export default function PlanView({
         </div>
       </div>
     </div>
+    </>
   );
 }

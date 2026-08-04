@@ -115,7 +115,10 @@ export default function UploadForm() {
 
   return (
     <div className="max-w-xl mx-auto">
-      <h1 className="font-manrope font-bold text-3xl text-cream-ivory">
+      <p className="text-xs uppercase tracking-widest text-lumen-gold font-medium mb-3">
+        Step 1
+      </p>
+      <h1 className="font-manrope font-bold text-3xl sm:text-4xl text-cream-ivory leading-tight">
         Upload a selfie
       </h1>
       <p className="font-inter text-base text-cream-ivory/70 mt-2">
@@ -186,8 +189,10 @@ export default function UploadForm() {
             )}
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full">
-              <label className="flex flex-col items-center justify-center gap-2 h-32 rounded-xl border border-white/15 bg-white/5 cursor-pointer hover:border-lumen-gold/50 hover:bg-lumen-gold/5 transition-colors">
-                <Upload className="w-6 h-6 text-lumen-gold" />
+              <label className="card-lift group flex flex-col items-center justify-center gap-3 h-36 rounded-2xl border border-white/15 bg-gradient-to-br from-white/[0.06] to-transparent cursor-pointer hover:border-lumen-gold/50 hover:bg-lumen-gold/5 hover:shadow-[0_8px_24px_rgba(244,196,48,0.12)] transition-all duration-300">
+                <span className="w-11 h-11 rounded-full bg-lumen-gold/10 flex items-center justify-center group-hover:bg-lumen-gold/20 transition-colors duration-300">
+                  <Upload className="w-5 h-5 text-lumen-gold" />
+                </span>
                 <span className="text-sm font-manrope font-semibold text-cream-ivory">
                   Upload a photo
                 </span>
@@ -201,8 +206,10 @@ export default function UploadForm() {
               </label>
 
               {mobile ? (
-                <label className="flex flex-col items-center justify-center gap-2 h-32 rounded-xl border border-white/15 bg-white/5 cursor-pointer hover:border-lumen-gold/50 hover:bg-lumen-gold/5 transition-colors">
-                  <Camera className="w-6 h-6 text-lumen-gold" />
+                <label className="card-lift group flex flex-col items-center justify-center gap-3 h-36 rounded-2xl border border-white/15 bg-gradient-to-br from-white/[0.06] to-transparent cursor-pointer hover:border-lumen-gold/50 hover:bg-lumen-gold/5 hover:shadow-[0_8px_24px_rgba(244,196,48,0.12)] transition-all duration-300">
+                  <span className="w-11 h-11 rounded-full bg-lumen-gold/10 flex items-center justify-center group-hover:bg-lumen-gold/20 transition-colors duration-300">
+                    <Camera className="w-5 h-5 text-lumen-gold" />
+                  </span>
                   <span className="text-sm font-manrope font-semibold text-cream-ivory">
                     Use camera
                   </span>
@@ -219,9 +226,11 @@ export default function UploadForm() {
                 <button
                   type="button"
                   onClick={() => setShowCamera(true)}
-                  className="flex flex-col items-center justify-center gap-2 h-32 rounded-xl border border-white/15 bg-white/5 cursor-pointer hover:border-lumen-gold/50 hover:bg-lumen-gold/5 transition-colors"
+                  className="card-lift group flex flex-col items-center justify-center gap-3 h-36 rounded-2xl border border-white/15 bg-gradient-to-br from-white/[0.06] to-transparent cursor-pointer hover:border-lumen-gold/50 hover:bg-lumen-gold/5 hover:shadow-[0_8px_24px_rgba(244,196,48,0.12)] transition-all duration-300"
                 >
-                  <Camera className="w-6 h-6 text-lumen-gold" />
+                  <span className="w-11 h-11 rounded-full bg-lumen-gold/10 flex items-center justify-center group-hover:bg-lumen-gold/20 transition-colors duration-300">
+                    <Camera className="w-5 h-5 text-lumen-gold" />
+                  </span>
                   <span className="text-sm font-manrope font-semibold text-cream-ivory">
                     Use camera
                   </span>

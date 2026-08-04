@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, CSSProperties } from "react";
 import Link from "next/link";
 import { motion, useReducedMotion } from "framer-motion";
 import {
@@ -105,7 +105,10 @@ export default function AnalysisReveal({
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6">
       {/* Hero: content left, scan image right on desktop — asymmetric, not centered */}
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-8 lg:gap-12 items-start">
+      <div
+        className="hero-glow grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-8 lg:gap-12 items-start"
+        style={{ "--glow-color": "rgba(244, 196, 48, 0.14)" } as CSSProperties}
+      >
         <motion.div
           initial={{ opacity: 0, y: reduceMotion ? 0 : 16 }}
           animate={scanComplete ? { opacity: 1, y: 0 } : {}}
@@ -118,48 +121,52 @@ export default function AnalysisReveal({
           <p className="text-xs uppercase tracking-widest text-lumen-gold font-medium mb-3">
             Your Analysis
           </p>
-          <p className="font-manrope font-semibold text-2xl sm:text-3xl text-cream-ivory leading-relaxed">
+          <p className="font-manrope font-bold text-3xl sm:text-4xl text-cream-ivory leading-tight text-balance">
             {analysis.summary}
           </p>
 
-          {analysis.focus_areas.length > 0 && (
-            <div className="flex flex-wrap items-center gap-2 mt-5">
-              <span className="text-xs text-cream-ivory/50 mr-1">
-                We&apos;ll work on:
-              </span>
-              {analysis.focus_areas.map((area) => (
-                <span
-                  key={itemText(area)}
-                  className="bg-lumen-gold/10 border border-lumen-gold/20 text-lumen-gold px-2.5 py-1 rounded-full text-xs font-medium"
-                >
-                  {itemText(area)}
-                </span>
-              ))}
-            </div>
-          )}
-
-          {topQuickWins.length > 0 && (
-            <div className="mt-6">
-              <p className="text-xs uppercase tracking-widest text-cream-ivory/50 font-medium mb-3">
-                Quick wins to start this week
-              </p>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                {topQuickWins.map((win, i) => (
-                  <div
-                    key={i}
-                    className="rounded-xl border border-lumen-gold/20 bg-lumen-gold/5 p-3 flex items-start gap-2.5"
-                  >
-                    <span className="flex-shrink-0 w-6 h-6 rounded-full bg-lumen-gold text-pure-black text-xs font-bold flex items-center justify-center">
-                      {i + 1}
+          <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-5">
+            {analysis.focus_areas.length > 0 && (
+              <div>
+                <p className="text-xs uppercase tracking-widest text-cream-ivory/50 font-medium mb-3">
+                  We&apos;ll work on
+                </p>
+                <div className="flex flex-wrap items-center gap-2">
+                  {analysis.focus_areas.map((area) => (
+                    <span
+                      key={itemText(area)}
+                      className="bg-lumen-gold/10 border border-lumen-gold/20 text-lumen-gold px-2.5 py-1 rounded-full text-xs font-medium"
+                    >
+                      {itemText(area)}
                     </span>
-                    <span className="text-sm text-cream-ivory">
-                      {itemText(win)}
-                    </span>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
-            </div>
-          )}
+            )}
+
+            {topQuickWins.length > 0 && (
+              <div>
+                <p className="text-xs uppercase tracking-widest text-cream-ivory/50 font-medium mb-3">
+                  Quick wins this week
+                </p>
+                <div className="flex flex-col gap-2">
+                  {topQuickWins.map((win, i) => (
+                    <div
+                      key={i}
+                      className="rounded-xl border border-lumen-gold/20 bg-lumen-gold/5 p-3 flex items-start gap-2.5"
+                    >
+                      <span className="flex-shrink-0 w-6 h-6 rounded-full bg-lumen-gold text-pure-black text-xs font-bold flex items-center justify-center">
+                        {i + 1}
+                      </span>
+                      <span className="text-sm text-cream-ivory">
+                        {itemText(win)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
         </motion.div>
 
         {/* Scan hero */}
@@ -323,7 +330,7 @@ function CategoryCard({
         duration: reduceMotion ? 0.25 : 0.5,
         delay: reduceMotion ? 0 : index * 0.1,
       }}
-      className={`overflow-visible rounded-2xl border bg-white/5 p-6 scroll-mt-24 transition-all duration-300 ${
+      className={`card-lift overflow-visible rounded-2xl border bg-white/5 p-6 scroll-mt-24 transition-all duration-300 hover:bg-white/[0.07] ${
         isHighlighted || isHovered
           ? `${theme.border} ${theme.ring}`
           : "border-white/10 hover:border-white/20"

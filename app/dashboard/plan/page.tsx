@@ -6,7 +6,6 @@ import { getUserState } from "@/lib/user-state";
 import { MilestonePhotoSummary, PhotoMilestone } from "@/lib/types";
 import { buildDoneFlags, computeStreakState } from "@/lib/streak";
 import GeneratePlanButton from "@/components/dashboard/plan/GeneratePlanButton";
-import PlanCalendar from "@/components/PlanCalendar";
 import PlanView from "@/components/PlanView";
 
 const SIGNED_URL_TTL_SECONDS = 3600;
@@ -25,8 +24,6 @@ export default async function PlanPage() {
   const state = await getUserState(supabase, user.id);
 
   if (state.hasPlan && state.plan && state.planCreatedAt) {
-    const today = new Date().toISOString().slice(0, 10);
-
     const { data: checkinRows } = await supabase
       .from("daily_checkins")
       .select("habit_id, date, done")
@@ -96,8 +93,6 @@ export default async function PlanPage() {
       };
     });
 
-    const todayChecks = checkinsByDate[today] ?? {};
-
     const doneFlags = buildDoneFlags(
       state.planCreatedAt,
       state.plan.daily_habits,
@@ -108,24 +103,17 @@ export default async function PlanPage() {
     );
 
     return (
-      <>
-        <PlanCalendar
-          plan={state.plan}
-          createdAt={state.planCreatedAt}
-          checkinsByDate={checkinsByDate}
-          milestonePhotos={milestonePhotos}
-          frozenDays={frozenDays}
-          baselinePhotoUrl={baselineSigned?.data?.signedUrl ?? null}
-        />
-        <PlanView
-          plan={state.plan}
-          createdAt={state.planCreatedAt}
-          todayChecks={todayChecks}
-          currentStreak={streakRow?.current_streak ?? 0}
-          bestStreak={streakRow?.longest_streak ?? 0}
-          freezes={streakRow?.freezes ?? 0}
-        />
-      </>
+      <PlanView
+        plan={state.plan}
+        createdAt={state.planCreatedAt}
+        currentStreak={streakRow?.current_streak ?? 0}
+        bestStreak={streakRow?.longest_streak ?? 0}
+        freezes={streakRow?.freezes ?? 0}
+        checkinsByDate={checkinsByDate}
+        milestonePhotos={milestonePhotos}
+        frozenDays={frozenDays}
+        baselinePhotoUrl={baselineSigned?.data?.signedUrl ?? null}
+      />
     );
   }
 
