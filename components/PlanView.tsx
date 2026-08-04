@@ -391,7 +391,7 @@ export default function PlanView({
                 </div>
 
                 <div
-                  className={`card-lift overflow-visible rounded-2xl border p-6 transition-shadow duration-500 ${
+                  className={`card-lift overflow-visible rounded-2xl border p-6 sm:p-7 transition-shadow duration-500 ${
                     isCurrent
                       ? `${theme.border} ${theme.bgSoft} ${theme.ring}`
                       : "border-white/10 bg-white/5 opacity-60 hover:opacity-90"

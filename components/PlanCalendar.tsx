@@ -64,6 +64,44 @@ function useIsDesktop(): boolean {
   return isDesktop;
 }
 
+// Locks the page behind the drawer, including on iOS Safari where a plain
+// `overflow: hidden` on body still lets the background rubber-band scroll.
+// Pinning body to `position: fixed` at its current scroll offset removes it
+// from the scroll chain entirely; we restore the exact offset on close.
+function useBodyScrollLock(active: boolean) {
+  useEffect(() => {
+    if (!active) return;
+
+    const scrollY = window.scrollY;
+    const { body } = document;
+    const prev = {
+      position: body.style.position,
+      top: body.style.top,
+      left: body.style.left,
+      right: body.style.right,
+      width: body.style.width,
+      overflow: body.style.overflow,
+    };
+
+    body.style.position = "fixed";
+    body.style.top = `-${scrollY}px`;
+    body.style.left = "0";
+    body.style.right = "0";
+    body.style.width = "100%";
+    body.style.overflow = "hidden";
+
+    return () => {
+      body.style.position = prev.position;
+      body.style.top = prev.top;
+      body.style.left = prev.left;
+      body.style.right = prev.right;
+      body.style.width = prev.width;
+      body.style.overflow = prev.overflow;
+      window.scrollTo(0, scrollY);
+    };
+  }, [active]);
+}
+
 export default function PlanCalendar({
   plan,
   createdAt,
@@ -80,6 +118,7 @@ export default function PlanCalendar({
   const frozenDaySet = new Set(frozenDays);
 
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
+  useBodyScrollLock(selectedDay !== null);
 
   const planStart = toDateOnlyUTC(new Date(createdAt));
   const today = toDateOnlyUTC(new Date());
@@ -274,7 +313,7 @@ export default function PlanCalendar({
                   ? { duration: 0.15 }
                   : { type: "spring", damping: 30, stiffness: 300 }
               }
-              className="fixed inset-x-0 bottom-0 z-50 max-h-[85vh] overflow-y-auto rounded-t-3xl border-t border-white/10 bg-pure-black p-6 sm:p-8 sm:max-w-lg sm:mx-auto"
+              className="fixed inset-x-0 bottom-0 z-50 max-h-[85vh] overflow-y-auto overscroll-contain touch-pan-y rounded-t-3xl border-t border-white/10 bg-pure-black p-6 sm:p-8 sm:max-w-lg sm:mx-auto"
             >
               <div className="flex items-center justify-between mb-6">
                 <div>

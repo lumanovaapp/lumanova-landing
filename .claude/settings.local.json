@@ -31,7 +31,8 @@
       "Bash(curl -s -o /dev/null -w \"video2: %{http_code}\\\\n\" http://localhost:3001/transformations/transform-02-mateo.mp4)",
       "Bash(npx next *)",
       "Bash(npx supabase *)",
-      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:3000 --max-time 3)"
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:3000 --max-time 3)",
+      "Bash(npm run *)"
     ]
   }
 }
