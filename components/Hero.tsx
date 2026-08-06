@@ -31,7 +31,7 @@ export default function Hero() {
       <div className="absolute inset-0 z-0">
         {showVideo ? (
           <video
-            src="/transformations/transform-01-arjun.mp4"
+            src="/background_hero_clip.mp4"
             autoPlay
             muted
             loop
