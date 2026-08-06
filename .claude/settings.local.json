@@ -36,7 +36,9 @@
       "Bash(xargs grep -l \"GenericSchema\")",
       "Bash(git stash *)",
       "Bash(netstat -ano)",
-      "Bash(git status *)"
+      "Bash(git status *)",
+      "Bash(mv premium-web-design/premium-web-design/* premium-web-design/)",
+      "Bash(rmdir premium-web-design/premium-web-design)"
     ]
   }
 }

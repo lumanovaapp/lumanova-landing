@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Image from "next/image";
-import { Menu, X } from "lucide-react";
+import { Menu, X, ArrowRight } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 export default function Navigation() {
@@ -24,11 +24,10 @@ export default function Navigation() {
           : "bg-transparent"
       }`}
     >
-      {/* Mobile: flex justify-between | Desktop: 3-col grid */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 lg:py-5 flex items-center justify-between lg:grid lg:grid-cols-3">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 lg:py-5 flex items-center justify-between">
 
         {/* Left: Logo */}
-        <a href="#" className="flex items-center">
+        <a href="#" className="flex items-center focus-gold">
           {logoError ? (
             <span className="font-manrope font-bold text-xl lg:text-2xl tracking-[0.1em] text-white">
               LU<span className="text-[#F4C430]">MA</span>NOVA
@@ -46,29 +45,23 @@ export default function Navigation() {
           )}
         </a>
 
-        {/* Center: Wordmark — hidden on mobile, visible on lg+ */}
-        <div className="hidden lg:flex justify-center">
-          <span className="font-manrope font-extrabold text-sm tracking-widest text-[#F4C430]">
-            LUMANOVA
-          </span>
-        </div>
-
         {/* Right: desktop nav links + mobile hamburger */}
         <div className="flex items-center justify-end gap-6">
           <a
             href="/login"
-            className="hidden lg:block text-[#F8F4E3]/65 text-sm font-medium hover:text-[#F4C430] transition-colors duration-200"
+            className="hidden lg:block text-[#F8F4E3]/65 text-sm font-medium hover:text-[#F4C430] transition-colors duration-200 focus-gold"
           >
             Sign in
           </a>
           <a
             href="#waitlist"
-            className="hidden lg:inline-flex items-center gap-1.5 bg-[#F4C430] text-[#0A0A0A] font-semibold text-sm px-6 py-2.5 rounded-full hover:bg-[#F4C430]/90 hover:shadow-[0_0_24px_rgba(244,196,48,0.45)] transition-all duration-300 active:scale-95"
+            className="hidden lg:inline-flex items-center gap-1.5 bg-[#F4C430] text-[#0A0A0A] font-semibold text-sm px-6 py-2.5 rounded-full hover:bg-[#F4C430]/90 hover:shadow-[0_0_24px_rgba(244,196,48,0.45)] transition-all duration-300 active:scale-95 focus-gold"
           >
-            Join Waitlist →
+            Join the Waitlist
+            <ArrowRight size={15} />
           </a>
           <button
-            className="lg:hidden text-[#F8F4E3] p-2 -mr-2"
+            className="lg:hidden text-[#F8F4E3] p-2 -mr-2 focus-gold"
             onClick={() => setMenuOpen(!menuOpen)}
             aria-label="Toggle menu"
           >
@@ -92,16 +85,17 @@ export default function Navigation() {
               <a
                 href="/login"
                 onClick={() => setMenuOpen(false)}
-                className="flex items-center justify-center min-h-[48px] text-[#F8F4E3]/65 text-sm font-medium hover:text-[#F4C430] transition-colors duration-200 rounded-xl hover:bg-white/[0.04]"
+                className="flex items-center justify-center min-h-[48px] text-[#F8F4E3]/65 text-sm font-medium hover:text-[#F4C430] transition-colors duration-200 rounded-xl hover:bg-white/[0.04] focus-gold"
               >
                 Sign in
               </a>
               <a
                 href="#waitlist"
                 onClick={() => setMenuOpen(false)}
-                className="flex items-center justify-center min-h-[48px] bg-[#F4C430] text-[#0A0A0A] font-semibold text-sm px-6 rounded-full hover:bg-[#F4C430]/90 transition-colors duration-200 active:scale-95"
+                className="flex items-center justify-center gap-1.5 min-h-[48px] bg-[#F4C430] text-[#0A0A0A] font-semibold text-sm px-6 rounded-full hover:bg-[#F4C430]/90 transition-colors duration-200 active:scale-95 focus-gold"
               >
-                Join Waitlist →
+                Join the Waitlist
+                <ArrowRight size={15} />
               </a>
             </div>
           </motion.div>

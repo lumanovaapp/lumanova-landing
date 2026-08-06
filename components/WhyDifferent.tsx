@@ -36,7 +36,7 @@ export default function WhyDifferent() {
           <p className="text-sm uppercase text-lumen-gold tracking-widest mb-4">
             The Difference
           </p>
-          <h2 className="text-4xl md:text-5xl lg:text-6xl font-manrope font-bold text-white mb-4">
+          <h2 className="text-4xl md:text-5xl lg:text-6xl font-manrope font-bold text-white mb-4 tracking-[-0.02em]">
             Not another rating app.
           </h2>
           <p className="text-lg md:text-xl text-cream-ivory/70">
@@ -44,21 +44,21 @@ export default function WhyDifferent() {
           </p>
         </div>
 
-        {/* Comparison grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
-          {/* LEFT: Rating Apps */}
+        {/* Comparison grid — deliberately unequal weighting, not a symmetric 50/50 */}
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-6 md:gap-8 items-start">
+          {/* LEFT: Rating Apps — narrower, quieter */}
           <motion.div
             initial={{ opacity: 0, x: -20 }}
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true, margin: "-100px" }}
             transition={{ duration: 0.6, delay: 0.2 }}
-            className="p-6 md:p-10 rounded-2xl bg-black/40 border border-white/10"
+            className="md:col-span-2 p-6 md:p-8 rounded-3xl bg-black/40 border border-white/10"
           >
             <div className="flex items-center gap-2.5 mb-6 md:mb-8">
               <div className="bg-red-500/10 rounded-full p-1 flex-shrink-0">
                 <X className="w-5 h-5 text-red-500" />
               </div>
-              <p className="text-lg md:text-xl uppercase font-bold tracking-wider text-white/40">
+              <p className="text-base md:text-lg uppercase font-bold tracking-wider text-white/40">
                 Rating Apps
               </p>
             </div>
@@ -75,7 +75,7 @@ export default function WhyDifferent() {
                   <div className="bg-red-500/10 rounded-full p-1 mt-0.5 flex-shrink-0">
                     <X className="w-5 h-5 text-red-500" />
                   </div>
-                  <span className="text-base md:text-lg text-white/60 leading-relaxed">
+                  <span className="text-sm md:text-base text-white/60 leading-relaxed">
                     {text}
                   </span>
                 </motion.li>
@@ -83,27 +83,14 @@ export default function WhyDifferent() {
             </ul>
           </motion.div>
 
-          {/* RIGHT: Lumanova */}
+          {/* RIGHT: Lumanova — wider, dominant focal panel */}
           <motion.div
             initial={{ opacity: 0, x: 20 }}
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true, margin: "-100px" }}
             transition={{ duration: 0.6, delay: 0.4 }}
-            className="relative p-6 md:p-10 rounded-2xl bg-black/40 border border-lumen-gold/30"
+            className="md:col-span-3 relative p-6 md:p-10 rounded-3xl bg-black/40 border border-lumen-gold/30 shadow-[0_0_28px_rgba(244,196,48,0.10)]"
           >
-            {/* Pulsing gold glow */}
-            <motion.div
-              className="absolute inset-0 rounded-2xl pointer-events-none"
-              animate={{
-                boxShadow: [
-                  "0 0 20px rgba(244,196,48,0.1)",
-                  "0 0 40px rgba(244,196,48,0.2)",
-                  "0 0 20px rgba(244,196,48,0.1)",
-                ],
-              }}
-              transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-            />
-
             <div className="flex items-center gap-2.5 mb-6 md:mb-8">
               <div className="bg-lumen-gold/10 rounded-full p-1 flex-shrink-0">
                 <Check className="w-5 h-5 text-lumen-gold" />

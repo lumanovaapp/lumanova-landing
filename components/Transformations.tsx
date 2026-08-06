@@ -2,11 +2,12 @@
 
 import { motion } from "framer-motion";
 import { Sparkles, Calendar } from "lucide-react";
+import { useReducedMotion } from "@/lib/use-reduced-motion";
 
 const cards = [
   {
     src: "/transformations/transform-01-arjun.mp4",
-    avatarGradient: "from-[#F4C430] to-[#0E3A47]",
+    avatarGradient: "from-[#F4C430] to-[#1A1A1A]",
     initial: "A",
     name: "Arjun, 22",
     location: "Mumbai, India 🇮🇳",
@@ -15,7 +16,7 @@ const cards = [
   },
   {
     src: "/transformations/transform-02-mateo.mp4",
-    avatarGradient: "from-[#F4C430] to-orange-500",
+    avatarGradient: "from-[#D9A400] to-[#0A0A0A]",
     initial: "M",
     name: "Mateo, 25",
     location: "Mexico City 🇲🇽",
@@ -39,6 +40,8 @@ const item = {
 };
 
 export default function Transformations() {
+  const reducedMotion = useReducedMotion();
+
   const handleScrollToHowItWorks = () => {
     document
       .getElementById("how-it-works")
@@ -54,16 +57,16 @@ export default function Transformations() {
         viewport={{ once: true, margin: "-60px" }}
         variants={container}
       >
-        {/* Header */}
-        <motion.div variants={item} className="text-center mb-16">
+        {/* Header — left-aligned to break the centered rhythm */}
+        <motion.div variants={item} className="max-w-2xl mb-16">
           <p className="text-sm font-semibold tracking-widest uppercase text-[#F4C430] mb-4">
             Real Transformations
           </p>
-          <h2 className="text-5xl md:text-6xl font-manrope font-extrabold text-[#F8F4E3] mb-5 leading-tight">
-            Watch the{" "}
-            <span className="text-[#F4C430]">glow-up.</span>
+          <h2 className="text-5xl md:text-6xl font-manrope mb-5 leading-[1.05] tracking-[-0.02em]">
+            <span className="font-light text-[#F8F4E3]/80">Watch the</span>{" "}
+            <span className="font-extrabold text-[#F4C430]">glow-up.</span>
           </h2>
-          <p className="text-lg text-[#F8F4E3]/70 max-w-2xl mx-auto leading-relaxed">
+          <p className="text-lg text-[#F8F4E3]/70 leading-relaxed">
             Real results from 90-day coaching. No filters. No fake
             before/afters.
           </p>
@@ -76,16 +79,17 @@ export default function Transformations() {
               <motion.div
                 key={i}
                 variants={item}
-                className="group rounded-2xl overflow-hidden bg-[#0A0A0A] border border-[#F4C430]/10 hover:border-[#F4C430]/40 hover:shadow-[0_0_40px_rgba(244,196,48,0.10)] transition-all duration-500"
+                className="group rounded-3xl overflow-hidden bg-[#111111] border border-white/[0.08] hover:border-[#F4C430]/40 shadow-[0_2px_4px_rgba(0,0,0,.3),0_16px_32px_rgba(0,0,0,.4)] hover:shadow-[0_0_40px_rgba(244,196,48,0.12)] transition-all duration-500"
               >
                 {/* Video */}
                 <div className="relative">
                   <video
                     src={src}
-                    autoPlay
+                    autoPlay={!reducedMotion}
                     loop
                     muted
                     playsInline
+                    controls={reducedMotion}
                     preload="metadata"
                     className="w-full aspect-[4/5] object-cover"
                   />
@@ -142,7 +146,7 @@ export default function Transformations() {
           </p>
           <button
             onClick={handleScrollToHowItWorks}
-            className="inline-flex items-center gap-2 border border-[#F4C430]/30 text-[#F8F4E3] rounded-full py-3 px-6 hover:bg-[#F4C430]/10 hover:border-[#F4C430]/60 transition-all duration-300"
+            className="inline-flex items-center gap-2 border border-[#F4C430]/30 text-[#F8F4E3] rounded-full py-3 px-6 hover:bg-[#F4C430]/10 hover:border-[#F4C430]/60 transition-all duration-300 focus-gold"
           >
             See How Lumanova Works →
           </button>

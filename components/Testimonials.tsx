@@ -6,28 +6,28 @@ const testimonials = [
   {
     initial: "M.",
     flag: "🇮🇳",
-    gradient: "from-[#F4C430] to-[#f97316]",
+    gradient: "from-[#F4C430] to-[#1A1A1A]",
     quote: "Day 30. Skin cleared, sleep is better.",
     subtext: "The daily habits are what changed things.",
   },
   {
     initial: "A.",
     flag: "🇱🇰",
-    gradient: "from-[#7FE0D3] to-[#0E3A47]",
+    gradient: "from-[#D9A400] to-[#0A0A0A]",
     quote: "First app that actually coached me.",
     subtext: "Not just a rating — actual guidance.",
   },
   {
     initial: "D.",
     flag: "🇲🇽",
-    gradient: "from-[#8b5cf6] to-[#F4C430]",
+    gradient: "from-[#FFD874] to-[#141414]",
     quote: "Went from obsessing over ratings to real progress.",
     subtext: "Focus on habits, not numbers.",
   },
   {
     initial: "S.",
     flag: "🇸🇦",
-    gradient: "from-[#F4C430] to-[#7FE0D3]",
+    gradient: "from-[#F4C430] to-[#0A0A0A]",
     quote: "Multi-ethnic coaching that actually works.",
     subtext: "Finally an app built for my face.",
   },
@@ -55,22 +55,24 @@ export default function Testimonials() {
       >
         {/* Headline */}
         <motion.div variants={item} className="text-center mb-14 md:mb-16">
-          <p className="text-[10px] font-bold tracking-[0.22em] uppercase text-[#7FE0D3]/50 mb-4">
+          <p className="text-[10px] font-bold tracking-[0.22em] uppercase text-[#F4C430]/55 mb-4">
             Real Results
           </p>
-          <h2 className="text-3xl md:text-5xl font-manrope font-bold text-white">
-            Built for every face.{" "}
-            <span className="text-[#F4C430]">Every glow-up.</span>
+          <h2 className="text-3xl md:text-5xl font-manrope tracking-[-0.02em]">
+            <span className="font-light text-white/80">Built for every face.</span>{" "}
+            <span className="font-extrabold text-[#F4C430]">Every glow-up.</span>
           </h2>
         </motion.div>
 
-        {/* Testimonial grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-5 max-w-3xl mx-auto">
+        {/* Testimonial grid — staggered offset on desktop to avoid a flat, uniform block */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-5 max-w-4xl mx-auto">
           {testimonials.map(({ initial, flag, gradient, quote, subtext }, i) => (
             <motion.div
               key={i}
               variants={item}
-              className="group p-7 rounded-[1.5rem] bg-white/[0.04] border border-white/[0.08] hover:border-white/[0.16] hover:bg-white/[0.06] transition-all duration-300"
+              className={`group p-7 rounded-3xl bg-white/[0.04] border border-white/[0.08] hover:border-white/[0.16] hover:bg-white/[0.06] transition-all duration-300 ${
+                i % 2 === 1 ? "sm:mt-8" : ""
+              }`}
             >
               <div className="flex items-center gap-3.5 mb-5">
                 <div

@@ -42,14 +42,11 @@ export default function WaitlistCTA() {
       id="waitlist"
       className="relative py-24 md:py-36 overflow-hidden"
     >
-      {/* Gradient background */}
-      <div className="absolute inset-0 bg-gradient-to-b from-[#0E3A47] via-[#07202a] to-[#0A0A0A]" />
+      {/* Layered near-black gradient — gold is the only accent */}
+      <div className="absolute inset-0 bg-gradient-to-b from-[#141414] via-[#0D0D0D] to-[#0A0A0A]" />
 
       {/* Gold glow center */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[350px] rounded-full bg-[#F4C430] blur-[180px] opacity-[0.07] pointer-events-none" />
-
-      {/* Aurora mist top */}
-      <div className="absolute top-0 right-0 w-[300px] h-[300px] rounded-full bg-[#7FE0D3] blur-[120px] opacity-[0.06] pointer-events-none" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[350px] rounded-full bg-[#F4C430] blur-[180px] opacity-[0.09] pointer-events-none" />
 
       <motion.div
         className="relative max-w-2xl mx-auto px-6 text-center"
@@ -62,8 +59,9 @@ export default function WaitlistCTA() {
           ✦ &nbsp;Limited Early Access
         </motion.div>
 
-        <motion.h2 variants={item} className="text-4xl md:text-6xl font-manrope font-extrabold text-white mb-5 leading-tight">
-          Be first to glow.
+        <motion.h2 variants={item} className="text-4xl md:text-6xl font-manrope mb-5 leading-[1.05] tracking-[-0.02em]">
+          <span className="font-light text-white/85">Be first to</span>{" "}
+          <span className="font-extrabold bg-gradient-to-br from-[#F4C430] via-[#FFD874] to-[#D9A400] bg-clip-text text-transparent">glow.</span>
         </motion.h2>
 
         <motion.p variants={item} className="text-base md:text-lg text-[#F8F4E3]/55 mb-10 max-w-md mx-auto leading-relaxed">
@@ -82,20 +80,20 @@ export default function WaitlistCTA() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="your@email.com"
-            className="flex-1 bg-white/[0.07] border border-white/[0.18] text-white placeholder:text-white/30 text-sm px-5 py-4 rounded-full focus:outline-none focus:border-[#F4C430]/50 focus:bg-white/[0.10] transition-all duration-300 min-w-0"
+            className="flex-1 bg-white/[0.07] border border-white/[0.18] text-white placeholder:text-white/30 text-sm px-5 py-4 rounded-full focus:outline-none focus:border-[#F4C430]/50 focus:bg-white/[0.10] transition-all duration-300 min-w-0 focus-gold"
             disabled={loading}
             required
           />
           <button
             type="submit"
             disabled={loading}
-            className="inline-flex items-center justify-center gap-2 bg-[#F4C430] text-[#0A0A0A] font-bold text-sm px-7 py-4 rounded-full hover:bg-[#F4C430]/90 hover:shadow-[0_0_36px_rgba(244,196,48,0.45)] disabled:opacity-60 transition-all duration-300 active:scale-95 flex-shrink-0 whitespace-nowrap"
+            className="inline-flex items-center justify-center gap-2 bg-[#F4C430] text-[#0A0A0A] font-bold text-sm px-7 py-4 rounded-full hover:bg-[#F4C430]/90 hover:shadow-[0_0_36px_rgba(244,196,48,0.45)] disabled:opacity-60 transition-all duration-300 active:scale-95 flex-shrink-0 whitespace-nowrap focus-gold"
           >
             {loading ? (
               <Loader2 size={16} className="animate-spin" />
             ) : (
               <>
-                Join Now
+                Join the Waitlist
                 <ArrowRight size={15} />
               </>
             )}

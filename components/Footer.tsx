@@ -117,7 +117,7 @@ export default function Footer() {
               target="_blank"
               rel="noopener noreferrer"
               aria-label={name}
-              className="w-11 h-11 rounded-full bg-white/[0.05] border border-white/[0.08] flex items-center justify-center text-white/50 hover:text-[#F4C430] hover:border-[#F4C430]/35 hover:bg-[#F4C430]/[0.08] hover:shadow-[0_0_16px_rgba(244,196,48,0.2)] transition-all duration-300"
+              className="w-11 h-11 rounded-full bg-white/[0.05] border border-white/[0.08] flex items-center justify-center text-white/50 hover:text-[#F4C430] hover:border-[#F4C430]/35 hover:bg-[#F4C430]/[0.08] hover:shadow-[0_0_16px_rgba(244,196,48,0.2)] transition-all duration-300 focus-gold"
             >
               <Icon />
             </a>

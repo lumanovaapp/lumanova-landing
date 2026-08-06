@@ -8,12 +8,11 @@ html {
 
 body {
   background-color: #0A0A0A;
-  /* Layered warm/cool ambient glow so the dark base reads as rich rather than
-     flat — a fixed backdrop every page sits on top of. */
+  /* Single-accent ambient glow — gold only, layered against near-black so the
+     dark base reads as rich rather than flat. No secondary hues. */
   background-image:
-    radial-gradient(ellipse 70% 45% at 15% -10%, rgba(244, 196, 48, 0.07), transparent 60%),
-    radial-gradient(ellipse 60% 40% at 100% 10%, rgba(127, 224, 211, 0.045), transparent 60%),
-    radial-gradient(ellipse 50% 35% at 50% 110%, rgba(255, 111, 89, 0.035), transparent 60%);
+    radial-gradient(ellipse 65% 40% at 12% -8%, rgba(244, 196, 48, 0.06), transparent 60%),
+    radial-gradient(ellipse 55% 35% at 100% 105%, rgba(244, 196, 48, 0.035), transparent 60%);
   background-attachment: fixed;
   color: #F8F4E3;
   font-family: var(--font-inter), system-ui, sans-serif;
@@ -34,20 +33,11 @@ body {
     box-shadow: 0 0 18px rgba(244, 196, 48, 0.3);
   }
 
-  .glow-teal {
-    box-shadow: 0 0 32px rgba(127, 224, 211, 0.35);
-  }
-
-  .glow-teal-sm {
-    box-shadow: 0 0 18px rgba(127, 224, 211, 0.22);
-  }
-
-  .glow-coral {
-    box-shadow: 0 0 32px rgba(255, 111, 89, 0.35);
-  }
-
-  .glow-coral-sm {
-    box-shadow: 0 0 18px rgba(255, 111, 89, 0.22);
+  /* Consistent focus-visible ring across every interactive element. */
+  .focus-gold:focus-visible {
+    outline: 2px solid rgba(244, 196, 48, 0.6);
+    outline-offset: 3px;
+    border-radius: 4px;
   }
 
   /* Reusable hover-lift for cards — a small, consistent "premium" affordance
@@ -84,6 +74,15 @@ body {
     z-index: -1;
     background: radial-gradient(closest-side, var(--glow-color, rgba(244, 196, 48, 0.16)), transparent 70%);
     pointer-events: none;
+  }
+
+  /* Cinematic scrim over the hero background video/poster — vertical read for
+     the badge/headline stack, plus a left-side wash so text sits on solid
+     ground regardless of what's happening in the footage behind it. */
+  .hero-scrim {
+    background:
+      linear-gradient(to top, #0A0A0A 0%, rgba(10, 10, 10, 0.75) 28%, rgba(10, 10, 10, 0.35) 52%, rgba(10, 10, 10, 0.55) 100%),
+      linear-gradient(to right, #0A0A0A 0%, rgba(10, 10, 10, 0.82) 22%, rgba(10, 10, 10, 0.25) 55%, transparent 78%);
   }
 }
 
