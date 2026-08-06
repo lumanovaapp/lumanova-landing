@@ -3,8 +3,12 @@
 import { useState, FormEvent, KeyboardEvent } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
+import { Bell } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 import { Ethnicity, Goal } from "@/types/database";
+import Toggle from "@/components/dashboard/settings/Toggle";
+
+const DEFAULT_REMINDER_TIME = "20:00";
 
 const ETHNICITY_OPTIONS: { value: Ethnicity; label: string }[] = [
   { value: "south_asian", label: "South Asian" },
@@ -28,7 +32,7 @@ const GOAL_OPTIONS: { value: Goal; label: string }[] = [
   { value: "style", label: "Style" },
 ];
 
-const TOTAL_STEPS = 3;
+const TOTAL_STEPS = 4;
 
 const inputClass =
   "w-full h-14 rounded-xl bg-white/5 border border-white/10 text-cream-ivory text-base placeholder:text-cream-ivory/40 px-4 text-center focus:outline-none focus:border-lumen-gold transition-colors";
@@ -60,6 +64,8 @@ export default function OnboardingForm({
   const [age, setAge] = useState(initialAge ? String(initialAge) : "");
   const [ethnicity, setEthnicity] = useState<Ethnicity | null>(initialEthnicity);
   const [goals, setGoals] = useState<Goal[]>(initialGoals);
+  const [reminderEnabled, setReminderEnabled] = useState(true);
+  const [reminderTime, setReminderTime] = useState(DEFAULT_REMINDER_TIME);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -111,19 +117,7 @@ export default function OnboardingForm({
     }
   }
 
-  async function handleSubmit(e: FormEvent) {
-    e.preventDefault();
-    if (step !== TOTAL_STEPS - 1) {
-      goNext();
-      return;
-    }
-
-    const validationError = validateStep(step);
-    if (validationError) {
-      setError(validationError);
-      return;
-    }
-
+  async function completeSetup(finalReminderEnabled: boolean, finalReminderTime: string) {
     setLoading(true);
     setError("");
 
@@ -133,6 +127,8 @@ export default function OnboardingForm({
         age: Number(age),
         ethnicity,
         goals,
+        reminder_enabled: finalReminderEnabled,
+        reminder_time: finalReminderTime,
         onboarding_completed: true,
         updated_at: new Date().toISOString(),
       })
@@ -147,6 +143,26 @@ export default function OnboardingForm({
 
     router.push("/dashboard");
     router.refresh();
+  }
+
+  function handleSkipReminder() {
+    completeSetup(false, DEFAULT_REMINDER_TIME);
+  }
+
+  async function handleSubmit(e: FormEvent) {
+    e.preventDefault();
+    if (step !== TOTAL_STEPS - 1) {
+      goNext();
+      return;
+    }
+
+    const validationError = validateStep(step);
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+
+    await completeSetup(reminderEnabled, reminderTime);
   }
 
   return (
@@ -261,6 +277,65 @@ export default function OnboardingForm({
                   );
                 })}
               </div>
+            </motion.div>
+          )}
+
+          {step === 3 && (
+            <motion.div
+              key="reminder"
+              initial={{ opacity: 0, x: 24 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -24 }}
+              transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+              className="flex flex-col items-center"
+            >
+              <div className="w-14 h-14 rounded-2xl bg-lumen-gold/10 flex items-center justify-center mb-6">
+                <Bell className="w-7 h-7 text-lumen-gold" />
+              </div>
+              <h1 className="font-manrope font-bold text-2xl sm:text-3xl text-cream-ivory text-center leading-tight">
+                Want a daily reminder to keep your streak?
+              </h1>
+              <p className="font-inter text-sm text-cream-ivory/70 text-center mt-2 mb-8">
+                We&apos;ll nudge you once a day. You can change this anytime in Settings.
+              </p>
+
+              <div className="w-full max-w-xs rounded-2xl border border-white/10 bg-white/5 p-5 flex flex-col gap-4">
+                <div className="flex items-center justify-between gap-4">
+                  <span className="text-sm font-medium text-cream-ivory">
+                    Daily reminder
+                  </span>
+                  <Toggle
+                    checked={reminderEnabled}
+                    onChange={setReminderEnabled}
+                    label="Daily reminder"
+                  />
+                </div>
+                <div className="flex items-center justify-between gap-4">
+                  <span
+                    className={`text-sm ${
+                      reminderEnabled ? "text-cream-ivory" : "text-cream-ivory/40"
+                    }`}
+                  >
+                    Reminder time
+                  </span>
+                  <input
+                    type="time"
+                    value={reminderTime}
+                    disabled={!reminderEnabled}
+                    onChange={(e) => setReminderTime(e.target.value)}
+                    className="h-11 rounded-xl bg-white/5 border border-white/10 text-cream-ivory text-sm px-3 focus:outline-none focus:border-lumen-gold transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                  />
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleSkipReminder}
+                disabled={loading}
+                className="mt-5 text-sm text-cream-ivory/50 hover:text-cream-ivory/80 transition-colors disabled:opacity-60"
+              >
+                Skip — I&apos;ll turn this on later
+              </button>
             </motion.div>
           )}
         </AnimatePresence>

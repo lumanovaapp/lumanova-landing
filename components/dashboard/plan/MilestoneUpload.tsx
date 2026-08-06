@@ -8,7 +8,9 @@ import {
   MAX_IMAGE_SIZE_BYTES,
   uploadPhoto,
 } from "@/lib/upload-photo";
+import { apiErrorFromJson, fetchWithTimeout, toFriendlyMessage } from "@/lib/api-error";
 import { PhotoMilestone } from "@/lib/types";
+import { showAchievementToasts } from "@/components/AchievementToast";
 
 interface MilestoneUploadProps {
   milestoneType: PhotoMilestone;
@@ -39,6 +41,13 @@ export default function MilestoneUpload({
     setBusy(true);
     setError("");
 
+    // Tracks whether the photo made it to storage — once it has, a
+    // comparison failure shouldn't force the user to re-upload. Instead we
+    // still notify the parent so it re-renders against the now-"failed"
+    // photo row, which has its own retry (see PlanCalendar's MilestoneSection)
+    // that re-runs only the comparison.
+    let uploaded = false;
+
     try {
       const {
         data: { user },
@@ -50,21 +59,27 @@ export default function MilestoneUpload({
       const photoId = await uploadPhoto(supabase, user.id, file, {
         photoType: milestoneType,
       });
+      uploaded = true;
 
-      const response = await fetch("/api/milestone-compare", {
+      const response = await fetchWithTimeout("/api/milestone-compare", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ photoId }),
       });
 
       if (!response.ok) {
-        const body = await response.json().catch(() => null);
-        throw new Error(body?.error ?? "Could not compare your progress photo.");
+        throw await apiErrorFromJson(response, "Could not compare your progress photo.");
+      }
+
+      const compareData = (await response.json()) as { newlyUnlocked?: string[] };
+      if (compareData.newlyUnlocked && compareData.newlyUnlocked.length > 0) {
+        showAchievementToasts(compareData.newlyUnlocked);
       }
 
       onUploaded();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong.");
+      setError(toFriendlyMessage(err));
+      if (uploaded) onUploaded();
     } finally {
       setBusy(false);
     }
@@ -112,6 +127,11 @@ export default function MilestoneUpload({
           className="hidden"
         />
       </label>
+      {busy && (
+        <p className="font-inter text-xs text-cream-ivory/50 mt-2 text-center">
+          This usually takes about 10 seconds.
+        </p>
+      )}
     </div>
   );
 }

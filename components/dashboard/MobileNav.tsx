@@ -6,14 +6,31 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Menu, X } from "lucide-react";
 import NavList from "./NavList";
 import UserFooter from "./UserFooter";
+import { useTour } from "./onboarding/TourProvider";
 
 interface MobileNavProps {
   fullName: string;
   email?: string | null;
 }
 
+// Tour steps whose target lives inside the sidebar/mobile-nav link list —
+// on mobile that only exists once this drawer is open.
+const NAV_DRAWER_TOUR_TARGETS = new Set([
+  "tour-nav-coach",
+  "tour-nav-upload",
+  "tour-nav-achievements",
+]);
+
 export default function MobileNav({ fullName, email }: MobileNavProps) {
   const [open, setOpen] = useState(false);
+  const { activeTarget } = useTour();
+
+  // Opens the drawer for a nav-based tour step and closes it again once the
+  // tour moves past it.
+  useEffect(() => {
+    if (activeTarget && NAV_DRAWER_TOUR_TARGETS.has(activeTarget)) setOpen(true);
+    else if (activeTarget !== null) setOpen(false);
+  }, [activeTarget]);
 
   useEffect(() => {
     if (!open) return;

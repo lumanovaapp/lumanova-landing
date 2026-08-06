@@ -7,6 +7,7 @@ import { Star, Check, X, Loader2, Shield, Lock } from "lucide-react";
 import { Plan, PhotoMilestone, MilestonePhotoSummary } from "@/lib/types";
 import { ACCENT_THEME, ACCENT_ORDER } from "@/lib/accent";
 import MilestoneUpload from "@/components/dashboard/plan/MilestoneUpload";
+import { apiErrorFromJson, fetchWithTimeout, toFriendlyMessage } from "@/lib/api-error";
 
 interface PlanCalendarProps {
   plan: Plan;
@@ -173,7 +174,7 @@ export default function PlanCalendar({
   const selectedIsFrozen = selectedDay !== null && frozenDaySet.has(selectedDay);
 
   return (
-    <div className="w-full">
+    <div className="w-full" data-tour="tour-calendar">
       <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
         <h2 className="font-manrope font-semibold text-sm text-cream-ivory">
           Your 90 Days
@@ -236,6 +237,7 @@ export default function PlanCalendar({
                     key={day}
                     type="button"
                     onClick={() => handleDayClick(day)}
+                    data-tour={day === 30 ? "tour-milestones" : undefined}
                     title={milestoneNeedsAction ? "Tap to check in" : undefined}
                     aria-label={
                       milestoneNeedsAction
@@ -450,18 +452,17 @@ function MilestoneSection({
     setRetryError("");
 
     try {
-      const response = await fetch("/api/milestone-compare", {
+      const response = await fetchWithTimeout("/api/milestone-compare", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ photoId: photo.id }),
       });
       if (!response.ok) {
-        const body = await response.json().catch(() => null);
-        throw new Error(body?.error ?? "Comparison failed again.");
+        throw await apiErrorFromJson(response, "Comparison failed again.");
       }
       onUploaded();
     } catch (err) {
-      setRetryError(err instanceof Error ? err.message : "Something went wrong.");
+      setRetryError(toFriendlyMessage(err));
     } finally {
       setRetrying(false);
     }
@@ -571,16 +572,26 @@ function MilestoneSection({
           className="h-9 px-4 rounded-lg bg-lumen-gold text-pure-black text-xs font-manrope font-bold flex items-center gap-2 disabled:opacity-60"
         >
           {retrying && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-          {retrying ? "Retrying…" : "Try again"}
+          {retrying ? "Comparing your progress…" : "Try again"}
         </button>
+        {retrying && (
+          <p className="text-xs text-cream-ivory/50 mt-2">
+            This usually takes about 10 seconds.
+          </p>
+        )}
       </div>
     );
   }
 
   return (
     <div className="rounded-2xl border border-white/10 bg-white/5 p-4 flex items-center gap-3">
-      <Loader2 className="w-4 h-4 text-lumen-gold animate-spin" />
-      <p className="text-sm text-cream-ivory/70">Analyzing your progress…</p>
+      <Loader2 className="w-4 h-4 text-lumen-gold animate-spin flex-shrink-0" />
+      <div>
+        <p className="text-sm text-cream-ivory/70">Analyzing your progress…</p>
+        <p className="text-xs text-cream-ivory/50 mt-0.5">
+          This usually takes about 10 seconds.
+        </p>
+      </div>
     </div>
   );
 }

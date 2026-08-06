@@ -13,7 +13,7 @@ export default function NavList({ onNavigate }: NavListProps) {
 
   return (
     <nav className="flex flex-col gap-1" aria-label="Main navigation">
-      {NAV_ITEMS.map(({ key, label, href, icon: Icon }) => {
+      {NAV_ITEMS.map(({ key, label, href, icon: Icon, tourTarget }) => {
         if (!href) {
           return (
             <div
@@ -38,6 +38,7 @@ export default function NavList({ onNavigate }: NavListProps) {
             href={href}
             onClick={onNavigate}
             aria-current={isActive ? "page" : undefined}
+            data-tour={tourTarget}
             className={`flex items-center gap-3 h-11 pl-[10px] pr-3 rounded-xl border-l-2 text-sm font-medium transition-colors ${
               isActive
                 ? "border-lumen-gold bg-lumen-gold/10 text-lumen-gold"

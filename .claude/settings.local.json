@@ -32,7 +32,11 @@
       "Bash(npx next *)",
       "Bash(npx supabase *)",
       "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:3000 --max-time 3)",
-      "Bash(npm run *)"
+      "Bash(npm run *)",
+      "Bash(xargs grep -l \"GenericSchema\")",
+      "Bash(git stash *)",
+      "Bash(netstat -ano)",
+      "Bash(git status *)"
     ]
   }
 }

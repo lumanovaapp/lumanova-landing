@@ -7,6 +7,8 @@ import { Check, Flame, Shield } from "lucide-react";
 import { Plan, PhotoMilestone, MilestonePhotoSummary } from "@/lib/types";
 import { ACCENT_THEME, ACCENT_ORDER } from "@/lib/accent";
 import PlanCalendar from "@/components/PlanCalendar";
+import { fetchWithTimeout } from "@/lib/api-error";
+import { showAchievementToasts } from "@/components/AchievementToast";
 
 const MAX_FREEZES = 2;
 
@@ -119,7 +121,7 @@ export default function PlanView({
     }
 
     try {
-      const response = await fetch("/api/checkin", {
+      const response = await fetchWithTimeout("/api/checkin", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ habit_id: habitId, date: todayStr, done: next }),
@@ -132,6 +134,7 @@ export default function PlanView({
         freezes: number;
         freezeUsedToday: boolean;
         freezeEarnedToday: boolean;
+        newlyUnlocked?: string[];
       };
       setStreak(data.current);
       setBest(data.best);
@@ -146,6 +149,9 @@ export default function PlanView({
           setFreezePop(true);
           window.setTimeout(() => setFreezePop(false), 500);
         }
+      }
+      if (data.newlyUnlocked && data.newlyUnlocked.length > 0) {
+        showAchievementToasts(data.newlyUnlocked);
       }
     } catch {
       setCheckinsByDate((prev) => ({
@@ -317,7 +323,7 @@ export default function PlanView({
           </div>
 
           <AnimatePresence>
-            {celebrate && (
+            {allDone && (
               <motion.div
                 initial={{ opacity: 0, scale: reduceMotion ? 1 : 0.85 }}
                 animate={{ opacity: 1, scale: 1 }}

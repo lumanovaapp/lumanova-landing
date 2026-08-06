@@ -11,6 +11,10 @@ export interface AnalysisCategory {
   recommendations: string[];
   priority: CategoryPriority;
   zone: AnalysisZone;
+  // Hair-only: a concrete cut/style direction hedged to what's visible in
+  // the photo. Absent for every other category, and for analyses saved
+  // before this field existed — always optional, never assume it's there.
+  style_suggestion?: string;
 }
 
 export interface Analysis {
@@ -58,3 +62,35 @@ export interface MilestonePhotoSummary {
   comparison: Comparison | null;
   photoUrl: string | null;
 }
+
+export type ChatRole = "user" | "assistant";
+
+export interface ChatMessage {
+  id: string;
+  role: ChatRole;
+  content: string;
+  created_at: string;
+}
+
+export type BadgeCategory = "streak" | "consistency" | "milestone";
+
+// Static catalog entry — not a DB row. `icon` is a lucide-react component
+// name (e.g. "Flame"), resolved to the actual component only where it's
+// rendered, so this stays a plain data module importable from server code.
+export interface Badge {
+  key: string;
+  title: string;
+  description: string;
+  icon: string;
+  category: BadgeCategory;
+}
+
+// A plain object type (not `interface`) — same reasoning as ChatMessageRow:
+// postgrest-js's generic constraint checking needs a structural
+// Record<string, unknown>-compatible shape for anything used as a Table Row.
+export type Achievement = {
+  id: string;
+  user_id: string;
+  badge_key: string;
+  unlocked_at: string;
+};

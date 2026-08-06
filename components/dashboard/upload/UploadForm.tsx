@@ -9,6 +9,8 @@ import {
   MAX_IMAGE_SIZE_BYTES,
   uploadPhoto,
 } from "@/lib/upload-photo";
+import { apiErrorFromJson, fetchWithTimeout, toFriendlyMessage } from "@/lib/api-error";
+import { showAchievementToasts } from "@/components/AchievementToast";
 
 type Stage = "idle" | "uploading" | "analyzing";
 
@@ -27,6 +29,9 @@ export default function UploadForm() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [error, setError] = useState("");
+  // Set once the photo is actually uploaded to storage. A retry after an
+  // analyze failure reuses this id instead of re-uploading the same photo.
+  const [uploadedPhotoId, setUploadedPhotoId] = useState<string | null>(null);
   const [showCamera, setShowCamera] = useState(false);
   const [mobile, setMobile] = useState(false);
 
@@ -54,6 +59,7 @@ export default function UploadForm() {
     setSelectedFile(file);
     setPreviewUrl(URL.createObjectURL(file));
     setError("");
+    setUploadedPhotoId(null);
   }
 
   function handleFileChange(e: ChangeEvent<HTMLInputElement>) {
@@ -72,6 +78,7 @@ export default function UploadForm() {
     setPreviewUrl(null);
     setError("");
     setStage("idle");
+    setUploadedPhotoId(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
     if (cameraInputRef.current) cameraInputRef.current.value = "";
   }
@@ -79,34 +86,44 @@ export default function UploadForm() {
   async function handleUpload() {
     if (!selectedFile) return;
     setError("");
-    setStage("uploading");
 
     try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) {
-        throw new Error("You need to be signed in to upload a photo.");
-      }
+      // A retry after the analyze step failed already has a photo in
+      // storage — reuse it instead of uploading the same file again.
+      let photoId = uploadedPhotoId;
+      if (!photoId) {
+        setStage("uploading");
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        if (!user) {
+          throw new Error("You need to be signed in to upload a photo.");
+        }
 
-      const photoId = await uploadPhoto(supabase, user.id, selectedFile);
+        photoId = await uploadPhoto(supabase, user.id, selectedFile);
+        setUploadedPhotoId(photoId);
+      }
 
       setStage("analyzing");
 
-      const analyzeResponse = await fetch("/api/analyze", {
+      const analyzeResponse = await fetchWithTimeout("/api/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ photoId }),
       });
 
       if (!analyzeResponse.ok) {
-        const body = await analyzeResponse.json().catch(() => null);
-        throw new Error(body?.error ?? "Analysis failed. Please try again.");
+        throw await apiErrorFromJson(analyzeResponse, "Analysis failed. Please try again.");
+      }
+
+      const analyzeData = (await analyzeResponse.json()) as { newlyUnlocked?: string[] };
+      if (analyzeData.newlyUnlocked && analyzeData.newlyUnlocked.length > 0) {
+        showAchievementToasts(analyzeData.newlyUnlocked);
       }
 
       router.push(`/dashboard/upload/${photoId}`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong.");
+      setError(toFriendlyMessage(err));
       setStage("idle");
     }
   }
@@ -145,7 +162,7 @@ export default function UploadForm() {
             </p>
             {stage === "analyzing" && (
               <p className="font-inter text-sm text-cream-ivory/60 mt-2">
-                This usually takes 5-15 seconds.
+                This usually takes 10-20 seconds.
               </p>
             )}
           </div>

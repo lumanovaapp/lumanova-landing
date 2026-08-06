@@ -152,6 +152,7 @@ export default function DashboardView({
           {/* Streak snapshot */}
           <motion.div
             variants={itemVariants}
+            data-tour="tour-streak"
             className={`${cardClass} flex items-center justify-around gap-4`}
           >
             <div className="flex flex-col items-center">
@@ -184,7 +185,11 @@ export default function DashboardView({
           </motion.div>
 
           {/* Today's habits preview */}
-          <motion.div variants={itemVariants} className={`${cardClass} xl:col-span-2`}>
+          <motion.div
+            variants={itemVariants}
+            data-tour="tour-habits"
+            className={`${cardClass} xl:col-span-2`}
+          >
             <div className="flex items-center justify-between mb-4">
               <p className="text-xs uppercase tracking-widest text-lumen-gold font-medium">
                 Today&apos;s Habits

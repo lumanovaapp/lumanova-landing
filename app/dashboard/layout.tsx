@@ -18,11 +18,10 @@ export default async function DashboardLayout({
     redirect("/login");
   }
 
-  const { data: profile } = await supabase
-    .from("users")
-    .select("full_name")
-    .eq("id", user.id)
-    .single();
+  const [{ data: profile }, { data: planRow }] = await Promise.all([
+    supabase.from("users").select("full_name, onboarded").eq("id", user.id).single(),
+    supabase.from("plans").select("user_id").eq("user_id", user.id).maybeSingle(),
+  ]);
 
   const fullName =
     profile?.full_name ||
@@ -31,7 +30,13 @@ export default async function DashboardLayout({
     "there";
 
   return (
-    <DashboardShell fullName={fullName} email={user.email}>
+    <DashboardShell
+      fullName={fullName}
+      email={user.email}
+      userId={user.id}
+      onboarded={profile?.onboarded ?? false}
+      hasPlan={!!planRow}
+    >
       {children}
     </DashboardShell>
   );

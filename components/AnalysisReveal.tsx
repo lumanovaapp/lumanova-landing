@@ -355,6 +355,18 @@ function CategoryCard({
             </span>
           </div>
 
+          {category.style_suggestion && (
+            <div className="mt-3 inline-flex items-start gap-2 rounded-xl border border-lumen-gold/25 bg-lumen-gold/5 px-3 py-2">
+              <Scissors className="w-3.5 h-3.5 text-lumen-gold flex-shrink-0 mt-0.5" />
+              <p className="text-xs text-cream-ivory leading-relaxed">
+                <span className="uppercase tracking-wide text-lumen-gold font-semibold text-[10px] mr-1.5">
+                  Suggested style
+                </span>
+                {category.style_suggestion}
+              </p>
+            </div>
+          )}
+
           {visibleObservations.length > 0 && (
             <div className="mt-3 space-y-1">
               {visibleObservations.map((observation, oi) => (

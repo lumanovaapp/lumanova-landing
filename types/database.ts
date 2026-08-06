@@ -1,4 +1,4 @@
-import { Analysis, Comparison, Plan, PhotoMilestone } from "@/lib/types";
+import { Analysis, Comparison, Plan, PhotoMilestone, ChatRole, Achievement } from "@/lib/types";
 
 export type Ethnicity =
   | "south_asian"
@@ -28,6 +28,14 @@ export type User = {
   ethnicity: Ethnicity | null;
   goals: Goal[] | null;
   onboarding_completed: boolean;
+  // Separate from `onboarding_completed` (the profile-setup wizard at
+  // /onboarding) — this tracks whether the user has been offered the
+  // dashboard product tour, so it doesn't show again after they take it
+  // or skip it.
+  onboarded: boolean;
+  // 'HH:MM' 24h local time — no timezone stored, interpreted client-side.
+  reminder_enabled: boolean;
+  reminder_time: string;
   created_at: string;
   updated_at: string;
 };
@@ -68,6 +76,18 @@ export type Streak = {
   last_freeze_award: number;
 };
 
+// A plain object type (not the `ChatMessage` interface from lib/types) —
+// interfaces don't structurally satisfy the Record<string, unknown> bound
+// postgrest-js's generic constraint checking needs, which silently collapses
+// every table's Row type to `never` if one slips into the Tables map.
+export type ChatMessageRow = {
+  id: string;
+  user_id: string;
+  role: ChatRole;
+  content: string;
+  created_at: string;
+};
+
 export interface Database {
   public: {
     Tables: {
@@ -104,6 +124,22 @@ export interface Database {
         Row: Streak;
         Insert: Partial<Streak> & { user_id: string };
         Update: Partial<Streak>;
+        Relationships: [];
+      };
+      chat_messages: {
+        Row: ChatMessageRow;
+        Insert: Partial<ChatMessageRow> & {
+          user_id: string;
+          role: ChatRole;
+          content: string;
+        };
+        Update: Partial<ChatMessageRow>;
+        Relationships: [];
+      };
+      achievements: {
+        Row: Achievement;
+        Insert: Partial<Achievement> & { user_id: string; badge_key: string };
+        Update: Partial<Achievement>;
         Relationships: [];
       };
     };

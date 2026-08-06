@@ -4,6 +4,7 @@ import { createClient } from "@/utils/supabase/server";
 import { Analysis } from "@/lib/types";
 import { Ethnicity, Goal } from "@/types/database";
 import { parseModelJson } from "@/lib/parse-json";
+import { checkAndAwardAchievements } from "@/lib/check-achievements";
 
 export const runtime = "nodejs";
 
@@ -18,6 +19,7 @@ Rules:
 - Confident, warm, hype-free tone. No emojis.
 - For each category, look at the actual photo and estimate "zone": the approximate CENTER of that feature in the image, as percent from the top-left corner (x and y each 0-100). For example hair/hairline is usually near the top-center of a headshot, the chin/jaw is lower-center, cheeks/skin are mid-face left or right of center. Be as accurate as you can from what you actually see in this specific photo — do not just reuse generic defaults. This coordinate is used to place a marker directly on that feature, so it must land on the right part of the face/head.
 - For each category, set "priority" honestly based on what you observe: "maintain" if it's already in good shape, "refine" if it just needs small tweaks, "focus" if it's the biggest opportunity. Not every category is "focus" — most photos should have a mix.
+- For the Hair category only, also include "style_suggestion": a concrete cut/style direction based on the visible hair type, length, and texture — e.g. "a mid-length curly cut with tapered sides." If the current cut already works, say so instead, e.g. "maintain current length, just regular shape-up trims." Keep it a hedged recommendation tied to what's actually visible in the photo — never guarantee a result, and note that a stylist can tailor the specifics to face shape and preference. This is style/grooming guidance, not medical. Omit "style_suggestion" entirely for every other category.
 - Output ONLY valid JSON matching the schema. No markdown, no text outside the JSON.
 - Return raw JSON only. No markdown, no code fences, no text before or after the JSON.
 
@@ -37,7 +39,8 @@ Schema:
       "observations": ["..."],
       "recommendations": ["..."],
       "priority": "maintain | refine | focus",
-      "zone": { "x": 0, "y": 0 }
+      "zone": { "x": 0, "y": 0 },
+      "style_suggestion": "A concrete, hedged cut/style direction based on what's visible"
     },
     {
       "name": "Facial Hair & Grooming",
@@ -217,5 +220,7 @@ export async function POST(request: Request) {
     );
   }
 
-  return NextResponse.json({ analysis });
+  const newlyUnlocked = await checkAndAwardAchievements(user.id);
+
+  return NextResponse.json({ analysis, newlyUnlocked });
 }

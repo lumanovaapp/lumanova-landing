@@ -3,6 +3,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { createClient } from "@/utils/supabase/server";
 import { Comparison } from "@/lib/types";
 import { parseModelJson } from "@/lib/parse-json";
+import { checkAndAwardAchievements } from "@/lib/check-achievements";
 
 export const runtime = "nodejs";
 
@@ -169,5 +170,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: updateError.message }, { status: 500 });
   }
 
-  return NextResponse.json({ comparison });
+  const newlyUnlocked = await checkAndAwardAchievements(user.id);
+
+  return NextResponse.json({ comparison, newlyUnlocked });
 }

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
 import { buildDoneFlags, computeStreakState, dateToStr } from "@/lib/streak";
+import { checkAndAwardAchievements } from "@/lib/check-achievements";
 
 export const runtime = "nodejs";
 
@@ -109,6 +110,10 @@ export async function POST(request: Request) {
 
       if (streakUpsertError) throw streakUpsertError;
 
+      // Streak + habit-count badges both depend on state just written above,
+      // so this has to run after the upserts, not before.
+      const newlyUnlocked = await checkAndAwardAchievements(user.id);
+
       return NextResponse.json({
         current: state.current,
         best,
@@ -118,6 +123,7 @@ export async function POST(request: Request) {
         // persisted before this call tells us what just changed this request.
         freezeUsedToday: state.freezes < freezesBefore,
         freezeEarnedToday: state.freezes > freezesBefore,
+        newlyUnlocked,
       });
     } catch (streakErr) {
       console.error("CHECKIN ERROR:", streakErr);

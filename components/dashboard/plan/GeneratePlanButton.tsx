@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
+import { apiErrorFromJson, fetchWithTimeout, toFriendlyMessage } from "@/lib/api-error";
 
 export default function GeneratePlanButton() {
   const router = useRouter();
@@ -14,14 +15,13 @@ export default function GeneratePlanButton() {
     setError("");
 
     try {
-      const response = await fetch("/api/generate-plan", { method: "POST" });
+      const response = await fetchWithTimeout("/api/generate-plan", { method: "POST" });
       if (!response.ok) {
-        const body = await response.json().catch(() => null);
-        throw new Error(body?.error ?? "Could not generate your plan.");
+        throw await apiErrorFromJson(response, "Could not generate your plan.");
       }
       router.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong.");
+      setError(toFriendlyMessage(err));
       setLoading(false);
     }
   }
