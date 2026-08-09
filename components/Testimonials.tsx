@@ -8,7 +8,7 @@ const testimonials = [
     flag: "🇮🇳",
     gradient: "from-[#F4C430] to-[#1A1A1A]",
     quote: "Day 30. Skin cleared, sleep is better.",
-    subtext: "The daily habits are what changed things.",
+    subtext: "The daily habits are what changed things — not another number to obsess over.",
   },
   {
     initial: "A.",
@@ -29,56 +29,76 @@ const testimonials = [
     flag: "🇸🇦",
     gradient: "from-[#F4C430] to-[#0A0A0A]",
     quote: "Multi-ethnic coaching that actually works.",
-    subtext: "Finally an app built for my face.",
+    subtext: "Finally an app built for my face — not a Western default.",
   },
-];
+] as const;
 
 const container = {
   hidden: {},
-  show: { transition: { staggerChildren: 0.1 } },
+  show: { transition: { staggerChildren: 0.08 } },
 };
 
 const item = {
-  hidden: { opacity: 0, y: 30 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.7, ease: [0.16, 1, 0.3, 1] as const } },
+  hidden: { opacity: 0, y: 24 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.5, ease: [0.16, 1, 0.3, 1] as const } },
 };
+
+// Bento spans: featured (wide) alternates sides across the two rows so the
+// section doesn't read as four identical stacked blocks.
+const spans = ["lg:col-span-2", "lg:col-span-1", "lg:col-span-1", "lg:col-span-2"];
+const featured = [true, false, false, true];
 
 export default function Testimonials() {
   return (
     <section className="bg-[#1A1A1A] py-24 md:py-32">
       <motion.div
-        className="max-w-6xl mx-auto px-6"
+        className="max-w-6xl mx-auto px-6 lg:px-8"
         initial="hidden"
         whileInView="show"
         viewport={{ once: true, margin: "-60px" }}
         variants={container}
       >
-        {/* Headline */}
-        <motion.div variants={item} className="text-center mb-14 md:mb-16">
+        {/* Header — left-aligned, matches the rest of the page */}
+        <motion.div variants={item} className="max-w-2xl mb-12 md:mb-14">
           <p className="text-[10px] font-bold tracking-[0.22em] uppercase text-[#F4C430]/55 mb-4">
             Real Results
           </p>
-          <h2 className="text-3xl md:text-5xl font-manrope tracking-[-0.02em]">
+          <h2 className="text-3xl md:text-5xl font-manrope leading-[1.1] tracking-[-0.02em]">
             <span className="font-light text-white/80">Built for every face.</span>{" "}
             <span className="font-extrabold text-[#F4C430]">Every glow-up.</span>
           </h2>
         </motion.div>
 
-        {/* Testimonial grid — staggered offset on desktop to avoid a flat, uniform block */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-5 max-w-4xl mx-auto">
+        {/* Asymmetric bento — one focal quote per row instead of four equal cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5">
           {testimonials.map(({ initial, flag, gradient, quote, subtext }, i) => (
             <motion.div
               key={i}
               variants={item}
-              className={`group p-7 rounded-3xl bg-white/[0.04] border border-white/[0.08] hover:border-white/[0.16] hover:bg-white/[0.06] transition-all duration-300 ${
-                i % 2 === 1 ? "sm:mt-8" : ""
+              className={`group relative overflow-hidden flex flex-col justify-center rounded-3xl bg-white/[0.04] border border-white/[0.08] hover:border-white/[0.16] hover:bg-white/[0.06] transition-all duration-300 ${spans[i]} ${
+                featured[i] ? "p-8 md:p-10" : "p-6 md:p-7"
               }`}
             >
-              <div className="flex items-center gap-3.5 mb-5">
-                <div
-                  className={`w-11 h-11 rounded-full bg-gradient-to-br ${gradient} flex items-center justify-center flex-shrink-0`}
+              {featured[i] && (
+                <span
+                  aria-hidden="true"
+                  className="absolute -top-4 right-6 font-manrope font-extrabold text-[110px] leading-none text-[#F4C430]/[0.06] select-none pointer-events-none"
                 >
-                  <span className="text-white font-manrope font-bold text-base">
+                  &rdquo;
+                </span>
+              )}
+
+              <div className="relative flex items-center gap-3.5 mb-5">
+                <div
+                  className={`rounded-full bg-gradient-to-br ${gradient} flex items-center justify-center flex-shrink-0 ${
+                    featured[i] ? "w-14 h-14" : "w-11 h-11"
+                  }`}
+                >
+                  <span
+                    className={`text-white font-manrope font-bold ${
+                      featured[i] ? "text-xl" : "text-base"
+                    }`}
+                  >
                     {initial}
                   </span>
                 </div>
@@ -86,10 +106,15 @@ export default function Testimonials() {
                   {flag}
                 </span>
               </div>
-              <p className="text-white font-semibold text-lg leading-snug mb-2">
+
+              <p
+                className={`relative text-white font-semibold leading-snug mb-2 ${
+                  featured[i] ? "text-xl md:text-2xl" : "text-lg"
+                }`}
+              >
                 &ldquo;{quote}&rdquo;
               </p>
-              <p className="text-white/35 text-sm leading-relaxed">{subtext}</p>
+              <p className="relative text-white/35 text-sm leading-relaxed">{subtext}</p>
             </motion.div>
           ))}
         </div>

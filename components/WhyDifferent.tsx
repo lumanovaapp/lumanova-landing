@@ -3,124 +3,109 @@
 import { motion } from "framer-motion";
 import { X, Check } from "lucide-react";
 
-const ratingItems = [
-  "Judge your face with a score (5.1/10)",
-  "Built on Eurocentric beauty standards",
-  "Push you toward expensive surgery",
-  "Track 100+ metrics but no daily plan",
-  "Feed obsession over millimeters",
-  "Leave you anxious about your looks",
+const rows = [
+  {
+    other: "Judge your face with a score (5.1/10)",
+    ours: "Coach you through a 90-day plan",
+  },
+  {
+    other: "Built on Eurocentric beauty standards",
+    ours: "Multi-ethnic AI built for every face",
+  },
+  {
+    other: "Push you toward expensive surgery",
+    ours: "Focus on sustainable self-care habits",
+  },
+  {
+    other: "Track 100+ metrics but no daily plan",
+    ours: "Simple daily actions you can actually do",
+  },
+  {
+    other: "Feed obsession over millimeters",
+    ours: "Build real confidence through progress",
+  },
+  {
+    other: "Leave you anxious about your looks",
+    ours: "Track how you feel, not just how you look",
+  },
 ];
 
-const lumanovaItems = [
-  "Coach you through a 90-day plan",
-  "Multi-ethnic AI built for every face",
-  "Focus on sustainable self-care habits",
-  "Simple daily actions you can actually do",
-  "Build real confidence through progress",
-  "Track how you feel, not just how you look",
-];
+const container = {
+  hidden: {},
+  show: { transition: { staggerChildren: 0.06 } },
+};
+
+const item = {
+  hidden: { opacity: 0, y: 18 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.5, ease: [0.16, 1, 0.3, 1] as const } },
+};
 
 export default function WhyDifferent() {
   return (
-    <motion.section
-      className="bg-[#0A0A0A] py-24 md:py-32"
-      initial={{ opacity: 0, y: 24 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: "-100px" }}
-      transition={{ duration: 0.6 }}
-    >
-      <div className="max-w-6xl mx-auto px-4 md:px-8">
-        {/* Section header */}
-        <div className="text-center mb-12 md:mb-16">
-          <p className="text-sm uppercase text-lumen-gold tracking-widest mb-4">
+    <section className="bg-[#0A0A0A] py-24 md:py-32">
+      <motion.div
+        className="max-w-5xl mx-auto px-6 lg:px-8"
+        initial="hidden"
+        whileInView="show"
+        viewport={{ once: true, margin: "-80px" }}
+        variants={container}
+      >
+        {/* Header — left-aligned, editorial (matches the site's other sections) */}
+        <motion.div variants={item} className="max-w-2xl mb-12 md:mb-14">
+          <p className="text-[10px] font-bold tracking-[0.22em] uppercase text-[#F4C430]/55 mb-4">
             The Difference
           </p>
-          <h2 className="text-4xl md:text-5xl lg:text-6xl font-manrope font-bold text-white mb-4 tracking-[-0.02em]">
-            Not another rating app.
+          <h2 className="text-3xl md:text-5xl font-manrope leading-[1.1] tracking-[-0.02em] mb-5">
+            <span className="font-light text-white/80">They give you a number.</span>{" "}
+            <span className="font-extrabold text-[#F4C430]">We give you a plan.</span>
           </h2>
-          <p className="text-lg md:text-xl text-cream-ivory/70">
-            Face-rating apps give you a number. Lumanova gives you a plan.
+          <p className="text-base md:text-lg text-[#F8F4E3]/55 leading-relaxed">
+            Six ways Lumanova is built differently — side by side.
           </p>
-        </div>
+        </motion.div>
 
-        {/* Comparison grid — deliberately unequal weighting, not a symmetric 50/50 */}
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-6 md:gap-8 items-start">
-          {/* LEFT: Rating Apps — narrower, quieter */}
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true, margin: "-100px" }}
-            transition={{ duration: 0.6, delay: 0.2 }}
-            className="md:col-span-2 p-6 md:p-8 rounded-3xl bg-black/40 border border-white/10"
-          >
-            <div className="flex items-center gap-2.5 mb-6 md:mb-8">
-              <div className="bg-red-500/10 rounded-full p-1 flex-shrink-0">
-                <X className="w-5 h-5 text-red-500" />
-              </div>
-              <p className="text-base md:text-lg uppercase font-bold tracking-wider text-white/40">
-                Rating Apps
-              </p>
+        {/* Spec-sheet comparison table — one framed card, gold column pulls the eye */}
+        <motion.div
+          variants={item}
+          className="rounded-3xl border border-white/[0.08] bg-white/[0.02] overflow-hidden shadow-[0_2px_4px_rgba(0,0,0,.3),0_16px_32px_rgba(0,0,0,.35)]"
+        >
+          {/* Header row */}
+          <div className="grid grid-cols-2">
+            <div className="px-5 sm:px-6 md:px-8 py-4 md:py-5 border-r border-white/[0.06]">
+              <span className="text-[10px] md:text-xs font-bold tracking-[0.18em] uppercase text-white/35">
+                Other Apps
+              </span>
             </div>
-            <ul className="space-y-4">
-              {ratingItems.map((text, i) => (
-                <motion.li
-                  key={i}
-                  initial={{ opacity: 0, y: 8 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ duration: 0.4, delay: 0.2 + i * 0.05 }}
-                  className="flex items-start gap-3"
-                >
-                  <div className="bg-red-500/10 rounded-full p-1 mt-0.5 flex-shrink-0">
-                    <X className="w-5 h-5 text-red-500" />
-                  </div>
-                  <span className="text-sm md:text-base text-white/60 leading-relaxed">
-                    {text}
-                  </span>
-                </motion.li>
-              ))}
-            </ul>
-          </motion.div>
-
-          {/* RIGHT: Lumanova — wider, dominant focal panel */}
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true, margin: "-100px" }}
-            transition={{ duration: 0.6, delay: 0.4 }}
-            className="md:col-span-3 relative p-6 md:p-10 rounded-3xl bg-black/40 border border-lumen-gold/30 shadow-[0_0_28px_rgba(244,196,48,0.10)]"
-          >
-            <div className="flex items-center gap-2.5 mb-6 md:mb-8">
-              <div className="bg-lumen-gold/10 rounded-full p-1 flex-shrink-0">
-                <Check className="w-5 h-5 text-lumen-gold" />
-              </div>
-              <p className="text-lg md:text-xl uppercase font-bold tracking-wider text-lumen-gold">
+            <div className="px-5 sm:px-6 md:px-8 py-4 md:py-5 bg-[#F4C430]/[0.07]">
+              <span className="text-[10px] md:text-xs font-bold tracking-[0.18em] uppercase text-[#F4C430]">
                 Lumanova
-              </p>
+              </span>
             </div>
-            <ul className="space-y-4">
-              {lumanovaItems.map((text, i) => (
-                <motion.li
-                  key={i}
-                  initial={{ opacity: 0, y: 8 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ duration: 0.4, delay: 0.4 + i * 0.05 }}
-                  className="flex items-start gap-3"
-                >
-                  <div className="bg-lumen-gold/10 rounded-full p-1 mt-0.5 flex-shrink-0">
-                    <Check className="w-5 h-5 text-lumen-gold" />
-                  </div>
-                  <span className="text-base md:text-lg text-white leading-relaxed">
-                    {text}
-                  </span>
-                </motion.li>
-              ))}
-            </ul>
-          </motion.div>
-        </div>
-      </div>
-    </motion.section>
+          </div>
+
+          {/* Data rows */}
+          {rows.map(({ other, ours }, i) => (
+            <motion.div
+              key={i}
+              variants={item}
+              className="grid grid-cols-2 border-t border-white/[0.06]"
+            >
+              <div className="flex items-start gap-2.5 sm:gap-3 px-5 sm:px-6 md:px-8 py-4 md:py-5 border-r border-white/[0.06]">
+                <X size={14} className="text-white/25 flex-shrink-0 mt-0.5" />
+                <span className="text-[13px] sm:text-sm md:text-base text-white/45 leading-snug">
+                  {other}
+                </span>
+              </div>
+              <div className="flex items-start gap-2.5 sm:gap-3 px-5 sm:px-6 md:px-8 py-4 md:py-5 bg-[#F4C430]/[0.04]">
+                <Check size={14} className="text-[#F4C430] flex-shrink-0 mt-0.5" />
+                <span className="text-[13px] sm:text-sm md:text-base text-white font-medium leading-snug">
+                  {ours}
+                </span>
+              </div>
+            </motion.div>
+          ))}
+        </motion.div>
+      </motion.div>
+    </section>
   );
 }

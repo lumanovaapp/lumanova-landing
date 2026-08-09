@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import toast from "react-hot-toast";
-import { ArrowRight, Loader2 } from "lucide-react";
+import { ArrowRight, Loader2, Star } from "lucide-react";
 import { motion } from "framer-motion";
 
 const container = {
@@ -100,9 +100,31 @@ export default function WaitlistCTA() {
           </button>
         </motion.form>
 
-        <motion.p variants={item} className="text-xs text-white/20 mt-5">
-          No spam. Unsubscribe anytime.
-        </motion.p>
+        {/* Trust signal — mirrors the hero's proof strip so the final CTA
+            closes the loop the opening moment promised (peak-end rule). */}
+        <motion.div variants={item} className="mt-8 flex flex-col items-center gap-3">
+          <div className="flex items-center gap-3">
+            <div className="flex -space-x-2.5">
+              {["A", "M", "S", "D", "R"].map((initial, i) => (
+                <div
+                  key={i}
+                  className="w-7 h-7 rounded-full bg-[#141414] border-2 border-[#F4C430]/40 flex items-center justify-center flex-shrink-0"
+                >
+                  <span className="text-[9px] font-bold text-[#F4C430]/90">{initial}</span>
+                </div>
+              ))}
+            </div>
+            <div className="flex items-center gap-1">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <Star key={i} size={10} className="text-[#F4C430] fill-[#F4C430]" />
+              ))}
+            </div>
+          </div>
+          <p className="text-xs text-white/25">
+            <span className="text-white/45 font-medium">500+ early users</span> · No spam,
+            unsubscribe anytime.
+          </p>
+        </motion.div>
       </motion.div>
     </section>
   );

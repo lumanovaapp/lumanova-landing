@@ -76,6 +76,23 @@ const socials = [
   { name: "X", Icon: XIcon, href: "https://x.com/lumanovaapp" },
 ];
 
+const linkColumns = [
+  {
+    heading: "Company",
+    links: [
+      { label: "Sign in", href: "/login" },
+      { label: "Join the Waitlist", href: "#waitlist" },
+    ],
+  },
+  {
+    heading: "Legal",
+    links: [
+      { label: "Privacy Policy", href: "/privacy" },
+      { label: "Terms of Service", href: "/terms" },
+    ],
+  },
+];
+
 export default function Footer() {
   return (
     <motion.footer
@@ -83,56 +100,77 @@ export default function Footer() {
       initial={{ opacity: 0, y: 24 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: "-40px" }}
-      transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+      transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
     >
-      <div className="max-w-6xl mx-auto px-6 flex flex-col items-center gap-8 text-center">
-        {/* Logo + wordmark */}
-        <div className="flex flex-col items-center gap-3">
-          <div className="relative">
+      <div className="max-w-6xl mx-auto px-6 lg:px-8">
+        {/* Top: brand block (left) vs link columns (right) — asymmetric, not a centered stack */}
+        <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-12 md:gap-8">
+          {/* Brand */}
+          <div className="flex flex-col items-start gap-4 max-w-xs">
             <Image
               src="/logo.png"
               alt="Lumanova"
               width={220}
               height={64}
-              className="h-16 w-auto opacity-90 drop-shadow-[0_0_20px_rgba(244,196,48,0.35)]"
+              className="h-12 w-auto opacity-90 drop-shadow-[0_0_20px_rgba(244,196,48,0.35)]"
               onError={(e) => {
                 (e.target as HTMLImageElement).style.display = "none";
               }}
             />
+            <p className="text-[#F8F4E3]/30 text-sm tracking-widest italic">
+              Your nova of light.
+            </p>
+
+            {/* Social icons */}
+            <div className="flex items-center gap-3 mt-1">
+              {socials.map(({ name, Icon, href }) => (
+                <a
+                  key={name}
+                  href={href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={name}
+                  className="w-10 h-10 rounded-full bg-white/[0.05] border border-white/[0.08] flex items-center justify-center text-white/50 hover:text-[#F4C430] hover:border-[#F4C430]/35 hover:bg-[#F4C430]/[0.08] hover:shadow-[0_0_16px_rgba(244,196,48,0.2)] transition-all duration-300 focus-gold"
+                >
+                  <Icon />
+                </a>
+              ))}
+            </div>
           </div>
-          <span className="font-manrope font-extrabold text-2xl md:text-3xl tracking-[0.12em] text-white/85">
-            LU<span className="text-[#F4C430]">MA</span>NOVA
-          </span>
-          <p className="text-[#F8F4E3]/30 text-sm tracking-widest italic">
-            Your nova of light.
+
+          {/* Link columns */}
+          <div className="grid grid-cols-2 gap-10 sm:gap-16">
+            {linkColumns.map(({ heading, links }) => (
+              <div key={heading}>
+                <p className="text-[10px] font-bold tracking-[0.2em] uppercase text-white/30 mb-4">
+                  {heading}
+                </p>
+                <ul className="flex flex-col gap-3">
+                  {links.map(({ label, href }) => (
+                    <li key={label}>
+                      <a
+                        href={href}
+                        className="text-sm text-[#F8F4E3]/60 hover:text-[#F4C430] transition-colors duration-200 focus-gold"
+                      >
+                        {label}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Bottom bar */}
+        <div className="mt-14 md:mt-16 pt-8 border-t border-white/[0.06] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 text-center sm:text-left">
+          <p className="text-white/20 text-xs">
+            © 2026 Lumanova. All rights reserved.
+          </p>
+          <p className="text-white/25 text-xs">
+            Built with ☕ from Negombo, Sri Lanka 🇱🇰
           </p>
         </div>
-
-        {/* Social icons */}
-        <div className="flex items-center gap-5">
-          {socials.map(({ name, Icon, href }) => (
-            <a
-              key={name}
-              href={href}
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label={name}
-              className="w-11 h-11 rounded-full bg-white/[0.05] border border-white/[0.08] flex items-center justify-center text-white/50 hover:text-[#F4C430] hover:border-[#F4C430]/35 hover:bg-[#F4C430]/[0.08] hover:shadow-[0_0_16px_rgba(244,196,48,0.2)] transition-all duration-300 focus-gold"
-            >
-              <Icon />
-            </a>
-          ))}
-        </div>
-
-        {/* Built with */}
-        <p className="text-white/25 text-sm">
-          Built with ☕ from Negombo, Sri Lanka 🇱🇰
-        </p>
-
-        {/* Copyright */}
-        <p className="text-white/20 text-xs">
-          © 2026 Lumanova. All rights reserved.
-        </p>
       </div>
     </motion.footer>
   );

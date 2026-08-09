@@ -1,10 +1,11 @@
 "use client";
 
 import { Toaster } from "react-hot-toast";
+import { MotionConfig } from "framer-motion";
 
 export default function Providers({ children }: { children: React.ReactNode }) {
   return (
-    <>
+    <MotionConfig reducedMotion="user">
       {children}
       <Toaster
         position="bottom-right"
@@ -21,6 +22,6 @@ export default function Providers({ children }: { children: React.ReactNode }) {
           },
         }}
       />
-    </>
+    </MotionConfig>
   );
 }

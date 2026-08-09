@@ -50,6 +50,17 @@ body {
     transform: translateY(-3px);
   }
 
+  /* Hides scrollbars on horizontally-scrollable strips (mobile feature bar)
+     while keeping native scroll/snap behavior intact. */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
   @media (prefers-reduced-motion: reduce) {
     .card-lift:hover {
       transform: none;

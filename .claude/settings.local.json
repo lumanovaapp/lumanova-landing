@@ -40,7 +40,9 @@
       "Bash(mv premium-web-design/premium-web-design/* premium-web-design/)",
       "Bash(rmdir premium-web-design/premium-web-design)",
       "Bash(curl -s -o /dev/null -w \"HTTP %{http_code}  size=%{size_download} bytes\\\\n\" http://localhost:3002/background_hero_clip.mp4)",
-      "Bash(curl -s http://localhost:3002/)"
+      "Bash(curl -s http://localhost:3002/)",
+      "Bash(disown)",
+      "Bash(lsof -ti:3001 -sTCP:LISTEN)"
     ]
   }
 }
