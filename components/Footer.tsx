@@ -96,11 +96,11 @@ const linkColumns = [
 export default function Footer() {
   return (
     <motion.footer
-      className="bg-[#0A0A0A] border-t border-white/[0.06] py-16 md:py-20"
-      initial={{ opacity: 0, y: 24 }}
+      className="bg-gradient-to-b from-[#100C07] to-[#0A0A0A] border-t border-white/[0.06] py-16 md:py-20"
+      initial={{ opacity: 0, y: 18 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: "-40px" }}
-      transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+      transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
     >
       <div className="max-w-6xl mx-auto px-6 lg:px-8">
         {/* Top: brand block (left) vs link columns (right) — asymmetric, not a centered stack */}

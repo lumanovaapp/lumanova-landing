@@ -3,6 +3,7 @@
 import { Camera, Sparkles, MessageCircle, TrendingUp, ArrowRight } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { motion } from "framer-motion";
+import SectionGlow from "@/components/SectionGlow";
 
 const steps: {
   number: string;
@@ -47,15 +48,15 @@ const steps: {
 
 const container = {
   hidden: {},
-  show: { transition: { staggerChildren: 0.1 } },
+  show: { transition: { staggerChildren: 0.07 } },
 };
 
 const item = {
-  hidden: { opacity: 0, y: 20 },
+  hidden: { opacity: 0, y: 18 },
   show: {
     opacity: 1,
     y: 0,
-    transition: { duration: 0.7, ease: [0.16, 1, 0.3, 1] as const },
+    transition: { duration: 0.22, ease: [0.16, 1, 0.3, 1] as const },
   },
 };
 
@@ -63,10 +64,10 @@ export default function HowItWorks() {
   return (
     <section
       id="how-it-works"
-      className="relative bg-[#0A0A0A] py-24 md:py-32 overflow-hidden scroll-mt-24"
+      className="relative bg-gradient-to-b from-[#0A0A0A] via-[#110C05] to-[#0A0A0A] py-24 md:py-32 overflow-hidden scroll-mt-24"
     >
-      {/* Background glow — gold only */}
-      <div className="absolute top-0 right-0 w-[500px] h-[350px] rounded-full bg-[#F4C430] blur-[160px] opacity-[0.05] pointer-events-none" />
+      {/* Background glow — gold only, gentle drift for atmosphere */}
+      <SectionGlow className="top-0 right-0" color="rgba(244, 196, 48, 0.06)" size={500} />
 
       <motion.div
         className="relative max-w-6xl mx-auto px-6 lg:px-8"
@@ -107,6 +108,8 @@ export default function HowItWorks() {
               <motion.div
                 key={i}
                 variants={item}
+                whileHover={{ x: 4 }}
+                transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
                 className="group flex flex-col sm:flex-row gap-5 sm:gap-8 py-8 hover:bg-[#F4C430]/[0.02] transition-colors duration-300 -mx-4 px-4"
               >
                 {/* Number + icon */}

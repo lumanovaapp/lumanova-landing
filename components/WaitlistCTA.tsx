@@ -4,15 +4,16 @@ import { useState } from "react";
 import toast from "react-hot-toast";
 import { ArrowRight, Loader2, Star } from "lucide-react";
 import { motion } from "framer-motion";
+import SectionGlow from "@/components/SectionGlow";
 
 const container = {
   hidden: {},
-  show: { transition: { staggerChildren: 0.1 } },
+  show: { transition: { staggerChildren: 0.07 } },
 };
 
 const item = {
-  hidden: { opacity: 0, y: 30 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.7, ease: [0.16, 1, 0.3, 1] as const } },
+  hidden: { opacity: 0, y: 22 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.25, ease: [0.16, 1, 0.3, 1] as const } },
 };
 
 export default function WaitlistCTA() {
@@ -42,11 +43,17 @@ export default function WaitlistCTA() {
       id="waitlist"
       className="relative py-24 md:py-36 overflow-hidden"
     >
-      {/* Layered near-black gradient — gold is the only accent */}
-      <div className="absolute inset-0 bg-gradient-to-b from-[#141414] via-[#0D0D0D] to-[#0A0A0A]" />
+      {/* Layered near-black gradient, warm-tinted — gold is the only accent */}
+      <div className="absolute inset-0 bg-gradient-to-b from-[#161108] via-[#100C08] to-[#0A0A0A]" />
 
-      {/* Gold glow center */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[350px] rounded-full bg-[#F4C430] blur-[180px] opacity-[0.09] pointer-events-none" />
+      {/* Gold glow center, gentle drift */}
+      <SectionGlow
+        className="top-1/2 left-1/2"
+        color="rgba(244, 196, 48, 0.10)"
+        size={600}
+        drift={16}
+        center
+      />
 
       <motion.div
         className="relative max-w-2xl mx-auto px-6 text-center"

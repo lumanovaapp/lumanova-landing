@@ -3,6 +3,7 @@
 import { motion } from "framer-motion";
 import { Sparkles, Calendar } from "lucide-react";
 import { useReducedMotion } from "@/lib/use-reduced-motion";
+import SectionGlow from "@/components/SectionGlow";
 
 const cards = [
   {
@@ -27,15 +28,15 @@ const cards = [
 
 const container = {
   hidden: {},
-  show: { transition: { staggerChildren: 0.15 } },
+  show: { transition: { staggerChildren: 0.08 } },
 };
 
 const item = {
-  hidden: { opacity: 0, y: 40 },
+  hidden: { opacity: 0, y: 20 },
   show: {
     opacity: 1,
     y: 0,
-    transition: { duration: 0.8, ease: [0.16, 1, 0.3, 1] as const },
+    transition: { duration: 0.22, ease: [0.16, 1, 0.3, 1] as const },
   },
 };
 
@@ -49,9 +50,17 @@ export default function Transformations() {
   };
 
   return (
-    <section id="transformations" className="bg-[#0A0A0A] py-24 md:py-32">
+    <section
+      id="transformations"
+      className="relative bg-gradient-to-b from-[#0A0A0A] via-[#100C06] to-[#0A0A0A] py-24 md:py-32 overflow-hidden"
+    >
+      <SectionGlow
+        className="-top-24 -left-32"
+        color="rgba(244, 196, 48, 0.06)"
+      />
+
       <motion.div
-        className="max-w-7xl mx-auto px-6 lg:px-8"
+        className="relative max-w-7xl mx-auto px-6 lg:px-8"
         initial="hidden"
         whileInView="show"
         viewport={{ once: true, margin: "-60px" }}
@@ -79,7 +88,9 @@ export default function Transformations() {
               <motion.div
                 key={i}
                 variants={item}
-                className="group rounded-3xl overflow-hidden bg-[#111111] border border-white/[0.08] hover:border-[#F4C430]/40 shadow-[0_2px_4px_rgba(0,0,0,.3),0_16px_32px_rgba(0,0,0,.4)] hover:shadow-[0_0_40px_rgba(244,196,48,0.12)] transition-all duration-500"
+                whileHover={{ y: -4 }}
+                transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+                className="group rounded-3xl overflow-hidden bg-gradient-to-b from-[#141414] to-[#0D0D0D] border border-white/[0.08] hover:border-[#F4C430]/40 shadow-[0_2px_4px_rgba(0,0,0,.3),0_16px_32px_rgba(0,0,0,.4)] hover:shadow-[0_0_40px_rgba(244,196,48,0.12)] transition-[border-color,box-shadow] duration-500"
               >
                 {/* Video */}
                 <div className="relative">
@@ -139,14 +150,17 @@ export default function Transformations() {
           )}
         </div>
 
-        {/* Bottom CTA */}
-        <motion.div variants={item} className="mt-16 text-center">
-          <p className="font-manrope font-bold text-2xl md:text-3xl text-[#F8F4E3] mb-6">
+        {/* Bottom CTA — left copy, right action; keeps the editorial split instead of a centered stack */}
+        <motion.div
+          variants={item}
+          className="mt-16 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6 border-t border-white/[0.06] pt-10"
+        >
+          <p className="font-manrope font-bold text-2xl md:text-3xl text-[#F8F4E3]">
             Your transformation is next.
           </p>
           <button
             onClick={handleScrollToHowItWorks}
-            className="inline-flex items-center gap-2 border border-[#F4C430]/30 text-[#F8F4E3] rounded-full py-3 px-6 hover:bg-[#F4C430]/10 hover:border-[#F4C430]/60 transition-all duration-300 focus-gold"
+            className="inline-flex items-center gap-2 border border-[#F4C430]/30 text-[#F8F4E3] rounded-full py-3 px-6 hover:bg-[#F4C430]/10 hover:border-[#F4C430]/60 hover:shadow-[0_0_24px_rgba(244,196,48,0.15)] transition-all duration-300 flex-shrink-0 focus-gold"
           >
             See How Lumanova Works →
           </button>

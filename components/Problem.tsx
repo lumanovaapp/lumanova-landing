@@ -2,6 +2,7 @@
 
 import { X, Check } from "lucide-react";
 import { motion } from "framer-motion";
+import SectionGlow from "@/components/SectionGlow";
 
 const others = [
   "They scan. They rate. They leave.",
@@ -19,19 +20,21 @@ const lumanova = [
 
 const container = {
   hidden: {},
-  show: { transition: { staggerChildren: 0.1 } },
+  show: { transition: { staggerChildren: 0.06 } },
 };
 
 const item = {
-  hidden: { opacity: 0, y: 24 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.6, ease: [0.16, 1, 0.3, 1] as const } },
+  hidden: { opacity: 0, y: 18 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.22, ease: [0.16, 1, 0.3, 1] as const } },
 };
 
 export default function Problem() {
   return (
-    <section className="bg-[#1A1A1A] py-24 md:py-32">
+    <section className="relative bg-gradient-to-b from-[#181310] via-[#151110] to-[#120F0D] py-24 md:py-32 overflow-hidden">
+      <SectionGlow className="top-1/3 -right-40" color="rgba(244, 196, 48, 0.05)" size={420} />
+
       <motion.div
-        className="max-w-5xl mx-auto px-6"
+        className="relative max-w-5xl mx-auto px-6"
         initial="hidden"
         whileInView="show"
         viewport={{ once: true, margin: "-60px" }}
@@ -66,7 +69,9 @@ export default function Problem() {
             <motion.div
               key={i}
               variants={item}
-              className="flex items-start gap-4 p-5 md:p-6 rounded-3xl bg-[#F4C430]/[0.05] border border-[#F4C430]/20 shadow-[0_0_24px_rgba(244,196,48,0.07)] hover:border-[#F4C430]/40 hover:bg-[#F4C430]/[0.08] hover:shadow-[0_0_36px_rgba(244,196,48,0.14)] transition-all duration-300"
+              whileHover={{ y: -3 }}
+              transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+              className="flex items-start gap-4 p-5 md:p-6 rounded-3xl bg-gradient-to-br from-[#F4C430]/[0.07] to-[#F4C430]/[0.02] border border-[#F4C430]/20 shadow-[0_0_24px_rgba(244,196,48,0.07)] hover:border-[#F4C430]/40 hover:shadow-[0_0_36px_rgba(244,196,48,0.14)] transition-[border-color,box-shadow] duration-300"
             >
               <div className="flex-shrink-0 w-7 h-7 rounded-full bg-[#F4C430]/15 border border-[#F4C430]/30 flex items-center justify-center mt-0.5">
                 <Check size={13} className="text-[#F4C430]" />
