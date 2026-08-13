@@ -84,9 +84,9 @@ export default function RemindersCard({
           </span>
 
           <label
-            className={`relative flex items-center gap-2 h-11 pl-3 pr-4 rounded-full border transition-colors ${
+            className={`relative flex items-center gap-2 h-11 pl-3 pr-4 rounded-full border transition-all duration-300 ${
               enabled
-                ? "border-white/15 bg-white/5 hover:border-lumen-gold/50 focus-within:border-lumen-gold cursor-pointer"
+                ? "border-white/[0.18] bg-white/[0.07] hover:border-lumen-gold/50 focus-within:border-lumen-gold/50 focus-within:bg-white/[0.10] cursor-pointer"
                 : "border-white/5 bg-white/[0.02] cursor-not-allowed"
             }`}
           >
@@ -100,7 +100,7 @@ export default function RemindersCard({
               value={time}
               disabled={!enabled}
               onChange={(e) => handleTimeChange(e.target.value)}
-              className={`relative bg-transparent text-sm font-medium tabular-nums focus:outline-none disabled:cursor-not-allowed [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-0 ${
+              className={`focus-gold relative bg-transparent text-sm font-medium tabular-nums focus:outline-none disabled:cursor-not-allowed [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-0 ${
                 enabled ? "text-cream-ivory" : "text-cream-ivory/30"
               }`}
             />

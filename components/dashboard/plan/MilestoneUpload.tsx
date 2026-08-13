@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState, ChangeEvent } from "react";
+import { motion, useReducedMotion } from "framer-motion";
 import { Camera, Loader2 } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 import {
@@ -25,6 +26,7 @@ export default function MilestoneUpload({
 }: MilestoneUploadProps) {
   const supabase = createClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const reduceMotion = !!useReducedMotion();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
@@ -92,11 +94,15 @@ export default function MilestoneUpload({
   }
 
   return (
-    <div className="rounded-2xl border border-lumen-gold/30 bg-lumen-gold/5 p-4">
+    <motion.div
+      whileHover={reduceMotion ? undefined : { y: -2 }}
+      transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+      className="rounded-3xl border border-lumen-gold/20 bg-gradient-to-br from-lumen-gold/[0.07] to-lumen-gold/[0.02] p-5 hover:border-lumen-gold/35 transition-[border-color] duration-300"
+    >
       <p className="font-manrope font-semibold text-sm text-cream-ivory mb-1">
         {label}
       </p>
-      <p className="text-xs text-cream-ivory/60 mb-3">
+      <p className="text-xs text-cream-ivory/60 mb-4">
         Upload a fresh selfie to see your progress since day 1.
       </p>
       {error && (
@@ -105,10 +111,10 @@ export default function MilestoneUpload({
         </div>
       )}
       <label
-        className={`w-full h-11 rounded-lg bg-lumen-gold text-pure-black font-manrope font-bold text-sm flex items-center justify-center gap-2 transition-shadow duration-300 ${
+        className={`w-full h-12 rounded-full bg-lumen-gold text-pure-black font-manrope font-bold text-sm flex items-center justify-center gap-2 transition-all duration-300 focus-gold ${
           busy
             ? "opacity-60 cursor-not-allowed"
-            : "cursor-pointer hover:shadow-[0_0_20px_rgba(244,196,48,0.35)]"
+            : "cursor-pointer hover:bg-lumen-gold/90 hover:shadow-[0_0_20px_rgba(244,196,48,0.35)]"
         }`}
       >
         {busy ? (
@@ -132,6 +138,6 @@ export default function MilestoneUpload({
           This usually takes about 10 seconds.
         </p>
       )}
-    </div>
+    </motion.div>
   );
 }

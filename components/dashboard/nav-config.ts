@@ -28,7 +28,13 @@ export const NAV_ITEMS: NavItem[] = [
     icon: Camera,
     tourTarget: "tour-nav-upload",
   },
-  { key: "plan", label: "90-Day Plan", href: "/dashboard/plan", icon: FileText },
+  {
+    key: "plan",
+    label: "90-Day Plan",
+    href: "/dashboard/plan",
+    icon: FileText,
+    tourTarget: "tour-nav-plan",
+  },
   {
     key: "coach",
     label: "AI Coach",

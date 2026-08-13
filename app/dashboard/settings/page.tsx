@@ -11,7 +11,9 @@ import AboutCard from "@/components/dashboard/settings/AboutCard";
 import packageJson from "@/package.json";
 
 const sectionLabelClass =
-  "text-xs uppercase tracking-widest text-cream-ivory/40 font-semibold mb-3";
+  "text-xs font-bold tracking-[0.18em] uppercase text-cream-ivory/40 mb-4";
+
+const cardGridClass = "grid grid-cols-1 md:grid-cols-2 gap-6";
 
 // Each card's entrance is offset by a small stagger so the page cascades in
 // on load instead of popping in all at once.
@@ -35,65 +37,73 @@ export default async function SettingsPage() {
     .single();
 
   return (
-    <div className="max-w-6xl mx-auto px-4 sm:px-6">
-      <p className="text-xs uppercase tracking-widest text-lumen-gold font-medium mb-3">
-        Settings
-      </p>
-      <h1 className="font-manrope font-bold text-3xl sm:text-4xl text-cream-ivory leading-tight">
-        Account &amp; preferences
-      </h1>
-      <p className="font-inter text-base text-cream-ivory/70 mt-2">
-        Manage your profile, reminders, and account.
-      </p>
+    <div>
+      <header className="max-w-2xl">
+        <p className="text-[10px] font-bold tracking-[0.22em] uppercase text-lumen-gold/70 mb-3">
+          Settings
+        </p>
+        <h1 className="font-manrope text-3xl sm:text-4xl leading-tight">
+          <span className="font-light text-cream-ivory/80">Account &amp; </span>
+          <span className="font-extrabold text-lumen-gold">preferences</span>
+        </h1>
+        <p className="font-inter text-base text-cream-ivory/55 mt-3">
+          Manage your profile, reminders, and account.
+        </p>
+      </header>
 
-      {/* Editorial split, matching Plan/Analysis: a wider primary column
-          (Account) alongside a narrower running sidebar of the lighter
-          sections, so the page uses the full width instead of stacking
-          everything in one centered strip. */}
-      <div className="mt-8 grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-6 lg:gap-8 items-start">
+      {/* Full-width, grouped sections — cards run 2-up within each group
+          instead of stacking one-per-row down a narrow center column. */}
+      <div className="mt-10 lg:mt-12 flex flex-col gap-14">
         {/* Account */}
         <section>
           <h2 className={sectionLabelClass}>Account</h2>
-          <div className="flex flex-col gap-4">
+          <div className={cardGridClass}>
             <EditNameCard
               userId={user.id}
               initialFullName={profile?.full_name ?? ""}
               delay={0 * STAGGER_STEP}
             />
-            <ChangePasswordCard delay={1 * STAGGER_STEP} />
-            <ChangeEmailCard currentEmail={user.email ?? ""} delay={2 * STAGGER_STEP} />
-            <LogoutCard delay={3 * STAGGER_STEP} />
-          </div>
-
-          {/* Danger zone — pulled slightly apart from the rest of Account so
-              a destructive action never reads as just another settings row. */}
-          <div className="mt-6 pt-6 border-t border-white/5">
-            <DeleteAccountCard delay={4 * STAGGER_STEP} />
+            <ChangeEmailCard currentEmail={user.email ?? ""} delay={1 * STAGGER_STEP} />
+            <div className="md:col-span-2">
+              <ChangePasswordCard delay={2 * STAGGER_STEP} />
+            </div>
           </div>
         </section>
 
-        {/* Reminders / Plan & Analysis / About & Legal */}
-        <div className="flex flex-col gap-6">
-          <section>
-            <h2 className={sectionLabelClass}>Reminders</h2>
+        {/* Preferences */}
+        <section>
+          <h2 className={sectionLabelClass}>Preferences</h2>
+          <div className={cardGridClass}>
             <RemindersCard
               userId={user.id}
               initialReminderEnabled={profile?.reminder_enabled ?? true}
               initialReminderTime={profile?.reminder_time ?? "20:00"}
-              delay={5 * STAGGER_STEP}
+              delay={3 * STAGGER_STEP}
             />
-          </section>
+            <PlanAnalysisCard delay={4 * STAGGER_STEP} />
+          </div>
+        </section>
 
-          <section>
-            <h2 className={sectionLabelClass}>Plan &amp; analysis</h2>
-            <PlanAnalysisCard delay={6 * STAGGER_STEP} />
-          </section>
+        {/* General */}
+        <section>
+          <h2 className={sectionLabelClass}>General</h2>
+          <div className={cardGridClass}>
+            <AboutCard appVersion={packageJson.version} delay={5 * STAGGER_STEP} />
+            <LogoutCard delay={6 * STAGGER_STEP} />
+          </div>
+        </section>
 
-          <section className="pb-4">
-            <h2 className={sectionLabelClass}>About &amp; legal</h2>
-            <AboutCard appVersion={packageJson.version} delay={7 * STAGGER_STEP} />
-          </section>
-        </div>
+        {/* Danger zone — pulled apart from the rest of the page with its own
+            divider and de-emphasized width so a destructive action never
+            reads as just another settings row. */}
+        <section className="pt-10 border-t border-white/[0.06]">
+          <h2 className="text-xs font-bold tracking-[0.18em] uppercase text-red-400/50 mb-4">
+            Danger zone
+          </h2>
+          <div className="max-w-xl">
+            <DeleteAccountCard email={user.email ?? undefined} delay={7 * STAGGER_STEP} />
+          </div>
+        </section>
       </div>
     </div>
   );

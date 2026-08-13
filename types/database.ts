@@ -88,6 +88,17 @@ export type ChatMessageRow = {
   created_at: string;
 };
 
+// One row per user per calendar date — the cached daily coach line. `date`
+// is a Postgres `date` column, which postgrest-js returns as a plain
+// 'YYYY-MM-DD' string (same shape as `daily_checkins.date`).
+export type DailyCoachLineRow = {
+  id: string;
+  user_id: string;
+  date: string;
+  content: string;
+  created_at: string;
+};
+
 export interface Database {
   public: {
     Tables: {
@@ -140,6 +151,16 @@ export interface Database {
         Row: Achievement;
         Insert: Partial<Achievement> & { user_id: string; badge_key: string };
         Update: Partial<Achievement>;
+        Relationships: [];
+      };
+      daily_coach_lines: {
+        Row: DailyCoachLineRow;
+        Insert: Partial<DailyCoachLineRow> & {
+          user_id: string;
+          date: string;
+          content: string;
+        };
+        Update: Partial<DailyCoachLineRow>;
         Relationships: [];
       };
     };

@@ -37,7 +37,7 @@ export default function GeneratePlanButton() {
         type="button"
         onClick={handleGenerate}
         disabled={loading}
-        className="w-full h-14 rounded-xl bg-lumen-gold text-pure-black font-manrope font-bold flex items-center justify-center gap-2 hover:shadow-[0_0_28px_rgba(244,196,48,0.45)] transition-shadow duration-300 disabled:opacity-60 disabled:cursor-not-allowed"
+        className="w-full inline-flex items-center justify-center gap-2 bg-lumen-gold text-pure-black font-manrope font-bold rounded-full px-8 py-4 hover:bg-lumen-gold/90 hover:shadow-[0_0_24px_rgba(244,196,48,0.35)] active:scale-95 transition-all duration-300 disabled:opacity-60 disabled:cursor-not-allowed disabled:active:scale-100 focus-gold"
       >
         {loading && <Loader2 className="w-5 h-5 animate-spin" />}
         {loading ? "Building your plan…" : "Generate my plan"}

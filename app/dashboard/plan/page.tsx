@@ -1,10 +1,11 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { Camera, Sparkles } from "lucide-react";
+import { Camera, Sparkles, ArrowRight } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
 import { getUserState } from "@/lib/user-state";
 import { MilestonePhotoSummary, PhotoMilestone } from "@/lib/types";
 import { buildDoneFlags, computeStreakState } from "@/lib/streak";
+import { getOrCreateDailyCoachLine } from "@/lib/daily-coach-line";
 import GeneratePlanButton from "@/components/dashboard/plan/GeneratePlanButton";
 import PlanView from "@/components/PlanView";
 
@@ -24,6 +25,12 @@ export default async function PlanPage() {
   const state = await getUserState(supabase, user.id);
 
   if (state.hasPlan && state.plan && state.planCreatedAt) {
+    // Kicked off now so it runs alongside the sequential queries below
+    // instead of adding to their latency — a cache hit resolves instantly
+    // either way, and a cache miss (one Anthropic call, once per user per
+    // day) overlaps with everything else already in flight.
+    const coachLinePromise = getOrCreateDailyCoachLine(supabase, user.id);
+
     const { data: checkinRows } = await supabase
       .from("daily_checkins")
       .select("habit_id, date, done")
@@ -102,6 +109,8 @@ export default async function PlanPage() {
       (i) => i + 1
     );
 
+    const coachLine = await coachLinePromise;
+
     return (
       <PlanView
         plan={state.plan}
@@ -113,54 +122,69 @@ export default async function PlanPage() {
         milestonePhotos={milestonePhotos}
         frozenDays={frozenDays}
         baselinePhotoUrl={baselineSigned?.data?.signedUrl ?? null}
+        coachLine={coachLine}
+        analysis={state.latestAnalysis}
       />
     );
   }
 
   if (state.hasAnalysis) {
     return (
-      <div className="max-w-xl mx-auto flex flex-col items-center py-20 text-center">
-        <div className="w-16 h-16 rounded-2xl bg-lumen-gold/10 flex items-center justify-center mb-6">
-          <Sparkles className="w-8 h-8 text-lumen-gold" />
+      <div className="max-w-xl mx-auto flex flex-col items-center py-16 sm:py-20 text-center">
+        <div className="w-full rounded-3xl border border-white/[0.08] bg-gradient-to-b from-white/[0.05] to-white/[0.02] shadow-[0_2px_4px_rgba(0,0,0,.3),0_16px_32px_rgba(0,0,0,.35)] px-6 sm:px-10 py-10 sm:py-12 flex flex-col items-center">
+          <p className="text-[10px] font-bold tracking-[0.22em] uppercase text-lumen-gold/70 mb-5">
+            Your 90-Day Plan
+          </p>
+          <div className="w-16 h-16 rounded-2xl bg-lumen-gold/10 border border-lumen-gold/20 flex items-center justify-center mb-6">
+            <Sparkles className="w-7 h-7 text-lumen-gold" />
+          </div>
+          <h1 className="font-manrope leading-tight text-2xl sm:text-3xl">
+            <span className="font-light text-cream-ivory/80">Your analysis is</span>{" "}
+            <span className="font-extrabold text-lumen-gold">ready</span>
+          </h1>
+          <p className="font-inter text-base text-cream-ivory/55 mt-3 mb-8 max-w-sm leading-relaxed">
+            We&apos;ll turn your saved analysis into a phased plan with daily
+            habits built for streaks.
+          </p>
+          <GeneratePlanButton />
+          {state.latestPhotoId && (
+            <Link
+              href={`/dashboard/upload/${state.latestPhotoId}`}
+              className="mt-5 text-sm text-cream-ivory/60 hover:text-cream-ivory underline underline-offset-4 focus-gold"
+            >
+              View my analysis
+            </Link>
+          )}
         </div>
-        <h1 className="font-manrope font-bold text-2xl text-cream-ivory">
-          Your analysis is ready
-        </h1>
-        <p className="font-inter text-base text-cream-ivory/70 mt-2 mb-8">
-          We&apos;ll turn your saved analysis into a phased plan with daily
-          habits built for streaks.
-        </p>
-        <GeneratePlanButton />
-        {state.latestPhotoId && (
-          <Link
-            href={`/dashboard/upload/${state.latestPhotoId}`}
-            className="mt-4 text-sm text-cream-ivory/60 hover:text-cream-ivory underline underline-offset-4"
-          >
-            View my analysis
-          </Link>
-        )}
       </div>
     );
   }
 
   return (
-    <div className="max-w-xl mx-auto flex flex-col items-center py-20 text-center">
-      <div className="w-16 h-16 rounded-2xl bg-lumen-gold/10 flex items-center justify-center mb-6">
-        <Camera className="w-8 h-8 text-lumen-gold" />
+    <div className="max-w-xl mx-auto flex flex-col items-center py-16 sm:py-20 text-center">
+      <div className="w-full rounded-3xl border border-white/[0.08] bg-gradient-to-b from-white/[0.05] to-white/[0.02] shadow-[0_2px_4px_rgba(0,0,0,.3),0_16px_32px_rgba(0,0,0,.35)] px-6 sm:px-10 py-10 sm:py-12 flex flex-col items-center">
+        <p className="text-[10px] font-bold tracking-[0.22em] uppercase text-lumen-gold/70 mb-5">
+          Your 90-Day Plan
+        </p>
+        <div className="w-16 h-16 rounded-2xl bg-lumen-gold/10 border border-lumen-gold/20 flex items-center justify-center mb-6">
+          <Camera className="w-7 h-7 text-lumen-gold" />
+        </div>
+        <h1 className="font-manrope leading-tight text-2xl sm:text-3xl">
+          <span className="font-light text-cream-ivory/80">Analyze a photo</span>{" "}
+          <span className="font-extrabold text-lumen-gold">first</span>
+        </h1>
+        <p className="font-inter text-base text-cream-ivory/55 mt-3 mb-8 max-w-sm leading-relaxed">
+          Your 90-day plan is built from your grooming analysis. Upload a
+          selfie to get started.
+        </p>
+        <Link
+          href="/dashboard/upload"
+          className="inline-flex items-center gap-2 bg-lumen-gold text-pure-black font-bold rounded-full px-8 py-4 hover:bg-lumen-gold/90 hover:shadow-[0_0_24px_rgba(244,196,48,0.35)] active:scale-95 transition-all duration-300 focus-gold"
+        >
+          Upload a selfie
+          <ArrowRight className="w-4 h-4" />
+        </Link>
       </div>
-      <h1 className="font-manrope font-bold text-2xl text-cream-ivory">
-        Analyze a photo first
-      </h1>
-      <p className="font-inter text-base text-cream-ivory/70 mt-2 mb-8">
-        Your 90-day plan is built from your grooming analysis. Upload a
-        selfie to get started.
-      </p>
-      <Link
-        href="/dashboard/upload"
-        className="w-full h-14 rounded-xl bg-lumen-gold text-pure-black font-manrope font-bold flex items-center justify-center hover:shadow-[0_0_28px_rgba(244,196,48,0.45)] transition-shadow duration-300"
-      >
-        Upload a selfie
-      </Link>
     </div>
   );
 }

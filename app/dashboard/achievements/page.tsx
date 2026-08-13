@@ -25,17 +25,20 @@ export default async function AchievementsPage() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto px-4 sm:px-6">
-      <p className="text-xs uppercase tracking-widest text-lumen-gold font-medium mb-3">
-        Achievements
-      </p>
-      <h1 className="font-manrope font-bold text-3xl sm:text-4xl text-cream-ivory leading-tight">
-        Your badges
-      </h1>
-      <p className="font-inter text-base text-cream-ivory/70 mt-2">
-        Unlocked automatically as you build your streak, stay consistent, and hit
-        photo milestones.
-      </p>
+    <div>
+      <div className="max-w-2xl">
+        <p className="text-[10px] font-bold tracking-[0.22em] uppercase text-lumen-gold/70 mb-4">
+          Achievements
+        </p>
+        <h1 className="font-manrope text-3xl sm:text-4xl leading-[1.1] tracking-[-0.02em]">
+          <span className="font-light text-cream-ivory/80">Your</span>{" "}
+          <span className="font-extrabold text-lumen-gold">badges.</span>
+        </h1>
+        <p className="font-inter text-base text-cream-ivory/55 mt-3">
+          Unlocked automatically as you build your streak, stay consistent, and hit
+          photo milestones.
+        </p>
+      </div>
 
       <AchievementsGrid
         badges={BADGES}

@@ -10,9 +10,9 @@ export default function ReplayTourButton() {
     <button
       type="button"
       onClick={startTour}
-      className="inline-flex items-center gap-2 h-12 px-5 rounded-xl bg-lumen-gold text-pure-black font-manrope font-bold hover:shadow-[0_0_28px_rgba(244,196,48,0.45)] transition-shadow duration-300"
+      className="inline-flex items-center justify-center gap-2 h-11 px-5 rounded-full border border-lumen-gold/30 text-cream-ivory font-manrope font-semibold text-sm hover:bg-lumen-gold/10 hover:border-lumen-gold/60 active:scale-[0.98] transition-all duration-300 focus-gold"
     >
-      <RotateCcw className="w-4 h-4" />
+      <RotateCcw className="w-4 h-4 text-lumen-gold" />
       Replay the tour
     </button>
   );

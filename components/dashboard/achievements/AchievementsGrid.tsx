@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion";
 import { Badge } from "@/lib/types";
-import { BADGE_CATEGORY_LABELS, BADGE_CATEGORY_ORDER } from "@/lib/badges";
+import { BADGE_CATEGORY_LABELS, BADGE_CATEGORY_ORDER, BADGE_CATEGORY_THEME } from "@/lib/badges";
 import BadgeCard from "./BadgeCard";
 
 interface AchievementsGridProps {
@@ -28,14 +28,16 @@ export default function AchievementsGrid({
 
   return (
     <div className="mt-8">
-      <div className="rounded-2xl border border-white/10 bg-white/5 p-5 sm:p-6 mb-8">
-        <div className="flex items-center justify-between mb-3">
-          <p className="font-manrope font-semibold text-cream-ivory">
+      {/* Stats strip — compact and left-aligned, sized to its content rather
+          than stretched across the full-width shell like a stray banner. */}
+      <div className="inline-flex flex-col gap-3 rounded-2xl border border-white/[0.08] bg-gradient-to-b from-white/[0.04] to-white/[0.015] px-5 py-4 sm:px-6 sm:py-5 mb-10">
+        <div className="flex items-center gap-6">
+          <p className="font-manrope font-semibold text-cream-ivory text-sm sm:text-base whitespace-nowrap">
             {unlockedCount} of {totalCount} unlocked
           </p>
-          <p className="text-sm text-lumen-gold font-medium">{progressPct}%</p>
+          <p className="text-sm text-lumen-gold font-semibold whitespace-nowrap">{progressPct}%</p>
         </div>
-        <div className="h-1.5 w-full rounded-full bg-white/10 overflow-hidden">
+        <div className="h-1.5 w-56 sm:w-64 rounded-full bg-white/10 overflow-hidden">
           <motion.div
             className="h-full rounded-full bg-lumen-gold"
             initial={{ width: 0 }}
@@ -49,12 +51,15 @@ export default function AchievementsGrid({
         const items = badges.filter((badge) => badge.category === category);
         if (items.length === 0) return null;
 
+        const theme = BADGE_CATEGORY_THEME[category];
+
         return (
-          <section key={category} className="mb-8 last:mb-0">
-            <h2 className="text-xs uppercase tracking-widest text-cream-ivory/40 font-semibold mb-3">
+          <section key={category} className="mb-10 last:mb-0">
+            <h2 className="flex items-center gap-2 text-xs uppercase tracking-widest text-cream-ivory/40 font-semibold mb-4">
+              <span className={`w-2 h-2 rounded-full ${theme.dot}`} aria-hidden="true" />
               {BADGE_CATEGORY_LABELS[category]}
             </h2>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-5">
               {items.map((badge) => {
                 const delay = Math.min(cardIndex * STAGGER_STEP, MAX_STAGGER_DELAY);
                 cardIndex += 1;

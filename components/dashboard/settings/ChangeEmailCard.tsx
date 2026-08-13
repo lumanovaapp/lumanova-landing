@@ -9,7 +9,7 @@ import SettingsCard from "./SettingsCard";
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const inputClass =
-  "w-full h-12 rounded-xl bg-white/5 border border-white/10 text-cream-ivory text-base placeholder:text-cream-ivory/40 px-4 focus:outline-none focus:border-lumen-gold transition-colors";
+  "focus-gold w-full h-12 rounded-xl bg-white/[0.07] border border-white/[0.18] text-cream-ivory text-base placeholder:text-cream-ivory/30 px-4 focus:outline-none focus:border-lumen-gold/50 focus:bg-white/[0.10] transition-all duration-300";
 
 interface ChangeEmailCardProps {
   currentEmail: string;
@@ -127,7 +127,7 @@ export default function ChangeEmailCard({ currentEmail, delay = 0 }: ChangeEmail
           type="submit"
           disabled={!canSubmit || saving}
           whileTap={canSubmit ? { scale: 0.96 } : undefined}
-          className="h-12 px-6 rounded-xl bg-lumen-gold text-pure-black font-manrope font-bold text-sm self-start hover:shadow-[0_0_28px_rgba(244,196,48,0.45)] transition-shadow duration-300 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:shadow-none"
+          className="focus-gold h-12 px-6 rounded-full bg-lumen-gold text-pure-black font-manrope font-bold text-sm self-start hover:bg-lumen-gold/90 hover:shadow-[0_0_24px_rgba(244,196,48,0.35)] transition-all duration-300 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:shadow-none disabled:hover:bg-lumen-gold"
         >
           {saving ? "Sending…" : "Update email"}
         </motion.button>

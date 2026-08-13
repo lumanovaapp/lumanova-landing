@@ -13,12 +13,18 @@ interface AboutCardProps {
 }
 
 const linkClass =
-  "group flex items-center gap-3 h-11 -mx-2 px-2 rounded-xl text-sm text-cream-ivory/70 hover:bg-white/5 hover:text-cream-ivory transition-colors";
+  "focus-gold group flex items-center gap-3 h-11 -mx-2 px-2 rounded-xl text-sm text-cream-ivory/70 hover:bg-white/5 hover:text-cream-ivory transition-colors duration-300";
 
 export default function AboutCard({ appVersion, delay = 0 }: AboutCardProps) {
   return (
     <SettingsCard delay={delay}>
-      <div className="flex flex-col gap-1">
+      <div className="flex items-center gap-3 mb-3">
+        <div className="w-9 h-9 rounded-xl bg-lumen-gold/10 flex items-center justify-center flex-shrink-0">
+          <ScrollText className="w-4 h-4 text-lumen-gold" />
+        </div>
+        <h3 className="font-manrope font-semibold text-cream-ivory">About &amp; legal</h3>
+      </div>
+      <div className="ml-12 flex flex-col gap-1">
         <motion.div whileHover={{ x: 2 }}>
           <Link href="/privacy" className={linkClass}>
             <ScrollText className="w-4 h-4 text-cream-ivory/40 group-hover:text-lumen-gold transition-colors" />

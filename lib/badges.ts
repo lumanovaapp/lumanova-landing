@@ -105,6 +105,50 @@ export const BADGE_CATEGORY_ORDER: BadgeCategory[] = [
   "milestone",
 ];
 
+export interface BadgeCategoryTheme {
+  text: string;
+  dot: string;
+  iconBg: string;
+  border: string;
+  hoverBorder: string;
+  cardGradient: string;
+  glow: string;
+}
+
+// One distinct, jewel-toned accent per badge category (unlocked state only —
+// locked badges stay uniformly dimmed regardless of category so "locked"
+// reads as one consistent state at a glance).
+// streak = warm gold/amber (fire), consistency = teal/emerald, milestone = violet.
+export const BADGE_CATEGORY_THEME: Record<BadgeCategory, BadgeCategoryTheme> = {
+  streak: {
+    text: "text-lumen-gold",
+    dot: "bg-lumen-gold",
+    iconBg: "bg-lumen-gold/15",
+    border: "border-lumen-gold/25",
+    hoverBorder: "hover:border-lumen-gold/45",
+    cardGradient: "bg-gradient-to-br from-lumen-gold/[0.08] to-lumen-gold/[0.02]",
+    glow: "shadow-[0_0_24px_rgba(244,196,48,0.10)]",
+  },
+  consistency: {
+    text: "text-aurora-mist",
+    dot: "bg-aurora-mist",
+    iconBg: "bg-aurora-mist/15",
+    border: "border-aurora-mist/25",
+    hoverBorder: "hover:border-aurora-mist/45",
+    cardGradient: "bg-gradient-to-br from-aurora-mist/[0.08] to-aurora-mist/[0.02]",
+    glow: "shadow-[0_0_24px_rgba(127,224,211,0.10)]",
+  },
+  milestone: {
+    text: "text-badge-violet",
+    dot: "bg-badge-violet",
+    iconBg: "bg-badge-violet/15",
+    border: "border-badge-violet/25",
+    hoverBorder: "hover:border-badge-violet/45",
+    cardGradient: "bg-gradient-to-br from-badge-violet/[0.08] to-badge-violet/[0.02]",
+    glow: "shadow-[0_0_24px_rgba(182,156,255,0.10)]",
+  },
+};
+
 export function getBadge(key: string): Badge | undefined {
   return BADGES.find((badge) => badge.key === key);
 }

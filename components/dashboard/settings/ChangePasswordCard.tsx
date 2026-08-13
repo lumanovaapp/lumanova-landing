@@ -11,7 +11,7 @@ import SaveStatus, { SaveState } from "./SaveStatus";
 const MIN_PASSWORD_LENGTH = 8;
 
 const inputClass =
-  "w-full h-12 rounded-xl bg-white/5 border border-white/10 text-cream-ivory text-base placeholder:text-cream-ivory/40 px-4 pr-12 focus:outline-none focus:border-lumen-gold transition-colors";
+  "focus-gold w-full h-12 rounded-xl bg-white/[0.07] border border-white/[0.18] text-cream-ivory text-base placeholder:text-cream-ivory/30 px-4 pr-12 focus:outline-none focus:border-lumen-gold/50 focus:bg-white/[0.10] transition-all duration-300";
 
 interface ChangePasswordCardProps {
   delay?: number;
@@ -92,7 +92,7 @@ export default function ChangePasswordCard({ delay = 0 }: ChangePasswordCardProp
             type="submit"
             disabled={!canSubmit || status === "saving"}
             whileTap={canSubmit ? { scale: 0.96 } : undefined}
-            className="h-12 px-6 rounded-xl bg-lumen-gold text-pure-black font-manrope font-bold text-sm flex-shrink-0 hover:shadow-[0_0_28px_rgba(244,196,48,0.45)] transition-shadow duration-300 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:shadow-none"
+            className="focus-gold h-12 px-6 rounded-full bg-lumen-gold text-pure-black font-manrope font-bold text-sm flex-shrink-0 hover:bg-lumen-gold/90 hover:shadow-[0_0_24px_rgba(244,196,48,0.35)] transition-all duration-300 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:shadow-none disabled:hover:bg-lumen-gold"
           >
             {status === "saving" ? "Updating…" : "Update password"}
           </motion.button>

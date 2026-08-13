@@ -3,7 +3,7 @@
 import { motion } from "framer-motion";
 import toast from "react-hot-toast";
 import { Badge } from "@/lib/types";
-import { getBadge } from "@/lib/badges";
+import { getBadge, BADGE_CATEGORY_THEME } from "@/lib/badges";
 import BadgeIcon from "@/components/dashboard/achievements/BadgeIcon";
 
 const TOAST_DURATION_MS = 4500;
@@ -17,18 +17,20 @@ interface AchievementToastCardProps {
 }
 
 function AchievementToastCard({ badge }: AchievementToastCardProps) {
+  const theme = BADGE_CATEGORY_THEME[badge.category];
+
   return (
     <motion.div
       initial={{ opacity: 0, y: -10, scale: 0.92 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       transition={{ type: "spring", stiffness: 420, damping: 26 }}
-      className="flex items-center gap-3 rounded-2xl border border-lumen-gold/20 bg-charcoal px-4 py-3 shadow-[0_8px_30px_rgba(0,0,0,0.4)]"
+      className={`flex items-center gap-3 rounded-3xl border ${theme.border} bg-gradient-to-br from-charcoal to-[#120D06] px-4 py-3 shadow-[0_8px_30px_rgba(0,0,0,0.45)] ${theme.glow}`}
     >
-      <div className="w-11 h-11 rounded-xl bg-lumen-gold/15 flex items-center justify-center flex-shrink-0">
-        <BadgeIcon name={badge.icon} className="w-5 h-5 text-lumen-gold" />
+      <div className={`w-11 h-11 rounded-2xl ${theme.cardGradient} flex items-center justify-center flex-shrink-0`}>
+        <BadgeIcon name={badge.icon} className={`w-5 h-5 ${theme.text}`} />
       </div>
       <div>
-        <p className="text-[10px] uppercase tracking-widest text-lumen-gold/80 font-semibold">
+        <p className={`text-[10px] uppercase tracking-widest ${theme.text} font-semibold`}>
           Achievement unlocked
         </p>
         <p className="font-manrope font-semibold text-sm text-cream-ivory">

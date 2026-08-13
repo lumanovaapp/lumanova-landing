@@ -19,9 +19,12 @@ export default function Toggle({ checked, onChange, disabled, label }: TogglePro
       disabled={disabled}
       onClick={() => onChange(!checked)}
       whileTap={disabled ? undefined : { scale: 0.92 }}
-      animate={{ backgroundColor: checked ? "#F4C430" : "rgba(255,255,255,0.1)" }}
+      animate={{
+        backgroundColor: checked ? "#F4C430" : "rgba(255,255,255,0.1)",
+        boxShadow: checked ? "0 0 14px rgba(244,196,48,0.35)" : "0 0 0 rgba(244,196,48,0)",
+      }}
       transition={{ duration: 0.2, ease: "easeOut" }}
-      className="relative h-7 w-12 flex-shrink-0 rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-lumen-gold focus-visible:ring-offset-2 focus-visible:ring-offset-pure-black disabled:opacity-60 disabled:cursor-not-allowed"
+      className="focus-gold relative h-7 w-12 flex-shrink-0 rounded-full border border-white/10 outline-none disabled:opacity-60 disabled:cursor-not-allowed"
     >
       <motion.span
         animate={{ x: checked ? 20 : 0 }}

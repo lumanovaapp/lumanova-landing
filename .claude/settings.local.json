@@ -42,7 +42,15 @@
       "Bash(curl -s -o /dev/null -w \"HTTP %{http_code}  size=%{size_download} bytes\\\\n\" http://localhost:3002/background_hero_clip.mp4)",
       "Bash(curl -s http://localhost:3002/)",
       "Bash(disown)",
-      "Bash(lsof -ti:3001 -sTCP:LISTEN)"
+      "Bash(lsof -ti:3001 -sTCP:LISTEN)",
+      "Bash(npx --yes playwright --version)",
+      "Bash(cp \"C:\\\\Users\\\\LEGION\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\E--Lumanova-app\\\\7c7511c2-9dbd-4df4-8311-878473b83e58\\\\scratchpad\\\\clicktest.js\" ./__clicktest.cjs)",
+      "Bash(node ./__clicktest.cjs)",
+      "Bash(mkdir -p app/clicktest-tmp)",
+      "Bash(mv app/__clicktest/page.tsx app/clicktest-tmp/page.tsx)",
+      "Bash(rmdir app/__clicktest)",
+      "Bash(Select-String -Pattern \"useBodyScrollLock\" -Context 0,0)",
+      "Bash(node -e \"const icons=require\\('lucide-react'\\); ['Scissors','Shirt','Wand2','Sparkles','Droplet','Lock','TrendingUp','MapPin','CircleCheck','CheckCircle2'].forEach\\(n=>console.log\\(n, !!icons[n]\\)\\)\")"
     ]
   }
 }

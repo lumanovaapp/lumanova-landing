@@ -5,6 +5,11 @@ const config: Config = {
     "./pages/**/*.{js,ts,jsx,tsx,mdx}",
     "./components/**/*.{js,ts,jsx,tsx,mdx}",
     "./app/**/*.{js,ts,jsx,tsx,mdx}",
+    // Shared className tokens (e.g. lib/accent.ts, lib/badges.ts) live here
+    // as plain string literals referenced indirectly through theme objects —
+    // without this, Tailwind's scanner never sees them and silently drops
+    // their classes from the compiled CSS.
+    "./lib/**/*.{js,ts,jsx,tsx,mdx}",
   ],
   theme: {
     extend: {
@@ -16,6 +21,9 @@ const config: Config = {
         "pure-black": "#0A0A0A",
         charcoal: "#1A1A1A",
         "warm-coral": "#FF6F59",
+        // Jewel-toned violet reserved for milestone-category achievement
+        // badges — distinct from every other semantic accent in the app.
+        "badge-violet": "#B69CFF",
       },
       fontFamily: {
         manrope: ["var(--font-manrope)", "sans-serif"],

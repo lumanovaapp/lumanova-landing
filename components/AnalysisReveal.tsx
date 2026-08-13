@@ -103,10 +103,10 @@ export default function AnalysisReveal({
   const topQuickWins = analysis.quick_wins.slice(0, 3);
 
   return (
-    <div className="max-w-6xl mx-auto px-4 sm:px-6">
+    <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
       {/* Hero: content left, scan image right on desktop — asymmetric, not centered */}
       <div
-        className="hero-glow grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-8 lg:gap-12 items-start"
+        className="hero-glow grid grid-cols-1 lg:grid-cols-[1fr_420px] gap-8 lg:gap-14 items-start"
         style={{ "--glow-color": "rgba(244, 196, 48, 0.14)" } as CSSProperties}
       >
         <motion.div
@@ -118,17 +118,17 @@ export default function AnalysisReveal({
           }}
           className="order-2 lg:order-1"
         >
-          <p className="text-xs uppercase tracking-widest text-lumen-gold font-medium mb-3">
+          <p className="text-[10px] font-bold tracking-[0.22em] uppercase text-lumen-gold/70">
             Your Analysis
           </p>
-          <p className="font-manrope font-bold text-3xl sm:text-4xl text-cream-ivory leading-tight text-balance">
+          <p className="mt-3 font-manrope font-bold text-3xl sm:text-4xl text-cream-ivory leading-tight text-balance">
             {analysis.summary}
           </p>
 
-          <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-5">
+          <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-5">
             {analysis.focus_areas.length > 0 && (
               <div>
-                <p className="text-xs uppercase tracking-widest text-cream-ivory/50 font-medium mb-3">
+                <p className="text-[10px] font-bold tracking-[0.22em] uppercase text-cream-ivory/45 mb-3">
                   We&apos;ll work on
                 </p>
                 <div className="flex flex-wrap items-center gap-2">
@@ -146,7 +146,7 @@ export default function AnalysisReveal({
 
             {topQuickWins.length > 0 && (
               <div>
-                <p className="text-xs uppercase tracking-widest text-cream-ivory/50 font-medium mb-3">
+                <p className="text-[10px] font-bold tracking-[0.22em] uppercase text-cream-ivory/45 mb-3">
                   Quick wins this week
                 </p>
                 <div className="flex flex-col gap-2">
@@ -171,7 +171,7 @@ export default function AnalysisReveal({
 
         {/* Scan hero */}
         <div className="order-1 lg:order-2 lg:sticky lg:top-8">
-          <div className="relative w-full max-w-[380px] mx-auto lg:mx-0 aspect-square rounded-2xl overflow-hidden border border-white/10 bg-white/5">
+          <div className="relative w-full max-w-[420px] mx-auto lg:mx-0 aspect-square rounded-2xl overflow-hidden border border-white/10 bg-white/5">
             {imageUrl && (
               // eslint-disable-next-line @next/next/no-img-element
               <img
@@ -248,8 +248,14 @@ export default function AnalysisReveal({
         </div>
       </div>
 
-      {/* Category cards: 2-col grid */}
-      <div className="mt-12 grid grid-cols-1 md:grid-cols-2 gap-6">
+      {/* Category cards — every card shares the same footprint (boxed
+          feature-crop image + text side), alternating which side the image
+          sits on so the grid still has editorial rhythm without any card
+          breaking the pattern. */}
+      <p className="mt-16 text-[10px] font-bold tracking-[0.22em] uppercase text-lumen-gold/70">
+        The Breakdown
+      </p>
+      <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-6">
         {analysis.categories.map((category, i) => (
           <CategoryCard
             key={category.name}
@@ -267,13 +273,13 @@ export default function AnalysisReveal({
       </div>
 
       {/* CTA */}
-      <div className="mt-10 rounded-3xl border border-lumen-gold/20 bg-gradient-to-br from-lumen-gold/10 to-transparent p-8 sm:p-10 text-center">
+      <div className="mt-10 rounded-3xl border border-lumen-gold/20 bg-gradient-to-br from-lumen-gold/[0.07] to-lumen-gold/[0.02] p-8 sm:p-10 text-center">
         <p className="font-manrope font-semibold text-lg sm:text-xl text-cream-ivory mb-6">
           Ready to turn this into your plan?
         </p>
         <Link
           href="/dashboard/plan"
-          className="inline-flex w-full sm:w-auto sm:min-w-[280px] h-14 px-8 rounded-xl bg-lumen-gold text-pure-black font-manrope font-bold items-center justify-center hover:shadow-[0_0_28px_rgba(244,196,48,0.45)] transition-shadow duration-300"
+          className="inline-flex w-full sm:w-auto sm:min-w-[280px] h-14 px-8 rounded-full bg-lumen-gold text-pure-black font-manrope font-bold items-center justify-center gap-2 hover:bg-lumen-gold/90 hover:shadow-[0_0_24px_rgba(244,196,48,0.35)] active:scale-95 transition-all duration-300 focus-gold"
         >
           Generate my 90-day plan
         </Link>
@@ -325,15 +331,16 @@ function CategoryCard({
       onMouseLeave={() => onHoverChange(false)}
       initial={{ opacity: 0, y: reduceMotion ? 0 : 28 }}
       whileInView={{ opacity: 1, y: 0 }}
+      whileHover={reduceMotion ? undefined : { y: -4 }}
       viewport={{ once: true, amount: 0.25 }}
       transition={{
         duration: reduceMotion ? 0.25 : 0.5,
         delay: reduceMotion ? 0 : index * 0.1,
       }}
-      className={`card-lift overflow-visible rounded-2xl border bg-white/5 p-6 scroll-mt-24 transition-all duration-300 hover:bg-white/[0.07] ${
+      className={`overflow-visible rounded-3xl border bg-gradient-to-b from-white/[0.05] to-white/[0.02] shadow-[0_2px_4px_rgba(0,0,0,.3),0_16px_32px_rgba(0,0,0,.35)] p-6 scroll-mt-24 transition-[border-color,box-shadow] duration-300 ${
         isHighlighted || isHovered
           ? `${theme.border} ${theme.ring}`
-          : "border-white/10 hover:border-white/20"
+          : "border-white/[0.08] hover:border-white/[0.16]"
       }`}
     >
       <div
@@ -341,7 +348,12 @@ function CategoryCard({
           imageOnRight ? "sm:flex-row-reverse" : "sm:flex-row"
         }`}
       >
-        <FeatureCrop imageUrl={imageUrl} zone={zone} icon={Icon} theme={theme} />
+        <FeatureCrop
+          imageUrl={imageUrl}
+          zone={zone}
+          icon={Icon}
+          theme={theme}
+        />
 
         <div className="flex-1 w-full min-w-0">
           <div className="flex flex-wrap items-center gap-3">
@@ -381,7 +393,7 @@ function CategoryCard({
                 <button
                   type="button"
                   onClick={() => setExpanded((v) => !v)}
-                  className={`flex items-center gap-1 text-xs font-medium ${theme.text} hover:underline mt-1`}
+                  className={`flex items-center gap-1 text-xs font-medium ${theme.text} hover:underline mt-1 focus-gold`}
                 >
                   {expanded ? (
                     <ChevronUp className="w-3.5 h-3.5" />
@@ -508,7 +520,7 @@ function Marker({
         onMouseEnter={() => onHoverChange(true)}
         onMouseLeave={() => onHoverChange(false)}
         aria-label={`Jump to ${category}`}
-        className="relative block w-3 h-3 -translate-x-1/2 -translate-y-1/2"
+        className="relative block w-3 h-3 -translate-x-1/2 -translate-y-1/2 focus-gold"
       >
         <span className="relative flex items-center justify-center w-3 h-3">
           {!reduceMotion && (

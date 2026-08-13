@@ -58,10 +58,62 @@ create table if not exists public.streaks (
   last_checkin_date date
 );
 
+create table if not exists public.chat_messages (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references public.users (id) on delete cascade,
+  role text not null check (role in ('user', 'assistant')),
+  content text not null,
+  created_at timestamptz not null default now()
+);
+
+create table if not exists public.achievements (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references public.users (id) on delete cascade,
+  badge_key text not null,
+  unlocked_at timestamptz not null default now(),
+  unique (user_id, badge_key)
+);
+
+-- One cached line per user per calendar day — see lib/daily-coach-line.ts.
+-- Written at most once per (user_id, date); read on every page load after
+-- that instead of ever calling the model again for the same day.
+create table if not exists public.daily_coach_lines (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references public.users (id) on delete cascade,
+  date date not null,
+  content text not null,
+  created_at timestamptz not null default now(),
+  unique (user_id, date)
+);
+
 create index if not exists photos_user_id_idx on public.photos (user_id);
 create index if not exists plans_user_id_idx on public.plans (user_id);
 create index if not exists daily_checkins_user_id_idx on public.daily_checkins (user_id);
 create unique index if not exists daily_checkins_user_date_idx on public.daily_checkins (user_id, date);
+create index if not exists chat_messages_user_id_idx on public.chat_messages (user_id);
+create index if not exists achievements_user_id_idx on public.achievements (user_id);
+create index if not exists daily_coach_lines_user_id_idx on public.daily_coach_lines (user_id);
+
+-- Defensive: if chat_messages/achievements already exist in this project
+-- (created outside this file, e.g. via the dashboard table editor) without
+-- an ON DELETE CASCADE foreign key, this repoints them at one so account
+-- deletion actually cascades to these tables too. Safe to re-run.
+do $$
+begin
+  if exists (select 1 from information_schema.tables where table_schema = 'public' and table_name = 'chat_messages') then
+    alter table public.chat_messages drop constraint if exists chat_messages_user_id_fkey;
+    alter table public.chat_messages
+      add constraint chat_messages_user_id_fkey
+      foreign key (user_id) references public.users (id) on delete cascade;
+  end if;
+
+  if exists (select 1 from information_schema.tables where table_schema = 'public' and table_name = 'achievements') then
+    alter table public.achievements drop constraint if exists achievements_user_id_fkey;
+    alter table public.achievements
+      add constraint achievements_user_id_fkey
+      foreign key (user_id) references public.users (id) on delete cascade;
+  end if;
+end $$;
 
 -- ============================================================
 -- 2. ROW LEVEL SECURITY
@@ -72,6 +124,7 @@ alter table public.photos enable row level security;
 alter table public.plans enable row level security;
 alter table public.daily_checkins enable row level security;
 alter table public.streaks enable row level security;
+alter table public.daily_coach_lines enable row level security;
 
 -- users: row id IS the user's own id
 create policy "Users can view own row" on public.users
@@ -122,6 +175,16 @@ create policy "Users can insert own streak" on public.streaks
 
 create policy "Users can update own streak" on public.streaks
   for update using (auth.uid() = user_id);
+
+-- daily_coach_lines: written once per day server-side (the user's own
+-- session, not the admin client — see lib/daily-coach-line.ts), so it needs
+-- the same auth.uid() insert/select policies as everything else here. No
+-- update/delete policy: a day's line is never edited after it's written.
+create policy "Users can view own daily coach lines" on public.daily_coach_lines
+  for select using (auth.uid() = user_id);
+
+create policy "Users can insert own daily coach lines" on public.daily_coach_lines
+  for insert with check (auth.uid() = user_id);
 
 -- ============================================================
 -- 3. AUTO-CREATE public.users ROW ON SIGNUP

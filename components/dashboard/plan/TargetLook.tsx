@@ -1,0 +1,103 @@
+"use client";
+
+import { Droplet, Scissors, Wand2, Shirt, ImageIcon, LucideIcon } from "lucide-react";
+import { motion, useReducedMotion } from "framer-motion";
+import { Analysis } from "@/lib/types";
+import { selectTargetLookAreas, TargetLookEntry } from "@/lib/target-look";
+
+const ICONS: Record<string, LucideIcon> = { Droplet, Scissors, Wand2, Shirt };
+
+interface TargetLookProps {
+  analysis: Analysis | null;
+  className?: string;
+}
+
+export default function TargetLook({ analysis, className = "" }: TargetLookProps) {
+  const reduceMotion = !!useReducedMotion();
+  const areas = selectTargetLookAreas(analysis);
+
+  if (areas.length === 0) return null;
+
+  return (
+    <section className={className}>
+      <div className="max-w-2xl mb-6">
+        <p className="text-[10px] font-bold tracking-[0.22em] uppercase text-lumen-gold/70 mb-3">
+          Your Target Look
+        </p>
+        <h2 className="font-manrope leading-[1.15] tracking-[-0.02em] text-xl sm:text-2xl mb-2">
+          <span className="font-light text-cream-ivory/80">Here&apos;s the</span>{" "}
+          <span className="font-extrabold text-lumen-gold">destination</span>
+        </h2>
+        <p className="font-inter text-sm text-cream-ivory/55 leading-relaxed">
+          Pulled from your analysis — the shape your daily habits are working
+          toward for each focus area.
+        </p>
+      </div>
+
+      <div
+        className={`grid grid-cols-1 gap-5 ${
+          areas.length === 2 ? "sm:grid-cols-2" : "sm:grid-cols-2 lg:grid-cols-3"
+        }`}
+      >
+        {areas.map((area, i) => (
+          <TargetLookCard key={area.key} area={area} index={i} reduceMotion={reduceMotion} />
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function TargetLookCard({
+  area,
+  index,
+  reduceMotion,
+}: {
+  area: TargetLookEntry;
+  index: number;
+  reduceMotion: boolean;
+}) {
+  const Icon = ICONS[area.icon] ?? ImageIcon;
+
+  return (
+    <motion.div
+      initial={reduceMotion ? false : { opacity: 0, y: 20 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: "-60px" }}
+      whileHover={reduceMotion ? undefined : { y: -4 }}
+      transition={{ duration: 0.4, delay: reduceMotion ? 0 : index * 0.08, ease: [0.16, 1, 0.3, 1] }}
+      className="group rounded-3xl border border-white/[0.08] bg-gradient-to-b from-white/[0.05] to-white/[0.02] shadow-[0_2px_4px_rgba(0,0,0,.3),0_16px_32px_rgba(0,0,0,.35)] p-3 transition-colors duration-300 hover:border-lumen-gold/25"
+    >
+      <div className="relative aspect-[4/5] rounded-2xl overflow-hidden border border-white/10 bg-gradient-to-br from-lumen-gold/[0.09] via-charcoal to-[#0A0A0A]">
+        {area.imageUrl ? (
+          // Swappable reference photo — see lib/target-look.ts. Plain <img>
+          // since these are external/user-supplied URLs, not local assets.
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={area.imageUrl}
+            alt={area.label}
+            className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+          />
+        ) : (
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 px-4 text-center">
+            <div className="w-11 h-11 rounded-2xl bg-lumen-gold/10 border border-lumen-gold/20 flex items-center justify-center">
+              <Icon className="w-5 h-5 text-lumen-gold" />
+            </div>
+            <span className="text-[9px] font-bold tracking-[0.16em] uppercase text-cream-ivory/30">
+              Reference image
+            </span>
+          </div>
+        )}
+      </div>
+
+      <div className="px-2 pt-4 pb-2">
+        <div className="flex items-center gap-2 mb-1.5">
+          <Icon className="w-3.5 h-3.5 text-lumen-gold flex-shrink-0" />
+          <p className="font-manrope font-semibold text-sm text-cream-ivory">
+            {area.label}
+          </p>
+        </div>
+        <p className="text-xs text-cream-ivory/55 leading-relaxed">{area.caption}</p>
+      </div>
+    </motion.div>
+  );
+}

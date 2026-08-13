@@ -20,7 +20,7 @@ export default function LogoutCard({ delay = 0 }: LogoutCardProps) {
           </p>
         </div>
       </div>
-      <LogoutButton />
+      <LogoutButton className="focus-gold border border-white/10 hover:border-lumen-gold/30" />
     </SettingsCard>
   );
 }

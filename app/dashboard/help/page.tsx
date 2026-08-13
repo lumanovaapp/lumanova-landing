@@ -82,82 +82,109 @@ const FAQ_ITEMS: FaqEntry[] = [
 
 export default function HelpPage() {
   return (
-    <div className="max-w-3xl mx-auto">
-      <p className="text-xs uppercase tracking-widest text-lumen-gold font-medium mb-3">
-        Help
-      </p>
-      <h1 className="font-manrope font-bold text-3xl sm:text-4xl text-cream-ivory leading-tight">
-        How Lumanova works
-      </h1>
-      <p className="font-inter text-base text-cream-ivory/70 mt-2">
-        A quick overview of the whole loop, plus answers to common questions.
-      </p>
+    <div className="max-w-6xl mx-auto px-4 sm:px-6 pb-4">
+      {/* Asymmetric split — sticky intro column (header + secondary actions)
+          alongside a wider content column (how-it-works + FAQ), the same
+          pattern HowItWorks.tsx uses on the landing page. This replaces the
+          old centered max-w-3xl strip: the FAQ copy still gets a capped
+          reading measure below, but the page uses the full width instead of
+          leaving dead margins on wide screens. */}
+      <div className="grid grid-cols-1 lg:grid-cols-[300px_minmax(0,1fr)] gap-10 lg:gap-16 items-start">
+        {/* Left: header + secondary actions, sticky on desktop */}
+        <div className="lg:sticky lg:top-28">
+          <p className="text-[10px] font-bold tracking-[0.22em] uppercase text-lumen-gold/70 mb-4">
+            Help
+          </p>
+          <h1 className="font-manrope leading-[1.1] tracking-[-0.02em] text-3xl sm:text-4xl lg:text-3xl mb-4">
+            <span className="font-light text-cream-ivory/80">How Lumanova</span>{" "}
+            <span className="font-extrabold text-lumen-gold">works.</span>
+          </h1>
+          <p className="text-sm text-cream-ivory/55 leading-relaxed mb-8">
+            A quick overview of the whole loop, plus answers to common
+            questions.
+          </p>
 
-      {/* How it works */}
-      <div className="mt-8 rounded-2xl border border-white/10 bg-white/5 p-6 sm:p-8">
-        <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-6 gap-6 sm:gap-4">
-          {HOW_IT_WORKS.map(({ icon: Icon, title, body }, i) => (
-            <div key={title} className="flex sm:flex-col items-center sm:items-start gap-4 sm:gap-0">
-              <div className="flex-shrink-0 w-11 h-11 rounded-xl bg-lumen-gold/10 flex items-center justify-center sm:mb-3">
-                <Icon className="w-5 h-5 text-lumen-gold" />
-              </div>
-              <div>
-                <p className="text-[10px] uppercase tracking-widest text-cream-ivory/40 font-semibold sm:mb-1">
-                  Step {i + 1}
-                </p>
-                <h3 className="font-manrope font-semibold text-sm text-cream-ivory">
-                  {title}
-                </h3>
-                <p className="text-xs text-cream-ivory/60 mt-1 leading-relaxed">
-                  {body}
-                </p>
+          <div className="flex flex-col gap-4">
+            {/* Replay tour */}
+            <div className="rounded-3xl border border-white/[0.08] bg-gradient-to-b from-white/[0.05] to-white/[0.02] p-6 shadow-[0_2px_4px_rgba(0,0,0,.3),0_16px_32px_rgba(0,0,0,.35)]">
+              <h2 className="font-manrope font-semibold text-sm text-cream-ivory">
+                Want the guided tour again?
+              </h2>
+              <p className="text-xs text-cream-ivory/55 mt-2 leading-relaxed">
+                Walk back through the streak, habits, calendar, upload,
+                coach, achievements, and milestones — wherever you left off.
+              </p>
+              <div className="mt-5">
+                <ReplayTourButton />
               </div>
             </div>
-          ))}
-        </div>
-      </div>
 
-      {/* Replay tour */}
-      <div className="mt-8 rounded-2xl border border-lumen-gold/20 bg-lumen-gold/5 p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h2 className="font-manrope font-semibold text-cream-ivory">
-            Want the guided tour again?
-          </h2>
-          <p className="text-sm text-cream-ivory/60 mt-1">
-            Walk back through the streak, habits, calendar, upload, coach,
-            achievements, and milestones — wherever you left off.
-          </p>
+            {/* Contact */}
+            <div className="rounded-3xl border border-white/[0.08] bg-gradient-to-b from-white/[0.05] to-white/[0.02] p-6 shadow-[0_2px_4px_rgba(0,0,0,.3),0_16px_32px_rgba(0,0,0,.35)]">
+              <div className="w-10 h-10 rounded-xl bg-lumen-gold/10 flex items-center justify-center mb-3">
+                <Mail className="w-5 h-5 text-lumen-gold" />
+              </div>
+              <h2 className="font-manrope font-semibold text-sm text-cream-ivory">
+                Still need help?
+              </h2>
+              <p className="text-xs text-cream-ivory/55 mt-2 leading-relaxed">
+                Email us at{" "}
+                <a
+                  href={`mailto:${SUPPORT_EMAIL}`}
+                  className="text-lumen-gold hover:underline underline-offset-4 focus-gold"
+                >
+                  {SUPPORT_EMAIL}
+                </a>{" "}
+                and we&apos;ll get back to you.
+              </p>
+            </div>
+          </div>
         </div>
-        <ReplayTourButton />
-      </div>
 
-      {/* FAQ */}
-      <div className="mt-10">
-        <h2 className="font-manrope font-bold text-xl text-cream-ivory mb-4">
-          Frequently asked questions
-        </h2>
-        <FaqAccordion items={FAQ_ITEMS} />
-      </div>
+        {/* Right: how-it-works spec sheet + FAQ */}
+        <div className="min-w-0">
+          {/* How it works — vertical spec-sheet, using the full column width
+              since it's short scannable rows, not long-form copy. */}
+          <section>
+            <p className="text-[10px] font-bold tracking-[0.22em] uppercase text-lumen-gold/70 mb-3">
+              The Loop
+            </p>
+            <div className="divide-y divide-white/[0.08] border-t border-b border-white/[0.08]">
+              {HOW_IT_WORKS.map(({ icon: Icon, title, body }, i) => (
+                <div
+                  key={title}
+                  className="group flex items-start gap-4 sm:gap-5 py-5 hover:bg-lumen-gold/[0.02] transition-colors duration-200 -mx-4 px-4"
+                >
+                  <span className="hidden sm:block font-manrope font-extrabold text-2xl text-lumen-gold/25 group-hover:text-lumen-gold/40 transition-colors duration-200 w-8 flex-shrink-0">
+                    {String(i + 1).padStart(2, "0")}
+                  </span>
+                  <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-lumen-gold/10 border border-lumen-gold/20 flex items-center justify-center group-hover:bg-lumen-gold/15 group-hover:border-lumen-gold/35 transition-all duration-200">
+                    <Icon className="w-5 h-5 text-lumen-gold" />
+                  </div>
+                  <div className="min-w-0">
+                    <h3 className="font-manrope font-semibold text-sm text-cream-ivory">
+                      {title}
+                    </h3>
+                    <p className="text-sm text-cream-ivory/55 mt-1 leading-relaxed">
+                      {body}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
 
-      {/* Contact */}
-      <div className="mt-10 mb-4 rounded-2xl border border-white/10 bg-white/5 p-6 flex items-center gap-4">
-        <div className="flex-shrink-0 w-11 h-11 rounded-xl bg-lumen-gold/10 flex items-center justify-center">
-          <Mail className="w-5 h-5 text-lumen-gold" />
-        </div>
-        <div>
-          <h2 className="font-manrope font-semibold text-cream-ivory">
-            Still need help?
-          </h2>
-          <p className="text-sm text-cream-ivory/60 mt-1">
-            Email us at{" "}
-            <a
-              href={`mailto:${SUPPORT_EMAIL}`}
-              className="text-lumen-gold hover:underline underline-offset-4"
-            >
-              {SUPPORT_EMAIL}
-            </a>{" "}
-            and we&apos;ll get back to you.
-          </p>
+          {/* FAQ — capped to a ~65-75ch reading measure even though the
+              column itself is wide, per typography best practice for Q&A. */}
+          <section className="mt-14 max-w-2xl">
+            <p className="text-[10px] font-bold tracking-[0.22em] uppercase text-lumen-gold/70 mb-3">
+              FAQ
+            </p>
+            <h2 className="font-manrope font-bold text-xl text-cream-ivory mb-6">
+              Frequently asked questions
+            </h2>
+            <FaqAccordion items={FAQ_ITEMS} />
+          </section>
         </div>
       </div>
     </div>

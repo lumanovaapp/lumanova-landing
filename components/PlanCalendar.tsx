@@ -47,24 +47,6 @@ function dateToStr(d: Date): string {
   return d.toISOString().slice(0, 10);
 }
 
-// Mirrors Tailwind's `md` breakpoint — the desktop layout keeps Today's
-// Habits in the side panel, so today's cell shouldn't also open the drawer.
-const DESKTOP_BREAKPOINT_PX = 768;
-
-function useIsDesktop(): boolean {
-  const [isDesktop, setIsDesktop] = useState(false);
-
-  useEffect(() => {
-    const mql = window.matchMedia(`(min-width: ${DESKTOP_BREAKPOINT_PX}px)`);
-    setIsDesktop(mql.matches);
-    const handleChange = (e: MediaQueryListEvent) => setIsDesktop(e.matches);
-    mql.addEventListener("change", handleChange);
-    return () => mql.removeEventListener("change", handleChange);
-  }, []);
-
-  return isDesktop;
-}
-
 // Locks the page behind the drawer, including on iOS Safari where a plain
 // `overflow: hidden` on body still lets the background rubber-band scroll.
 // Pinning body to `position: fixed` at its current scroll offset removes it
@@ -115,7 +97,6 @@ export default function PlanCalendar({
 }: PlanCalendarProps) {
   const router = useRouter();
   const reduceMotion = !!useReducedMotion();
-  const isDesktop = useIsDesktop();
   const frozenDaySet = new Set(frozenDays);
 
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
@@ -155,10 +136,11 @@ export default function PlanCalendar({
   }
 
   function handleDayClick(day: number) {
-    const dateStr = dateToStr(dateForDay(day));
-    // On desktop, today's habits already live in the side panel — opening
-    // the drawer too would just show the same list twice.
-    if (dateStr === todayStr && isDesktop) return;
+    // Today's cell opens the same drawer as any other day — with checkboxes
+    // live (see `interactive` below), sharing the exact same `checkinsByDate`
+    // state and `onToggleHabit` handler as the "Your habits for today"
+    // section above, so a check-in from either place is instantly reflected
+    // in both (and in the calendar cell's own color) with no divergence.
     setSelectedDay(day);
   }
 
@@ -174,8 +156,11 @@ export default function PlanCalendar({
   const selectedIsFrozen = selectedDay !== null && frozenDaySet.has(selectedDay);
 
   return (
-    <div className="w-full" data-tour="tour-calendar">
-      <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+    <div
+      data-tour="tour-calendar"
+      className="w-full rounded-3xl border border-white/[0.08] bg-gradient-to-b from-white/[0.05] to-white/[0.02] shadow-[0_2px_4px_rgba(0,0,0,.3),0_16px_32px_rgba(0,0,0,.35)] p-5 sm:p-6 lg:p-7"
+    >
+      <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
         <h2 className="font-manrope font-semibold text-sm text-cream-ivory">
           Your 90 Days
         </h2>
@@ -231,6 +216,7 @@ export default function PlanCalendar({
                   !!milestoneType && realDayNumber >= day;
                 const milestoneNeedsAction =
                   milestoneReached && !milestonePhotos[milestoneType!]?.comparison;
+                const todayNeedsCheckin = isToday && visualState !== "done";
 
                 return (
                   <button
@@ -238,13 +224,21 @@ export default function PlanCalendar({
                     type="button"
                     onClick={() => handleDayClick(day)}
                     data-tour={day === 30 ? "tour-milestones" : undefined}
-                    title={milestoneNeedsAction ? "Tap to check in" : undefined}
+                    title={
+                      milestoneNeedsAction
+                        ? "Tap to check in"
+                        : todayNeedsCheckin
+                        ? "Tap to check off today's habits"
+                        : undefined
+                    }
                     aria-label={
                       milestoneNeedsAction
                         ? `Day ${day} milestone — tap to check in`
+                        : todayNeedsCheckin
+                        ? `Day ${day} — today, tap to check off habits`
                         : `Day ${day}`
                     }
-                    className={`relative aspect-square overflow-visible rounded-md flex items-center justify-center text-[10px] font-semibold transition-all duration-200 cursor-pointer hover:scale-110 hover:brightness-110 hover:z-10 ${
+                    className={`relative aspect-square overflow-visible rounded-md flex items-center justify-center text-[10px] font-semibold transition-all duration-200 cursor-pointer hover:scale-110 hover:brightness-110 hover:z-10 focus-gold ${
                       visualState === "done"
                         ? `${ACCENT_THEME.maintain.bgSolid} ${ACCENT_THEME.maintain.solidText}`
                         : visualState === "frozen"
@@ -260,6 +254,22 @@ export default function PlanCalendar({
                         : ""
                     }`}
                   >
+                    {/* Today's own "done" cell gets a celebratory pulsing
+                        glow on top of the standard done color — a past done
+                        day stays plain teal, only *today* having just been
+                        completed gets the extra flourish. */}
+                    {isToday && visualState === "done" && !reduceMotion && (
+                      <motion.span
+                        className="absolute -inset-1 rounded-lg pointer-events-none"
+                        animate={{
+                          boxShadow: [
+                            "0 0 0 0px rgba(244,196,48,0.45)",
+                            "0 0 8px 3px rgba(244,196,48,0)",
+                          ],
+                        }}
+                        transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
+                      />
+                    )}
                     {day}
                     {visualState === "frozen" && (
                       <Shield className="absolute -top-1 -right-1 w-2.5 h-2.5 text-aurora-mist fill-aurora-mist/30" />
@@ -274,6 +284,25 @@ export default function PlanCalendar({
                           reduceMotion
                             ? {}
                             : { scale: [1, 1.6, 1], opacity: [1, 0.5, 1] }
+                        }
+                        transition={{
+                          duration: 1.6,
+                          repeat: Infinity,
+                          ease: "easeInOut",
+                        }}
+                      />
+                    )}
+                    {/* Affordance hinting today's cell opens a live check-in
+                        drawer — a distinct corner from the milestone dot
+                        (bottom-left) and star/shield badges (top-right) so
+                        they never collide when today doubles as either. */}
+                    {todayNeedsCheckin && (
+                      <motion.span
+                        className="absolute -bottom-1 -right-1 w-1.5 h-1.5 rounded-full bg-lumen-gold"
+                        animate={
+                          reduceMotion
+                            ? {}
+                            : { scale: [1, 1.5, 1], opacity: [1, 0.55, 1] }
                         }
                         transition={{
                           duration: 1.6,
@@ -328,14 +357,14 @@ export default function PlanCalendar({
                   type="button"
                   onClick={() => setSelectedDay(null)}
                   aria-label="Close"
-                  className="w-9 h-9 flex items-center justify-center rounded-xl text-cream-ivory/70 hover:bg-white/5 hover:text-cream-ivory transition-colors"
+                  className="w-9 h-9 flex items-center justify-center rounded-xl text-cream-ivory/70 hover:bg-white/5 hover:text-cream-ivory transition-colors focus-gold"
                 >
                   <X className="w-5 h-5" />
                 </button>
               </div>
 
               {selectedIsFrozen && (
-                <div className="mb-6 flex items-center gap-2 rounded-xl border border-aurora-mist/30 bg-aurora-mist/10 px-3 py-2">
+                <div className="mb-6 flex items-center gap-2 rounded-2xl border border-aurora-mist/30 bg-aurora-mist/10 px-4 py-3">
                   <Shield className="w-4 h-4 text-aurora-mist flex-shrink-0" />
                   <p className="text-xs text-aurora-mist">
                     A streak freeze covered this day — it doesn&apos;t break your streak.
@@ -355,7 +384,7 @@ export default function PlanCalendar({
               )}
 
               {selectedMilestoneType && !selectedMilestoneReached && (
-                <div className="mb-6 flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 px-3 py-2.5">
+                <div className="mb-6 flex items-center gap-3 rounded-2xl border border-white/[0.08] bg-white/5 px-4 py-3">
                   <Lock className="w-4 h-4 text-cream-ivory/40 flex-shrink-0" />
                   <p className="text-xs text-cream-ivory/50">
                     {MILESTONE_LABELS[selectedMilestoneType]} unlocks on day{" "}
@@ -382,7 +411,7 @@ export default function PlanCalendar({
                         type="button"
                         disabled={!interactive}
                         onClick={() => interactive && onToggleHabit(habit.id)}
-                        className={`w-full flex items-center gap-3 overflow-visible rounded-xl border p-3 text-left transition-all duration-300 ${
+                        className={`w-full flex items-center gap-3 overflow-visible rounded-xl border p-3 text-left transition-all duration-300 focus-gold ${
                           done
                             ? `${theme.border} ${theme.bgSoft} ${theme.ring}`
                             : "border-white/10 bg-white/5"
@@ -481,7 +510,7 @@ function MilestoneSection({
   if (photo.comparison) {
     const c = photo.comparison;
     return (
-      <div className="rounded-2xl border border-lumen-gold/30 bg-lumen-gold/5 p-4">
+      <div className="rounded-3xl border border-lumen-gold/20 bg-gradient-to-br from-lumen-gold/[0.07] to-lumen-gold/[0.02] p-5">
         <p className="text-xs uppercase tracking-widest text-lumen-gold font-medium mb-2">
           {MILESTONE_LABELS[milestoneType]}
         </p>
@@ -561,15 +590,15 @@ function MilestoneSection({
 
   if (photo.status === "failed") {
     return (
-      <div className="rounded-2xl border border-warm-coral/30 bg-warm-coral/5 p-4">
-        <p className="text-sm text-warm-coral mb-2">
+      <div className="rounded-3xl border border-warm-coral/30 bg-warm-coral/5 p-5">
+        <p className="text-sm text-warm-coral mb-3">
           {retryError || "We couldn't compare your progress photo."}
         </p>
         <button
           type="button"
           onClick={handleRetry}
           disabled={retrying}
-          className="h-9 px-4 rounded-lg bg-lumen-gold text-pure-black text-xs font-manrope font-bold flex items-center gap-2 disabled:opacity-60"
+          className="h-9 px-4 rounded-full bg-lumen-gold text-pure-black text-xs font-manrope font-bold flex items-center gap-2 hover:bg-lumen-gold/90 active:scale-95 transition-all duration-300 disabled:opacity-60 disabled:active:scale-100 focus-gold"
         >
           {retrying && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
           {retrying ? "Comparing your progress…" : "Try again"}
@@ -584,7 +613,7 @@ function MilestoneSection({
   }
 
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/5 p-4 flex items-center gap-3">
+    <div className="rounded-3xl border border-white/[0.08] bg-gradient-to-b from-white/[0.05] to-white/[0.02] p-5 flex items-center gap-3">
       <Loader2 className="w-4 h-4 text-lumen-gold animate-spin flex-shrink-0" />
       <div>
         <p className="text-sm text-cream-ivory/70">Analyzing your progress…</p>

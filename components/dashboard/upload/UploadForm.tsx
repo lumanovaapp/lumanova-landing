@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, ChangeEvent } from "react";
 import { useRouter } from "next/navigation";
+import { motion } from "framer-motion";
 import { Camera, Upload, Loader2, ImageOff, X } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 import {
@@ -131,136 +132,156 @@ export default function UploadForm() {
   const isBusy = stage === "uploading" || stage === "analyzing";
 
   return (
-    <div className="max-w-xl mx-auto">
-      <p className="text-xs uppercase tracking-widest text-lumen-gold font-medium mb-3">
-        Step 1
-      </p>
-      <h1 className="font-manrope font-bold text-3xl sm:text-4xl text-cream-ivory leading-tight">
-        Upload a selfie
-      </h1>
-      <p className="font-inter text-base text-cream-ivory/70 mt-2">
-        Good lighting, no filters, face clearly visible. We&apos;ll analyze
-        your skin, hair, grooming, and style.
-      </p>
-
-      <div className="mt-8 rounded-2xl border border-white/10 bg-white/5 p-6 sm:p-8">
-        {isBusy ? (
-          <div className="flex flex-col items-center py-10 text-center">
-            {previewUrl && (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={previewUrl}
-                alt="Selected selfie"
-                className="w-32 h-32 rounded-2xl object-cover mb-6 opacity-60"
-              />
-            )}
-            <Loader2 className="w-8 h-8 text-lumen-gold animate-spin mb-4" />
-            <p className="font-manrope font-semibold text-lg text-cream-ivory">
-              {stage === "uploading"
-                ? "Uploading your photo…"
-                : "Analyzing your features…"}
-            </p>
-            {stage === "analyzing" && (
-              <p className="font-inter text-sm text-cream-ivory/60 mt-2">
-                This usually takes 10-20 seconds.
-              </p>
-            )}
-          </div>
-        ) : previewUrl ? (
-          <div className="flex flex-col items-center">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
+    <div className="bg-gradient-to-b from-white/[0.05] to-white/[0.02] border border-white/[0.08] rounded-3xl shadow-[0_2px_4px_rgba(0,0,0,.3),0_16px_32px_rgba(0,0,0,.35)] p-6 sm:p-10">
+      {isBusy ? (
+        <div className="flex flex-col items-center py-10 text-center">
+          {previewUrl && (
+            // eslint-disable-next-line @next/next/no-img-element
             <img
               src={previewUrl}
               alt="Selected selfie"
-              className="w-48 h-48 rounded-2xl object-cover mb-6"
+              className="w-28 h-28 rounded-2xl object-cover mb-6 border border-white/10 opacity-50"
             />
-            {error && (
-              <div className="mb-4 w-full rounded-xl bg-red-500/10 border border-red-500/30 px-4 py-3 text-sm text-red-400 text-center">
-                {error}
-              </div>
-            )}
-            <div className="flex gap-3 w-full">
-              <button
-                type="button"
-                onClick={handleChooseDifferent}
-                className="flex-1 h-14 rounded-xl border border-white/15 text-cream-ivory/70 font-manrope font-medium hover:bg-white/5 hover:text-cream-ivory transition-colors"
-              >
-                Choose different
-              </button>
-              <button
-                type="button"
-                onClick={handleUpload}
-                className="flex-1 h-14 rounded-xl bg-lumen-gold text-pure-black font-manrope font-bold hover:shadow-[0_0_28px_rgba(244,196,48,0.45)] transition-shadow duration-300"
-              >
-                {error ? "Try again" : "Analyze my photo"}
-              </button>
-            </div>
+          )}
+          <div className="relative flex items-center justify-center w-16 h-16 mb-5">
+            <motion.span
+              className="absolute inset-0 rounded-full bg-lumen-gold/15"
+              animate={{ scale: [1, 1.35, 1], opacity: [0.5, 0, 0.5] }}
+              transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
+            />
+            <span className="relative flex items-center justify-center w-16 h-16 rounded-2xl bg-lumen-gold/10 border border-lumen-gold/20">
+              <Loader2 className="w-7 h-7 text-lumen-gold animate-spin" />
+            </span>
           </div>
-        ) : (
-          <div className="flex flex-col items-center py-6 text-center">
-            {error && (
-              <div className="mb-5 w-full rounded-xl bg-red-500/10 border border-red-500/30 px-4 py-3 flex items-center gap-2 text-sm text-red-400">
-                <ImageOff className="w-4 h-4 flex-shrink-0" />
-                {error}
-              </div>
-            )}
+          <p className="font-manrope font-semibold text-lg text-cream-ivory">
+            {stage === "uploading"
+              ? "Uploading your photo…"
+              : "Analyzing your features…"}
+          </p>
+          {stage === "analyzing" && (
+            <p className="font-inter text-sm text-cream-ivory/55 mt-2">
+              This usually takes 10-20 seconds.
+            </p>
+          )}
+        </div>
+      ) : previewUrl ? (
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+          className="flex flex-col items-center"
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={previewUrl}
+            alt="Selected selfie"
+            className="w-52 h-52 rounded-2xl object-cover mb-6 border border-white/10 shadow-[0_8px_24px_rgba(0,0,0,0.35)]"
+          />
+          {error && (
+            <div className="mb-4 w-full rounded-xl bg-red-500/10 border border-red-500/30 px-4 py-3 text-sm text-red-400 text-center">
+              {error}
+            </div>
+          )}
+          <div className="flex gap-3 w-full">
+            <button
+              type="button"
+              onClick={handleChooseDifferent}
+              className="flex-1 h-14 inline-flex items-center justify-center rounded-full border border-lumen-gold/30 text-cream-ivory font-manrope font-medium hover:bg-lumen-gold/10 hover:border-lumen-gold/60 transition-all duration-300 focus-gold"
+            >
+              Choose different
+            </button>
+            <button
+              type="button"
+              onClick={handleUpload}
+              className="flex-1 h-14 inline-flex items-center justify-center gap-2 rounded-full bg-lumen-gold text-pure-black font-manrope font-bold hover:bg-lumen-gold/90 hover:shadow-[0_0_24px_rgba(244,196,48,0.35)] active:scale-95 transition-all duration-300 focus-gold"
+            >
+              {error ? "Try again" : "Analyze my photo"}
+            </button>
+          </div>
+        </motion.div>
+      ) : (
+        <div className="flex flex-col items-center py-6 text-center">
+          {error && (
+            <div className="mb-5 w-full rounded-xl bg-red-500/10 border border-red-500/30 px-4 py-3 flex items-center gap-2 text-sm text-red-400">
+              <ImageOff className="w-4 h-4 flex-shrink-0" />
+              {error}
+            </div>
+          )}
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full">
-              <label className="card-lift group flex flex-col items-center justify-center gap-3 h-36 rounded-2xl border border-white/15 bg-gradient-to-br from-white/[0.06] to-transparent cursor-pointer hover:border-lumen-gold/50 hover:bg-lumen-gold/5 hover:shadow-[0_8px_24px_rgba(244,196,48,0.12)] transition-all duration-300">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full">
+            <motion.label
+              whileHover={{ y: -4 }}
+              transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+              className="group flex flex-col items-center justify-center gap-3 h-40 rounded-2xl border border-white/15 bg-gradient-to-br from-white/[0.06] to-transparent cursor-pointer hover:border-lumen-gold/50 hover:bg-lumen-gold/5 hover:shadow-[0_8px_24px_rgba(244,196,48,0.12)] focus-within:outline focus-within:outline-2 focus-within:outline-lumen-gold/60 focus-within:outline-offset-2 transition-[border-color,background-color,box-shadow] duration-300"
+            >
+              <span className="w-11 h-11 rounded-full bg-lumen-gold/10 flex items-center justify-center group-hover:bg-lumen-gold/20 transition-colors duration-300">
+                <Upload className="w-5 h-5 text-lumen-gold" />
+              </span>
+              <span className="text-sm font-manrope font-semibold text-cream-ivory">
+                Upload a photo
+              </span>
+              <span className="text-xs text-cream-ivory/45">
+                From your device
+              </span>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleFileChange}
+                className="hidden"
+              />
+            </motion.label>
+
+            {mobile ? (
+              <motion.label
+                whileHover={{ y: -4 }}
+                transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+                className="group flex flex-col items-center justify-center gap-3 h-40 rounded-2xl border border-white/15 bg-gradient-to-br from-white/[0.06] to-transparent cursor-pointer hover:border-lumen-gold/50 hover:bg-lumen-gold/5 hover:shadow-[0_8px_24px_rgba(244,196,48,0.12)] focus-within:outline focus-within:outline-2 focus-within:outline-lumen-gold/60 focus-within:outline-offset-2 transition-[border-color,background-color,box-shadow] duration-300"
+              >
                 <span className="w-11 h-11 rounded-full bg-lumen-gold/10 flex items-center justify-center group-hover:bg-lumen-gold/20 transition-colors duration-300">
-                  <Upload className="w-5 h-5 text-lumen-gold" />
+                  <Camera className="w-5 h-5 text-lumen-gold" />
                 </span>
                 <span className="text-sm font-manrope font-semibold text-cream-ivory">
-                  Upload a photo
+                  Use camera
+                </span>
+                <span className="text-xs text-cream-ivory/45">
+                  Snap it live
                 </span>
                 <input
-                  ref={fileInputRef}
+                  ref={cameraInputRef}
                   type="file"
                   accept="image/*"
+                  capture="user"
                   onChange={handleFileChange}
                   className="hidden"
                 />
-              </label>
-
-              {mobile ? (
-                <label className="card-lift group flex flex-col items-center justify-center gap-3 h-36 rounded-2xl border border-white/15 bg-gradient-to-br from-white/[0.06] to-transparent cursor-pointer hover:border-lumen-gold/50 hover:bg-lumen-gold/5 hover:shadow-[0_8px_24px_rgba(244,196,48,0.12)] transition-all duration-300">
-                  <span className="w-11 h-11 rounded-full bg-lumen-gold/10 flex items-center justify-center group-hover:bg-lumen-gold/20 transition-colors duration-300">
-                    <Camera className="w-5 h-5 text-lumen-gold" />
-                  </span>
-                  <span className="text-sm font-manrope font-semibold text-cream-ivory">
-                    Use camera
-                  </span>
-                  <input
-                    ref={cameraInputRef}
-                    type="file"
-                    accept="image/*"
-                    capture="user"
-                    onChange={handleFileChange}
-                    className="hidden"
-                  />
-                </label>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => setShowCamera(true)}
-                  className="card-lift group flex flex-col items-center justify-center gap-3 h-36 rounded-2xl border border-white/15 bg-gradient-to-br from-white/[0.06] to-transparent cursor-pointer hover:border-lumen-gold/50 hover:bg-lumen-gold/5 hover:shadow-[0_8px_24px_rgba(244,196,48,0.12)] transition-all duration-300"
-                >
-                  <span className="w-11 h-11 rounded-full bg-lumen-gold/10 flex items-center justify-center group-hover:bg-lumen-gold/20 transition-colors duration-300">
-                    <Camera className="w-5 h-5 text-lumen-gold" />
-                  </span>
-                  <span className="text-sm font-manrope font-semibold text-cream-ivory">
-                    Use camera
-                  </span>
-                </button>
-              )}
-            </div>
-
-            <p className="font-inter text-xs text-cream-ivory/50 mt-4">
-              JPEG, PNG, or WebP · under 10MB
-            </p>
+              </motion.label>
+            ) : (
+              <motion.button
+                type="button"
+                whileHover={{ y: -4 }}
+                transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+                onClick={() => setShowCamera(true)}
+                className="group flex flex-col items-center justify-center gap-3 h-40 rounded-2xl border border-white/15 bg-gradient-to-br from-white/[0.06] to-transparent cursor-pointer hover:border-lumen-gold/50 hover:bg-lumen-gold/5 hover:shadow-[0_8px_24px_rgba(244,196,48,0.12)] transition-[border-color,background-color,box-shadow] duration-300 focus-gold"
+              >
+                <span className="w-11 h-11 rounded-full bg-lumen-gold/10 flex items-center justify-center group-hover:bg-lumen-gold/20 transition-colors duration-300">
+                  <Camera className="w-5 h-5 text-lumen-gold" />
+                </span>
+                <span className="text-sm font-manrope font-semibold text-cream-ivory">
+                  Use camera
+                </span>
+                <span className="text-xs text-cream-ivory/45">
+                  Snap it live
+                </span>
+              </motion.button>
+            )}
           </div>
-        )}
-      </div>
+
+          <p className="font-inter text-xs text-cream-ivory/50 mt-5">
+            JPEG, PNG, or WebP · under 10MB
+          </p>
+        </div>
+      )}
 
       {showCamera && (
         <CameraCapture
@@ -346,7 +367,7 @@ function CameraCapture({ onCapture, onClose }: CameraCaptureProps) {
         type="button"
         onClick={onClose}
         aria-label="Close camera"
-        className="absolute top-4 right-4 w-10 h-10 flex items-center justify-center rounded-xl text-cream-ivory/70 hover:bg-white/5 hover:text-cream-ivory transition-colors"
+        className="absolute top-4 right-4 w-10 h-10 flex items-center justify-center rounded-full text-cream-ivory/70 hover:bg-white/5 hover:text-cream-ivory transition-colors focus-gold"
       >
         <X className="w-5 h-5" />
       </button>
@@ -377,7 +398,7 @@ function CameraCapture({ onCapture, onClose }: CameraCaptureProps) {
           <button
             type="button"
             onClick={onClose}
-            className="flex-1 h-14 rounded-xl border border-white/15 text-cream-ivory/70 font-manrope font-medium hover:bg-white/5 hover:text-cream-ivory transition-colors"
+            className="flex-1 h-14 inline-flex items-center justify-center rounded-full border border-lumen-gold/30 text-cream-ivory font-manrope font-medium hover:bg-lumen-gold/10 hover:border-lumen-gold/60 transition-all duration-300 focus-gold"
           >
             Cancel
           </button>
@@ -385,7 +406,7 @@ function CameraCapture({ onCapture, onClose }: CameraCaptureProps) {
             type="button"
             onClick={handleCapture}
             disabled={!ready}
-            className="flex-1 h-14 rounded-xl bg-lumen-gold text-pure-black font-manrope font-bold hover:shadow-[0_0_28px_rgba(244,196,48,0.45)] transition-shadow duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex-1 h-14 inline-flex items-center justify-center rounded-full bg-lumen-gold text-pure-black font-manrope font-bold hover:bg-lumen-gold/90 hover:shadow-[0_0_24px_rgba(244,196,48,0.35)] active:scale-95 transition-all duration-300 focus-gold disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100"
           >
             Capture
           </button>

@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
 import { getUserState } from "@/lib/user-state";
+import { getOrCreateDailyCoachLine } from "@/lib/daily-coach-line";
 import DashboardView from "@/components/dashboard/DashboardView";
 
 export default async function DashboardPage() {
@@ -39,11 +40,12 @@ export default async function DashboardPage() {
   let freezes = 0;
   let planDay = 0;
   const todayChecks: Record<string, boolean> = {};
+  let coachLine: string | null = null;
 
   if (state.hasPlan && state.plan && state.planCreatedAt) {
     const today = new Date().toISOString().slice(0, 10);
 
-    const [{ data: streakRow }, { data: checkinRows }] = await Promise.all([
+    const [{ data: streakRow }, { data: checkinRows }, coachLineResult] = await Promise.all([
       supabase
         .from("streaks")
         .select("current_streak, freezes")
@@ -54,7 +56,11 @@ export default async function DashboardPage() {
         .select("habit_id, date, done")
         .eq("user_id", user.id)
         .eq("date", today),
+      // Cache hit is a single cheap read; a miss (once per user per day)
+      // just overlaps with the two queries above instead of adding latency.
+      getOrCreateDailyCoachLine(supabase, user.id),
     ]);
+    coachLine = coachLineResult;
 
     streak = streakRow?.current_streak ?? 0;
     freezes = streakRow?.freezes ?? 0;
@@ -84,6 +90,7 @@ export default async function DashboardPage() {
       streak={streak}
       freezes={freezes}
       todayChecks={todayChecks}
+      coachLine={coachLine}
     />
   );
 }
