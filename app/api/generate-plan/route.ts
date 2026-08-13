@@ -1,24 +1,47 @@
 import { NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { createClient } from "@/utils/supabase/server";
-import { DailyHabit, Plan } from "@/lib/types";
+import { DailyHabit, Plan, TimeOfDay } from "@/lib/types";
 import { Ethnicity, Goal } from "@/types/database";
 import { parseModelJson } from "@/lib/parse-json";
 
 export const runtime = "nodejs";
 
-const SYSTEM_PROMPT = `You are the plan engine for Lumanova, a men's self-care coaching app. You turn a user's grooming/skincare/style analysis into a structured, motivating 90-day plan built around daily habits that create streaks.
+const SYSTEM_PROMPT = `You are the plan engine for Lumanova, a men's self-care coaching app. You turn a user's grooming/skincare/style analysis into a structured, motivating, genuinely PERSONALIZED 90-day plan built around daily habits that create streaks.
 
 Rules:
 - Supportive coach tone, specific and doable. No shaming, no attractiveness talk, no medical claims.
 - Base everything on the user's analysis focus_areas and category recommendations, tailored to their goals.
-- Exactly 3 phases of 30 days: Phase 1 Foundation (establish basics), Phase 2 Build (add depth), Phase 3 Refine (polish + consistency). Each phase: a clear focus and 2–4 concrete milestones.
-- 4–6 daily habits total — small, checkable, repeatable (these drive the streak). Introduce some in later phases via phase_start, but keep the total set tight. Each habit: a short label and a one-line detail.
+
+TYPE-AWARE — read the analysis closely and identify the user's actual type in each dimension before writing a single habit. Two different users' analyses should never produce the same habit set.
+- Beard/facial hair: clean-shaven, light stubble, patchy, or full beard — read this from the "Facial Hair & Grooming" category's observations. Clean-shaven or stubble gets line-up/edge-upkeep and growth-encouragement habits, never beard oil/conditioning. Full or patchy beard gets wash/oil/shaping/pattern-correction habits, never "keep it trimmed short."
+- Hair: straight, wavy, curly, or coily — read this from the "Hair" category (and its style_suggestion if present). Curly/coily gets curl-specific habits (diffusing, curl cream, low-manipulation styling, longer wash intervals); straight/wavy gets different styling/product habits. Never one generic "use pomade" habit regardless of type.
+- Skin: oily, dry, combination, or normal — read this from the "Skin" category's observations. Match cleanser/moisturizer weight and frequency to the actual type (oil-control routine for oily skin vs. a richer barrier-repair routine for dry skin).
+- Report what you inferred in "profile_types" so the rest of the app can reuse it without re-deriving it. Use "unknown" for any dimension the analysis genuinely doesn't give enough signal on — never guess just to fill the field.
+
+MORNING / EVENING STRUCTURE — this app's entire purpose is building a real daily grooming/hygiene ROUTINE, not a flat to-do list. Every habit needs a "time_of_day", and it should almost always be "morning" or "evening":
+- "morning": cleanse, SPF, styling, line-up/edge upkeep, anything that starts the day.
+- "evening": treatment, moisturizer, beard oil/conditioning before bed, wind-down routine, anything that closes out the day.
+- "anytime": reserve this for the rare habit that genuinely has no time anchor (e.g. a once-a-week trim, staying hydrated through the day). At most ONE habit in the entire plan may be "anytime" — most plans should have zero. Before defaulting to "anytime," ask whether the habit more naturally opens or closes the day; almost everything does.
+- Every phase's full active habit set must include at least one "morning" habit AND at least one "evening" habit — this is a hard requirement, not a suggestion. A plan where most habits are "anytime" has failed this instruction and must be redone.
+
+EVOLVING PHASES — the plan must visibly change across the three phases, not repeat the same habits for 90 days:
+- Phase 1 "Foundation" (phase_start: 1): the minimum viable routine — 3–4 habits establishing the basics for THIS user's type.
+- Phase 2 "Build" (phase_start: 2): Phase 1 habits keep running, and add 1–2 NEW habits that go deeper — a treatment, exfoliant, targeted technique, or a type-specific upgrade (e.g. a shaping routine once basic beard wash/oil is established, or a retinol/exfoliation night for oily/combination skin). Never just relabel a Phase 1 habit — it must be a genuinely new or meaningfully upgraded action.
+- Phase 3 "Refine" (phase_start: 3): Phase 1+2 habits keep running, and add at most 1 refinement habit — polish, consistency, or a maintenance step that only makes sense once the earlier habits are established.
+- 5–8 daily habits total across all three phases combined — enough for the routine to feel alive without becoming unmanageable.
+- Each habit: a short label and a one-line detail explaining specifically why/how, for this user's type.
+- Exactly 3 phases of 30 days, each with a clear focus and 2–4 concrete milestones that reflect what's actually different about that phase for this user.
 - Output ONLY valid JSON matching the schema. No markdown, no text outside JSON.
 
 Schema:
 {
-  "overview": "1-2 sentence encouraging framing",
+  "overview": "1-2 sentence encouraging framing, specific to this user's type/focus areas",
+  "profile_types": {
+    "beard": "full | stubble | clean-shaven | patchy | unknown",
+    "hair": "curly | wavy | straight | coily | unknown",
+    "skin": "oily | dry | combination | normal | unknown"
+  },
   "phases": [
     {
       "number": 1,
@@ -43,7 +66,13 @@ Schema:
     }
   ],
   "daily_habits": [
-    { "id": "slug-like-id", "label": "Short habit name", "detail": "One-line detail", "phase_start": 1 }
+    {
+      "id": "slug-like-id",
+      "label": "Short habit name",
+      "detail": "One-line detail, specific to this user's type",
+      "phase_start": 1,
+      "time_of_day": "morning | evening | anytime"
+    }
   ]
 }`;
 
@@ -87,10 +116,15 @@ function slugify(text: string): string {
     .replace(/(^-|-$)/g, "");
 }
 
+const VALID_TIMES_OF_DAY = new Set<TimeOfDay>(["morning", "evening", "anytime"]);
+
 // Habit checkboxes are keyed by habit_id across the whole app (checkin upserts,
 // calendar cells, streak math). The LLM output isn't guaranteed to produce
 // clean or unique ids, so normalize them here rather than trusting raw output —
 // a duplicate/unstable id is what makes checkboxes silently toggle each other.
+// Also clamps time_of_day to a known value so a malformed/omitted field from
+// the model can't reach the UI's grouping logic — see habitTimeOfDay() in
+// lib/habit-groups.ts, which applies the same guard for older stored plans.
 function normalizeHabits(habits: DailyHabit[]): DailyHabit[] {
   const seen = new Map<string, number>();
   return habits.map((habit, index) => {
@@ -98,7 +132,10 @@ function normalizeHabits(habits: DailyHabit[]): DailyHabit[] {
     const count = seen.get(base) ?? 0;
     seen.set(base, count + 1);
     const id = count === 0 ? base : `${base}-${count + 1}`;
-    return { ...habit, id };
+    const time_of_day = VALID_TIMES_OF_DAY.has(habit.time_of_day as TimeOfDay)
+      ? habit.time_of_day
+      : "anytime";
+    return { ...habit, id, time_of_day };
   });
 }
 
@@ -152,9 +189,12 @@ export async function POST() {
   try {
     const response = await anthropic.messages.create({
       model: "claude-sonnet-5",
-      max_tokens: 2000,
+      // Raised from 2000: profile_types, time_of_day per habit, and up to
+      // 8 (vs. the old 6) type-specific habits with real detail text made
+      // the old budget too tight for a full plan.
+      max_tokens: 3000,
       // Thinking defaults to adaptive on Sonnet 5, which would eat into the
-      // 2000-token budget meant for the JSON plan — keep it disabled.
+      // token budget meant for the JSON plan — keep it disabled.
       thinking: { type: "disabled" },
       system: SYSTEM_PROMPT,
       messages: [

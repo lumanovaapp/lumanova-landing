@@ -30,11 +30,14 @@ export default async function SettingsPage() {
     redirect("/login");
   }
 
-  const { data: profile } = await supabase
-    .from("users")
-    .select("full_name, reminder_enabled, reminder_time")
-    .eq("id", user.id)
-    .single();
+  const [{ data: profile }, { data: planRow }] = await Promise.all([
+    supabase
+      .from("users")
+      .select("full_name, reminder_enabled, reminder_time")
+      .eq("id", user.id)
+      .single(),
+    supabase.from("plans").select("user_id").eq("user_id", user.id).maybeSingle(),
+  ]);
 
   return (
     <div>
@@ -80,7 +83,7 @@ export default async function SettingsPage() {
               initialReminderTime={profile?.reminder_time ?? "20:00"}
               delay={3 * STAGGER_STEP}
             />
-            <PlanAnalysisCard delay={4 * STAGGER_STEP} />
+            <PlanAnalysisCard delay={4 * STAGGER_STEP} hasPlan={!!planRow} />
           </div>
         </section>
 

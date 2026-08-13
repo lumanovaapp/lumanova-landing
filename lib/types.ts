@@ -34,17 +34,40 @@ export interface Phase {
   milestones: string[];
 }
 
+export type TimeOfDay = "morning" | "evening" | "anytime";
+
 export interface DailyHabit {
   id: string;
   label: string;
   detail: string;
   phase_start: PhaseNumber;
+  // Absent on plans generated before this field existed — treat as
+  // "anytime" rather than assuming a slot. Use habitTimeOfDay() from
+  // lib/habit-groups.ts instead of reading this directly, since it also
+  // guards against an invalid/unexpected value from the model.
+  time_of_day?: TimeOfDay;
+}
+
+export type BeardType = "full" | "stubble" | "clean-shaven" | "patchy" | "unknown";
+export type HairType = "curly" | "wavy" | "straight" | "coily" | "unknown";
+export type SkinType = "oily" | "dry" | "combination" | "normal" | "unknown";
+
+// The model's read on the user's actual type, inferred from their analysis —
+// captured so the rest of the app (e.g. a future matched target-look image)
+// can reuse it instead of re-deriving it. Each dimension is "unknown" when
+// the model didn't have enough signal, never guessed.
+export interface ProfileTypes {
+  beard: BeardType;
+  hair: HairType;
+  skin: SkinType;
 }
 
 export interface Plan {
   overview: string;
   phases: Phase[];
   daily_habits: DailyHabit[];
+  // Absent on plans generated before this field existed.
+  profile_types?: ProfileTypes;
 }
 
 export type PhotoMilestone = "baseline" | "day_30" | "day_60" | "day_90";

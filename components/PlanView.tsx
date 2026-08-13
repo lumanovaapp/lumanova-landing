@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, CSSProperties } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, CSSProperties } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import toast from "react-hot-toast";
 import { Check, Flame, Shield } from "lucide-react";
@@ -15,6 +15,7 @@ import TomorrowTeaser from "@/components/dashboard/plan/TomorrowTeaser";
 import DayCompleteCelebration from "@/components/dashboard/plan/DayCompleteCelebration";
 import TargetLook from "@/components/dashboard/plan/TargetLook";
 import PhaseJourney from "@/components/dashboard/plan/PhaseJourney";
+import HabitList from "@/components/dashboard/plan/HabitList";
 
 const MAX_FREEZES = 2;
 
@@ -77,7 +78,25 @@ export default function PlanView({
   const [poppedId, setPoppedId] = useState<string | null>(null);
   const [errorId, setErrorId] = useState<string | null>(null);
   const [celebrate, setCelebrate] = useState(false);
-  const prevAllDoneRef = useRef(false);
+
+  const activeHabits = plan.daily_habits.filter(
+    (h) => h.phase_start <= currentPhaseNumber
+  );
+  const allDone =
+    activeHabits.length > 0 && activeHabits.every((h) => checks[h.id]);
+
+  // Seeded from the FIRST render's (persisted) allDone value, not hardcoded
+  // `false` — otherwise a day that was already fully checked off in an
+  // earlier session reads as a fresh "not done -> done" transition the
+  // instant this component mounts, firing the celebration on every page
+  // load/scroll-into-view instead of only right after a live completion.
+  const prevAllDoneRef = useRef(allDone);
+  // Captured synchronously at the start of a habit toggle, restored in a
+  // layout effect right after the resulting DOM update commits (before the
+  // browser paints) — a deterministic guarantee that no reflow anywhere in
+  // this render (celebration, completion banner, calendar cell colors, etc.)
+  // can ever leave the page scrolled anywhere other than where it started.
+  const scrollRestoreRef = useRef<number | null>(null);
 
   // BUG FIX: this component can stay mounted across a router.refresh() (e.g.
   // triggered elsewhere on the page), and useState's initializer only runs on
@@ -99,23 +118,25 @@ export default function PlanView({
     setFreezeCount(freezes);
   }, [freezes]);
 
-  const activeHabits = plan.daily_habits.filter(
-    (h) => h.phase_start <= currentPhaseNumber
-  );
-  const allDone =
-    activeHabits.length > 0 && activeHabits.every((h) => checks[h.id]);
-
   useEffect(() => {
     if (allDone && !prevAllDoneRef.current) {
       setCelebrate(true);
-      const timer = setTimeout(() => setCelebrate(false), 1600);
+      const timer = setTimeout(() => setCelebrate(false), 2200);
       prevAllDoneRef.current = allDone;
       return () => clearTimeout(timer);
     }
     prevAllDoneRef.current = allDone;
   }, [allDone]);
 
+  useLayoutEffect(() => {
+    if (scrollRestoreRef.current !== null) {
+      window.scrollTo(0, scrollRestoreRef.current);
+      scrollRestoreRef.current = null;
+    }
+  }, [checkinsByDate]);
+
   async function toggleHabit(habitId: string) {
+    scrollRestoreRef.current = window.scrollY;
     const next = !checks[habitId];
     setCheckinsByDate((prev) => ({
       ...prev,
@@ -177,7 +198,6 @@ export default function PlanView({
 
   const currentPhase = plan.phases.find((p) => p.number === currentPhaseNumber);
   const streakTheme = ACCENT_THEME.refine;
-  const doneTheme = ACCENT_THEME.maintain;
 
   return (
     <>
@@ -319,92 +339,49 @@ export default function PlanView({
 
           <DailyCoachLine line={coachLine} className="mb-5" />
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {activeHabits.map((habit) => {
-              const done = !!checks[habit.id];
-              const hasError = errorId === habit.id;
-              return (
-                <div key={habit.id}>
-                  <button
-                    type="button"
-                    onClick={() => toggleHabit(habit.id)}
-                    className={`w-full flex items-start gap-3 rounded-2xl border p-3.5 sm:p-4 text-left transition-all duration-300 focus-gold ${
-                      done
-                        ? `${doneTheme.border} ${doneTheme.bgSoft} ${doneTheme.ring}`
-                        : "border-white/10 bg-pure-black/20 hover:border-white/20 hover:bg-white/[0.04]"
-                    }`}
-                  >
-                    <motion.span
-                      animate={
-                        poppedId === habit.id ? { scale: [1, 1.3, 1] } : { scale: 1 }
-                      }
-                      transition={{ duration: 0.4 }}
-                      className={`flex-shrink-0 mt-0.5 w-6 h-6 rounded-full border-2 flex items-center justify-center ${
-                        done
-                          ? `${doneTheme.bgSolid} border-transparent`
-                          : "border-white/20 bg-transparent"
-                      }`}
-                    >
-                      {done && <Check className={`w-3.5 h-3.5 ${doneTheme.solidText}`} />}
-                    </motion.span>
-                    <div className="flex-1 min-w-0">
-                      <p
-                        className={`text-sm font-medium ${
-                          done ? "text-cream-ivory/50 line-through" : "text-cream-ivory"
-                        }`}
-                      >
-                        {habit.label}
-                      </p>
-                      {habit.detail && (
-                        <p
-                          className={`text-xs mt-0.5 leading-relaxed ${
-                            done ? "text-cream-ivory/25" : "text-cream-ivory/45"
-                          }`}
-                        >
-                          {habit.detail}
-                        </p>
-                      )}
-                    </div>
-                  </button>
-                  {hasError && (
-                    <p className="mt-1 px-1 text-[10px] text-warm-coral">
-                      Couldn&apos;t save — reverted. Try again.
-                    </p>
-                  )}
-                </div>
-              );
-            })}
-          </div>
+          <HabitList
+            habits={activeHabits}
+            checks={checks}
+            onToggle={toggleHabit}
+            poppedId={poppedId}
+            errorId={errorId}
+            showDetail
+          />
 
-          {/* Always mounted — reserves its own space at all times so
-              flipping `allDone` only ever changes opacity/scale (paint),
-              never the card's height. A conditional mount/unmount here
-              would grow the card the instant the last habit is checked,
-              which is exactly what was shifting scroll position (see
-              DayCompleteCelebration for the actual celebration overlay,
-              which is `fixed` and was never the cause). */}
+          {/* Always mounted — reserves its own space at all times so this
+              never grows/shrinks the card's height (a conditional
+              mount/unmount here is exactly what used to shift scroll
+              position). Visibility is gated on `celebrate` (the transient
+              "just crossed into all-done THIS session" signal), not the
+              persisted `allDone` value — so it pops in right after the
+              live completion and fades back out a couple seconds later,
+              instead of staying permanently visible any time the day
+              happens to already be complete (including on page load). The
+              card's gold border/background above is a separate, persistent
+              status treatment — that one stays tied to `allDone`, since a
+              color isn't a "pop-up." */}
           <motion.div
             initial={false}
             animate={
-              allDone
+              celebrate
                 ? { opacity: 1, scale: 1 }
                 : { opacity: 0, scale: reduceMotion ? 1 : 0.85 }
             }
             transition={{ duration: 0.35 }}
-            aria-hidden={!allDone}
+            aria-hidden={!celebrate}
             className={`mt-4 flex items-center justify-center gap-2 rounded-lg border border-lumen-gold/40 bg-lumen-gold/10 py-2 text-center ${
-              allDone ? "" : "pointer-events-none"
+              celebrate ? "" : "pointer-events-none"
             }`}
           >
             <motion.span
               animate={
-                allDone ? { scale: 1, rotate: 0 } : { scale: 0.4, rotate: -20 }
+                celebrate ? { scale: 1, rotate: 0 } : { scale: 0.4, rotate: -20 }
               }
               transition={{
                 type: "spring",
                 stiffness: 420,
                 damping: 16,
-                delay: allDone ? 0.1 : 0,
+                delay: celebrate ? 0.1 : 0,
               }}
               className="w-4 h-4 rounded-full bg-lumen-gold flex items-center justify-center flex-shrink-0"
             >

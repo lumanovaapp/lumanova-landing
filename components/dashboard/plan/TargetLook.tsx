@@ -67,7 +67,11 @@ function TargetLookCard({
       transition={{ duration: 0.4, delay: reduceMotion ? 0 : index * 0.08, ease: [0.16, 1, 0.3, 1] }}
       className="group rounded-3xl border border-white/[0.08] bg-gradient-to-b from-white/[0.05] to-white/[0.02] shadow-[0_2px_4px_rgba(0,0,0,.3),0_16px_32px_rgba(0,0,0,.35)] p-3 transition-colors duration-300 hover:border-lumen-gold/25"
     >
-      <div className="relative aspect-[4/5] rounded-2xl overflow-hidden border border-white/10 bg-gradient-to-br from-lumen-gold/[0.09] via-charcoal to-[#0A0A0A]">
+      <div
+        className={`relative aspect-[4/5] rounded-2xl overflow-hidden bg-gradient-to-br from-lumen-gold/[0.09] via-charcoal to-[#0A0A0A] ${
+          area.imageUrl ? "border border-white/10" : "border border-dashed border-white/15"
+        }`}
+      >
         {area.imageUrl ? (
           // Swappable reference photo — see lib/target-look.ts. Plain <img>
           // since these are external/user-supplied URLs, not local assets.
@@ -78,12 +82,15 @@ function TargetLookCard({
             className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
           />
         ) : (
+          // Dashed border + "coming soon" framing marks this as a deliberately
+          // empty slot (not a broken/missing image) — swap it in via
+          // lib/target-look-images.ts once a reference photo is ready.
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 px-4 text-center">
             <div className="w-11 h-11 rounded-2xl bg-lumen-gold/10 border border-lumen-gold/20 flex items-center justify-center">
               <Icon className="w-5 h-5 text-lumen-gold" />
             </div>
-            <span className="text-[9px] font-bold tracking-[0.16em] uppercase text-cream-ivory/30">
-              Reference image
+            <span className="text-[9px] font-bold tracking-[0.16em] uppercase text-cream-ivory/35">
+              Image coming soon
             </span>
           </div>
         )}

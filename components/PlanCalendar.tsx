@@ -7,6 +7,7 @@ import { Star, Check, X, Loader2, Shield, Lock } from "lucide-react";
 import { Plan, PhotoMilestone, MilestonePhotoSummary } from "@/lib/types";
 import { ACCENT_THEME, ACCENT_ORDER } from "@/lib/accent";
 import MilestoneUpload from "@/components/dashboard/plan/MilestoneUpload";
+import HabitList from "@/components/dashboard/plan/HabitList";
 import { apiErrorFromJson, fetchWithTimeout, toFriendlyMessage } from "@/lib/api-error";
 
 interface PlanCalendarProps {
@@ -393,64 +394,32 @@ export default function PlanCalendar({
                 </div>
               )}
 
-              <p className="text-xs uppercase tracking-widest text-cream-ivory/50 font-medium mb-3">
-                {isSelectedToday
-                  ? "Today's Habits"
-                  : isSelectedFuture
-                  ? "Upcoming Habits"
-                  : "Habits"}
-              </p>
-              <div className="p-1 overflow-visible">
-                {selectedHabits.map((habit) => {
-                  const done = !!checkinsByDate[selectedDateStr ?? ""]?.[habit.id];
-                  const interactive = isSelectedToday;
-                  const theme = ACCENT_THEME.maintain;
-                  return (
-                    <div key={habit.id} className="mb-2 last:mb-0">
-                      <button
-                        type="button"
-                        disabled={!interactive}
-                        onClick={() => interactive && onToggleHabit(habit.id)}
-                        className={`w-full flex items-center gap-3 overflow-visible rounded-xl border p-3 text-left transition-all duration-300 focus-gold ${
-                          done
-                            ? `${theme.border} ${theme.bgSoft} ${theme.ring}`
-                            : "border-white/10 bg-white/5"
-                        } ${
-                          interactive ? "cursor-pointer" : "opacity-70 cursor-default"
-                        }`}
-                      >
-                        <span
-                          className={`flex-shrink-0 w-6 h-6 rounded-full border-2 flex items-center justify-center ${
-                            done
-                              ? `${theme.bgSolid} border-transparent`
-                              : "border-white/20"
-                          }`}
-                        >
-                          {done && (
-                            <Check className={`w-3.5 h-3.5 ${theme.solidText}`} />
-                          )}
-                        </span>
-                        <div className="flex-1 min-w-0">
-                          <p
-                            className={`text-sm font-medium ${
-                              done
-                                ? "text-cream-ivory/60 line-through"
-                                : "text-cream-ivory"
-                            }`}
-                          >
-                            {habit.label}
-                          </p>
-                        </div>
-                      </button>
-                      {errorHabitId === habit.id && (
-                        <p className="mt-1.5 px-1 text-xs text-warm-coral">
-                          Couldn&apos;t save that — reverted. Try again.
-                        </p>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
+              {isSelectedFuture ? (
+                // Future days must never reveal their habits — same "locked
+                // until you arrive" rule the tomorrow-teaser already follows
+                // elsewhere on the plan page. Only today's real, interactive
+                // list and past days' (read-only) history are ever shown.
+                <div className="flex items-center gap-3 rounded-2xl border border-white/[0.08] bg-white/5 px-4 py-3">
+                  <Lock className="w-4 h-4 text-cream-ivory/40 flex-shrink-0" />
+                  <p className="text-xs text-cream-ivory/50">
+                    Unlocks on day {selectedDay}. Come back once you get there.
+                  </p>
+                </div>
+              ) : (
+                <>
+                  <p className="text-xs uppercase tracking-widest text-cream-ivory/50 font-medium mb-3">
+                    {isSelectedToday ? "Today's Habits" : "Habits"}
+                  </p>
+                  <HabitList
+                    habits={selectedHabits}
+                    checks={checkinsByDate[selectedDateStr ?? ""] ?? {}}
+                    onToggle={onToggleHabit}
+                    interactive={isSelectedToday}
+                    errorId={errorHabitId}
+                    compact
+                  />
+                </>
+              )}
             </motion.div>
           </>
         )}
