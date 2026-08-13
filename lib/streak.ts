@@ -18,6 +18,28 @@ export function phaseForDay(day: number): 1 | 2 | 3 {
   return Math.min(3, Math.ceil(day / 30)) as 1 | 2 | 3;
 }
 
+export type DayVisualState = "done" | "frozen" | "missed" | "neutral" | "future";
+
+// The single source of truth for "what color/state is this calendar cell" —
+// shared by the week strip and the full 90-day map so they can never
+// disagree about the same day. `activeHabitIds` is that day's phase-active
+// habit set; `doneMap` is the check-in map for that specific date.
+export function computeDayVisualState(params: {
+  dateStr: string;
+  todayStr: string;
+  activeHabitIds: string[];
+  doneMap: Record<string, boolean> | undefined;
+  isFrozen: boolean;
+}): DayVisualState {
+  const { dateStr, todayStr, activeHabitIds, doneMap, isFrozen } = params;
+  const allDone =
+    activeHabitIds.length > 0 && activeHabitIds.every((id) => doneMap?.[id]);
+  if (dateStr > todayStr) return "future";
+  if (allDone) return "done";
+  if (dateStr < todayStr) return isFrozen ? "frozen" : "missed";
+  return "neutral";
+}
+
 export interface CheckinRow {
   habit_id: string;
   date: string;

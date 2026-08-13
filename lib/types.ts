@@ -34,7 +34,7 @@ export interface Phase {
   milestones: string[];
 }
 
-export type TimeOfDay = "morning" | "evening" | "anytime";
+export type TimeOfDay = "morning" | "afternoon" | "evening" | "anytime";
 
 export interface DailyHabit {
   id: string;

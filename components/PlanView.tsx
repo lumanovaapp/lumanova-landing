@@ -3,7 +3,7 @@
 import { useEffect, useLayoutEffect, useRef, useState, CSSProperties } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import toast from "react-hot-toast";
-import { Check, Flame, Shield } from "lucide-react";
+import { Flame, Shield } from "lucide-react";
 import { Analysis, Plan, PhotoMilestone, MilestonePhotoSummary } from "@/lib/types";
 import { ACCENT_THEME } from "@/lib/accent";
 import PlanCalendar from "@/components/PlanCalendar";
@@ -15,7 +15,9 @@ import TomorrowTeaser from "@/components/dashboard/plan/TomorrowTeaser";
 import DayCompleteCelebration from "@/components/dashboard/plan/DayCompleteCelebration";
 import TargetLook from "@/components/dashboard/plan/TargetLook";
 import PhaseJourney from "@/components/dashboard/plan/PhaseJourney";
-import HabitList from "@/components/dashboard/plan/HabitList";
+import WeekStrip from "@/components/dashboard/plan/WeekStrip";
+import TodayRoutine from "@/components/dashboard/plan/TodayRoutine";
+import { useTour } from "@/components/dashboard/onboarding/TourProvider";
 
 const MAX_FREEZES = 2;
 
@@ -78,6 +80,20 @@ export default function PlanView({
   const [poppedId, setPoppedId] = useState<string | null>(null);
   const [errorId, setErrorId] = useState<string | null>(null);
   const [celebrate, setCelebrate] = useState(false);
+  const [showFullCalendar, setShowFullCalendar] = useState(false);
+  const { activeTarget } = useTour();
+
+  // The guided tour's "calendar" and "milestones" steps target elements
+  // that live inside <PlanCalendar>, which is now collapsed by default (the
+  // week strip is the default view) — same pattern MobileNav uses to open
+  // its drawer for nav-targeted steps. Only ever opens, never auto-closes,
+  // since (unlike a mobile drawer) leaving the full map visible afterward
+  // doesn't block anything.
+  useEffect(() => {
+    if (activeTarget === "tour-calendar" || activeTarget === "tour-milestones") {
+      setShowFullCalendar(true);
+    }
+  }, [activeTarget]);
 
   const activeHabits = plan.daily_habits.filter(
     (h) => h.phase_start <= currentPhaseNumber
@@ -94,8 +110,9 @@ export default function PlanView({
   // Captured synchronously at the start of a habit toggle, restored in a
   // layout effect right after the resulting DOM update commits (before the
   // browser paints) — a deterministic guarantee that no reflow anywhere in
-  // this render (celebration, completion banner, calendar cell colors, etc.)
-  // can ever leave the page scrolled anywhere other than where it started.
+  // this render (celebration, routine section pops, calendar cell colors,
+  // etc.) can ever leave the page scrolled anywhere other than where it
+  // started.
   const scrollRestoreRef = useRef<number | null>(null);
 
   // BUG FIX: this component can stay mounted across a router.refresh() (e.g.
@@ -121,7 +138,7 @@ export default function PlanView({
   useEffect(() => {
     if (allDone && !prevAllDoneRef.current) {
       setCelebrate(true);
-      const timer = setTimeout(() => setCelebrate(false), 2200);
+      const timer = setTimeout(() => setCelebrate(false), 2600);
       prevAllDoneRef.current = allDone;
       return () => clearTimeout(timer);
     }
@@ -201,7 +218,7 @@ export default function PlanView({
 
   return (
     <>
-    <DayCompleteCelebration active={celebrate} streak={streak} />
+    <DayCompleteCelebration active={celebrate} streak={streak} coachLine={coachLine} />
     <div>
       {/* Page header — left-aligned, editorial, matches the rest of the app */}
       <motion.div
@@ -222,14 +239,87 @@ export default function PlanView({
         </p>
       </motion.div>
 
-      {/* Status band — streak/progress and the milestone countdown side by
-          side, so momentum (today) and destination (next photo check-in)
-          read together at a glance, right up top. */}
+      {/* Week strip — the default, glanceable view of "where am I." Tapping
+          any cell opens the same shared drawer the full 90-day map uses;
+          "View full plan" reveals that map further down the page. */}
+      <motion.div
+        initial={{ opacity: 0, y: reduceMotion ? 0 : 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: reduceMotion ? 0.25 : 0.5, delay: reduceMotion ? 0 : 0.05 }}
+      >
+        <WeekStrip
+          plan={plan}
+          createdAt={createdAt}
+          checkinsByDate={checkinsByDate}
+          onToggleHabit={toggleHabit}
+          errorHabitId={errorId}
+          milestonePhotos={milestonePhotos}
+          frozenDays={frozenDays}
+          baselinePhotoUrl={baselinePhotoUrl}
+          onViewFullPlan={() => setShowFullCalendar(true)}
+        />
+      </motion.div>
+
+      {/* Today's routine — the main content of the page. Always shown, no
+          tap needed: the coach line, then Morning/Afternoon/Evening/Anytime
+          as their own color-coded, checkable cards (see TodayRoutine +
+          RoutineSection). Once every section is done, the locked teaser for
+          tomorrow appears underneath and the bigger day-complete overlay
+          fires once (see DayCompleteCelebration above). */}
+      <motion.section
+        initial={{ opacity: 0, y: reduceMotion ? 0 : 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: reduceMotion ? 0.25 : 0.5, delay: reduceMotion ? 0 : 0.1 }}
+        className="mt-8 md:mt-10"
+      >
+        <div className="flex items-center justify-between gap-3 mb-1">
+          <p className="text-[10px] font-bold tracking-[0.22em] uppercase text-lumen-gold/70">
+            Today
+          </p>
+          {currentPhase && (
+            <span className="text-[10px] text-cream-ivory/50">
+              Phase {currentPhase.number}
+            </span>
+          )}
+        </div>
+        <h2 className="font-manrope font-bold text-lg sm:text-xl text-cream-ivory mb-4">
+          Your routine for today
+        </h2>
+
+        <DailyCoachLine line={coachLine} className="mb-5" />
+
+        <TodayRoutine
+          habits={activeHabits}
+          checks={checks}
+          onToggle={toggleHabit}
+          poppedId={poppedId}
+          errorId={errorId}
+        />
+
+        {/* Always mounted — reserves its own space at all times so this
+            never grows/shrinks the layout (a conditional mount/unmount here
+            is exactly what used to shift scroll position). Opacity-only
+            reveal, tied to the persisted `allDone` (this is meant to stay
+            visible as a status card, unlike the transient celebrations). */}
+        <motion.div
+          initial={false}
+          animate={{ opacity: allDone ? 1 : 0 }}
+          transition={{ duration: 0.35 }}
+          aria-hidden={!allDone}
+          className={`mt-4 ${allDone ? "" : "pointer-events-none"}`}
+        >
+          <TomorrowTeaser nextDay={Math.min(90, day + 1)} />
+        </motion.div>
+      </motion.section>
+
+      {/* Compact status bar — streak/progress and the milestone countdown,
+          now beneath the routine instead of above it (the routine is the
+          main event of this page). */}
       <motion.div
         initial={{ opacity: 0, y: reduceMotion ? 0 : 16 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: reduceMotion ? 0.25 : 0.5, delay: reduceMotion ? 0 : 0.1 }}
-        className="grid grid-cols-1 lg:grid-cols-[1.4fr_1fr] gap-4 lg:gap-5 items-stretch"
+        className="mt-8 md:mt-10 grid grid-cols-1 lg:grid-cols-[1.4fr_1fr] gap-4 lg:gap-5 items-stretch"
       >
         <div
           style={{ "--glow-color": "rgba(244, 196, 48, 0.22)" } as CSSProperties}
@@ -294,119 +384,6 @@ export default function PlanView({
         <MilestoneCountdown day={day} className="h-full" />
       </motion.div>
 
-      {/* Today — the daily coach line plus every active habit, front and
-          center on every screen size (not just a desktop sidebar) since
-          this is the day-to-day heartbeat of the whole plan. Once the full
-          day is done, the card shifts to a gold "completed" treatment and
-          the locked teaser for tomorrow appears underneath. */}
-      <motion.section
-        initial={{ opacity: 0, y: reduceMotion ? 0 : 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: reduceMotion ? 0.25 : 0.5, delay: reduceMotion ? 0 : 0.15 }}
-        className="mt-8 md:mt-10"
-      >
-        <motion.div
-          animate={
-            celebrate && !reduceMotion
-              ? {
-                  boxShadow: [
-                    "0 0 0 0px rgba(244,196,48,0.5)",
-                    "0 0 0 14px rgba(244,196,48,0)",
-                  ],
-                }
-              : {}
-          }
-          transition={{ duration: 0.9 }}
-          className={`rounded-3xl border p-6 sm:p-8 transition-colors duration-500 ${
-            allDone
-              ? "border-lumen-gold/30 bg-gradient-to-b from-lumen-gold/[0.07] to-lumen-gold/[0.02] shadow-[0_2px_4px_rgba(0,0,0,.3),0_16px_32px_rgba(0,0,0,.35),0_0_28px_rgba(244,196,48,0.08)]"
-              : "border-white/[0.08] bg-gradient-to-b from-white/[0.05] to-white/[0.02] shadow-[0_2px_4px_rgba(0,0,0,.3),0_16px_32px_rgba(0,0,0,.35)]"
-          }`}
-        >
-          <div className="flex items-center justify-between gap-3 mb-1">
-            <p className="text-[10px] font-bold tracking-[0.22em] uppercase text-lumen-gold/70">
-              Today
-            </p>
-            {currentPhase && (
-              <span className="text-[10px] text-cream-ivory/50">
-                Phase {currentPhase.number}
-              </span>
-            )}
-          </div>
-          <h2 className="font-manrope font-bold text-lg sm:text-xl text-cream-ivory mb-4">
-            Your habits for today
-          </h2>
-
-          <DailyCoachLine line={coachLine} className="mb-5" />
-
-          <HabitList
-            habits={activeHabits}
-            checks={checks}
-            onToggle={toggleHabit}
-            poppedId={poppedId}
-            errorId={errorId}
-            showDetail
-          />
-
-          {/* Always mounted — reserves its own space at all times so this
-              never grows/shrinks the card's height (a conditional
-              mount/unmount here is exactly what used to shift scroll
-              position). Visibility is gated on `celebrate` (the transient
-              "just crossed into all-done THIS session" signal), not the
-              persisted `allDone` value — so it pops in right after the
-              live completion and fades back out a couple seconds later,
-              instead of staying permanently visible any time the day
-              happens to already be complete (including on page load). The
-              card's gold border/background above is a separate, persistent
-              status treatment — that one stays tied to `allDone`, since a
-              color isn't a "pop-up." */}
-          <motion.div
-            initial={false}
-            animate={
-              celebrate
-                ? { opacity: 1, scale: 1 }
-                : { opacity: 0, scale: reduceMotion ? 1 : 0.85 }
-            }
-            transition={{ duration: 0.35 }}
-            aria-hidden={!celebrate}
-            className={`mt-4 flex items-center justify-center gap-2 rounded-lg border border-lumen-gold/40 bg-lumen-gold/10 py-2 text-center ${
-              celebrate ? "" : "pointer-events-none"
-            }`}
-          >
-            <motion.span
-              animate={
-                celebrate ? { scale: 1, rotate: 0 } : { scale: 0.4, rotate: -20 }
-              }
-              transition={{
-                type: "spring",
-                stiffness: 420,
-                damping: 16,
-                delay: celebrate ? 0.1 : 0,
-              }}
-              className="w-4 h-4 rounded-full bg-lumen-gold flex items-center justify-center flex-shrink-0"
-            >
-              <Check className="w-2.5 h-2.5 text-pure-black" />
-            </motion.span>
-            <span className="font-manrope font-bold text-[11px] text-lumen-gold uppercase tracking-wide">
-              All done for today
-            </span>
-          </motion.div>
-        </motion.div>
-
-        {/* Same reasoning as above — always mounted, opacity-only reveal,
-            so the teaser appearing never displaces the calendar/journey
-            sections underneath it. */}
-        <motion.div
-          initial={false}
-          animate={{ opacity: allDone ? 1 : 0 }}
-          transition={{ duration: 0.35 }}
-          aria-hidden={!allDone}
-          className={`mt-4 ${allDone ? "" : "pointer-events-none"}`}
-        >
-          <TomorrowTeaser nextDay={Math.min(90, day + 1)} />
-        </motion.div>
-      </motion.section>
-
       {/* Your Target Look — reference visuals for the user's real focus
           areas, so the daily habits above point at a concrete destination. */}
       <TargetLook analysis={analysis} className="mt-8 md:mt-10" />
@@ -421,25 +398,40 @@ export default function PlanView({
         className="mt-8 md:mt-10"
       />
 
-      {/* Calendar — full width now that Today's Habits lives in its own
-          section above instead of squeezed into a side panel next to it. */}
-      <motion.section
-        initial={{ opacity: 0, y: reduceMotion ? 0 : 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: reduceMotion ? 0.25 : 0.5, delay: reduceMotion ? 0 : 0.1 }}
-        className="mt-8 md:mt-10 mb-12"
-      >
-        <PlanCalendar
-          plan={plan}
-          createdAt={createdAt}
-          checkinsByDate={checkinsByDate}
-          onToggleHabit={toggleHabit}
-          errorHabitId={errorId}
-          milestonePhotos={milestonePhotos}
-          frozenDays={frozenDays}
-          baselinePhotoUrl={baselinePhotoUrl}
-        />
-      </motion.section>
+      {/* Full 90-day map — the "zoomed out" view, collapsed by default now
+          that the week strip is the default view. Revealed via the week
+          strip's "View full plan" control. */}
+      {showFullCalendar && (
+        <motion.section
+          initial={{ opacity: 0, y: reduceMotion ? 0 : 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: reduceMotion ? 0.15 : 0.4 }}
+          className="mt-8 md:mt-10 mb-12"
+        >
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="font-manrope font-bold text-lg sm:text-xl text-cream-ivory">
+              Full 90-day map
+            </h2>
+            <button
+              type="button"
+              onClick={() => setShowFullCalendar(false)}
+              className="text-xs font-medium text-cream-ivory/50 hover:text-cream-ivory transition-colors focus-gold"
+            >
+              Hide
+            </button>
+          </div>
+          <PlanCalendar
+            plan={plan}
+            createdAt={createdAt}
+            checkinsByDate={checkinsByDate}
+            onToggleHabit={toggleHabit}
+            errorHabitId={errorId}
+            milestonePhotos={milestonePhotos}
+            frozenDays={frozenDays}
+            baselinePhotoUrl={baselinePhotoUrl}
+          />
+        </motion.section>
+      )}
     </div>
     </>
   );

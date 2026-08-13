@@ -50,7 +50,8 @@
       "Bash(mv app/__clicktest/page.tsx app/clicktest-tmp/page.tsx)",
       "Bash(rmdir app/__clicktest)",
       "Bash(Select-String -Pattern \"useBodyScrollLock\" -Context 0,0)",
-      "Bash(node -e \"const icons=require\\('lucide-react'\\); ['Scissors','Shirt','Wand2','Sparkles','Droplet','Lock','TrendingUp','MapPin','CircleCheck','CheckCircle2'].forEach\\(n=>console.log\\(n, !!icons[n]\\)\\)\")"
+      "Bash(node -e \"const icons=require\\('lucide-react'\\); ['Scissors','Shirt','Wand2','Sparkles','Droplet','Lock','TrendingUp','MapPin','CircleCheck','CheckCircle2'].forEach\\(n=>console.log\\(n, !!icons[n]\\)\\)\")",
+      "Bash(node -e \"const icons=require\\('lucide-react'\\); ['CloudSun','Sun','Moon','Sunset','Sunrise','PartyPopper','Sparkle','Sparkles','ChevronLeft','ChevronRight','CalendarRange','Rows3','LayoutGrid'].forEach\\(n=>console.log\\(n, !!icons[n]\\)\\)\")"
     ]
   }
 }

@@ -19,11 +19,12 @@ TYPE-AWARE — read the analysis closely and identify the user's actual type in 
 - Skin: oily, dry, combination, or normal — read this from the "Skin" category's observations. Match cleanser/moisturizer weight and frequency to the actual type (oil-control routine for oily skin vs. a richer barrier-repair routine for dry skin).
 - Report what you inferred in "profile_types" so the rest of the app can reuse it without re-deriving it. Use "unknown" for any dimension the analysis genuinely doesn't give enough signal on — never guess just to fill the field.
 
-MORNING / EVENING STRUCTURE — this app's entire purpose is building a real daily grooming/hygiene ROUTINE, not a flat to-do list. Every habit needs a "time_of_day", and it should almost always be "morning" or "evening":
+MORNING / AFTERNOON / EVENING STRUCTURE — this app's entire purpose is building a real daily grooming/hygiene ROUTINE, not a flat to-do list. Every habit needs a "time_of_day", and it should almost always be "morning" or "evening":
 - "morning": cleanse, SPF, styling, line-up/edge upkeep, anything that starts the day.
 - "evening": treatment, moisturizer, beard oil/conditioning before bed, wind-down routine, anything that closes out the day.
+- "afternoon": use sparingly, only for a genuine midday action (reapplying SPF, a midday touch-up) — most plans should have zero afternoon habits, and none should have more than one.
 - "anytime": reserve this for the rare habit that genuinely has no time anchor (e.g. a once-a-week trim, staying hydrated through the day). At most ONE habit in the entire plan may be "anytime" — most plans should have zero. Before defaulting to "anytime," ask whether the habit more naturally opens or closes the day; almost everything does.
-- Every phase's full active habit set must include at least one "morning" habit AND at least one "evening" habit — this is a hard requirement, not a suggestion. A plan where most habits are "anytime" has failed this instruction and must be redone.
+- Every phase's full active habit set must include at least one "morning" habit AND at least one "evening" habit — this is a hard requirement, not a suggestion. A plan where most habits are "anytime" or "afternoon" has failed this instruction and must be redone.
 
 EVOLVING PHASES — the plan must visibly change across the three phases, not repeat the same habits for 90 days:
 - Phase 1 "Foundation" (phase_start: 1): the minimum viable routine — 3–4 habits establishing the basics for THIS user's type.
@@ -71,7 +72,7 @@ Schema:
       "label": "Short habit name",
       "detail": "One-line detail, specific to this user's type",
       "phase_start": 1,
-      "time_of_day": "morning | evening | anytime"
+      "time_of_day": "morning | afternoon | evening | anytime"
     }
   ]
 }`;
@@ -116,7 +117,7 @@ function slugify(text: string): string {
     .replace(/(^-|-$)/g, "");
 }
 
-const VALID_TIMES_OF_DAY = new Set<TimeOfDay>(["morning", "evening", "anytime"]);
+const VALID_TIMES_OF_DAY = new Set<TimeOfDay>(["morning", "afternoon", "evening", "anytime"]);
 
 // Habit checkboxes are keyed by habit_id across the whole app (checkin upserts,
 // calendar cells, streak math). The LLM output isn't guaranteed to produce

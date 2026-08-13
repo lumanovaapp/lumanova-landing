@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
-import { Flame } from "lucide-react";
+import { PartyPopper } from "lucide-react";
 
 interface DayCompleteCelebrationProps {
   /** True for the brief window right after the last habit of the day gets
@@ -10,9 +10,15 @@ interface DayCompleteCelebrationProps {
    * way if a habit gets unchecked again) — this component only renders. */
   active: boolean;
   streak: number;
+  // The cached daily coach line (see lib/daily-coach-line.ts) — reused here
+  // as the "push toward tomorrow" line instead of generating a second one.
+  // Rendered only when present; older days/failed generations just omit it.
+  coachLine: string | null;
 }
 
-const PARTICLE_COUNT = 14;
+// The whole-day moment is deliberately bigger than each RoutineSection's
+// own small "section done" pop — more particles, a wider spread.
+const PARTICLE_COUNT = 24;
 
 function getCompletionMessage(streak: number): string {
   if (streak >= 90) return "90 days. You did the whole thing. Incredible.";
@@ -38,9 +44,9 @@ function useBurstParticles(seed: number): Particle[] {
       return {
         id: i,
         angle,
-        distance: 46 + Math.random() * 34,
-        size: 3 + Math.random() * 3,
-        delay: Math.random() * 0.08,
+        distance: 52 + Math.random() * 44,
+        size: 3 + Math.random() * 3.5,
+        delay: Math.random() * 0.1,
       };
     });
     // Re-roll a fresh burst pattern each time this celebration re-triggers.
@@ -51,13 +57,42 @@ function useBurstParticles(seed: number): Particle[] {
 export default function DayCompleteCelebration({
   active,
   streak,
+  coachLine,
 }: DayCompleteCelebrationProps) {
   const reduceMotion = !!useReducedMotion();
   const particles = useBurstParticles(active ? streak : 0);
+  const message = getCompletionMessage(streak);
 
-  // The celebration is the "animation" moment itself — under reduced motion
-  // it's skipped outright rather than shown as a static burst, per spec.
-  if (reduceMotion) return null;
+  // Reduced motion still gets the moment — streak, message, and the coach
+  // line's tomorrow-push — just as an instant, non-animated card instead of
+  // a spring-in confetti burst. The parent's timeout still controls how
+  // long `active` stays true, so this still auto-dismisses on schedule.
+  if (reduceMotion) {
+    if (!active) return null;
+    return (
+      <div className="pointer-events-none fixed inset-x-0 top-20 z-[55] flex justify-center px-4">
+        <div className="relative max-w-sm rounded-3xl border border-lumen-gold/30 bg-gradient-to-b from-charcoal to-[#120D06] px-6 py-5 shadow-[0_20px_60px_rgba(0,0,0,0.5),0_0_32px_rgba(244,196,48,0.15)]">
+          <div className="flex items-center gap-3">
+            <div className="w-11 h-11 rounded-2xl bg-lumen-gold/15 border border-lumen-gold/30 flex items-center justify-center flex-shrink-0">
+              <PartyPopper className="w-5 h-5 text-lumen-gold" />
+            </div>
+            <div>
+              <p className="font-manrope font-black text-2xl bg-gradient-to-br from-lumen-gold to-amber-300 bg-clip-text text-transparent leading-none">
+                {streak}
+              </p>
+              <p className="text-[10px] uppercase tracking-widest text-lumen-gold/70 mt-0.5">
+                Day Streak
+              </p>
+            </div>
+          </div>
+          <p className="mt-3 text-sm text-cream-ivory font-medium">{message}</p>
+          {coachLine && (
+            <p className="mt-2 text-xs text-cream-ivory/60 leading-relaxed">{coachLine}</p>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <AnimatePresence>
@@ -71,11 +106,11 @@ export default function DayCompleteCelebration({
           transition={{ duration: 0.25 }}
         >
           <motion.div
-            className="relative overflow-visible rounded-3xl border border-lumen-gold/30 bg-gradient-to-b from-charcoal to-[#120D06] px-6 py-5 shadow-[0_20px_60px_rgba(0,0,0,0.5),0_0_32px_rgba(244,196,48,0.15)]"
-            initial={{ opacity: 0, y: -12, scale: 0.92 }}
+            className="relative max-w-sm overflow-visible rounded-3xl border border-lumen-gold/30 bg-gradient-to-b from-charcoal to-[#120D06] px-6 py-5 shadow-[0_20px_60px_rgba(0,0,0,0.5),0_0_40px_rgba(244,196,48,0.2)]"
+            initial={{ opacity: 0, y: -12, scale: 0.9 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -8, scale: 0.95 }}
-            transition={{ type: "spring", stiffness: 380, damping: 24 }}
+            transition={{ type: "spring", stiffness: 360, damping: 22 }}
           >
             {/* Gold burst — small sparks flying outward from center, no
                 external confetti library. */}
@@ -90,19 +125,19 @@ export default function DayCompleteCelebration({
                   style={{ width: p.size, height: p.size }}
                   initial={{ x: 0, y: 0, opacity: 1, scale: 0.6 }}
                   animate={{ x: dx, y: dy, opacity: 0, scale: 1 }}
-                  transition={{ duration: 1.1, delay: p.delay, ease: "easeOut" }}
+                  transition={{ duration: 1.2, delay: p.delay, ease: "easeOut" }}
                 />
               );
             })}
 
             <div className="relative flex items-center gap-3">
               <motion.div
-                initial={{ scale: 0.6, rotate: -12 }}
+                initial={{ scale: 0.6, rotate: -16 }}
                 animate={{ scale: 1, rotate: 0 }}
-                transition={{ type: "spring", stiffness: 420, damping: 18, delay: 0.05 }}
-                className="w-11 h-11 rounded-2xl bg-lumen-gold/15 border border-lumen-gold/30 flex items-center justify-center flex-shrink-0"
+                transition={{ type: "spring", stiffness: 400, damping: 16, delay: 0.05 }}
+                className="w-12 h-12 rounded-2xl bg-lumen-gold/15 border border-lumen-gold/30 flex items-center justify-center flex-shrink-0"
               >
-                <Flame className="w-5 h-5 text-lumen-gold fill-lumen-gold" />
+                <PartyPopper className="w-6 h-6 text-lumen-gold" />
               </motion.div>
               <div>
                 <motion.p
@@ -120,9 +155,18 @@ export default function DayCompleteCelebration({
               </div>
             </div>
 
-            <p className="relative mt-3 text-sm text-cream-ivory font-medium max-w-[240px]">
-              {getCompletionMessage(streak)}
-            </p>
+            <p className="relative mt-3 text-sm text-cream-ivory font-medium">{message}</p>
+
+            {coachLine && (
+              <motion.p
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.25, duration: 0.3 }}
+                className="relative mt-2 text-xs text-cream-ivory/60 leading-relaxed"
+              >
+                {coachLine}
+              </motion.p>
+            )}
           </motion.div>
         </motion.div>
       )}

@@ -1,9 +1,10 @@
 import { DailyHabit, TimeOfDay } from "@/lib/types";
 
-export const TIME_OF_DAY_ORDER: TimeOfDay[] = ["morning", "evening", "anytime"];
+export const TIME_OF_DAY_ORDER: TimeOfDay[] = ["morning", "afternoon", "evening", "anytime"];
 
 export const TIME_OF_DAY_LABELS: Record<TimeOfDay, string> = {
   morning: "Morning",
+  afternoon: "Afternoon",
   evening: "Evening",
   anytime: "Anytime",
 };
@@ -26,13 +27,14 @@ export interface HabitGroup {
   habits: DailyHabit[];
 }
 
-// Groups habits into Morning / Evening / Anytime, in that fixed order, and
-// drops empty groups — so a plan that never uses time_of_day (or hasn't been
-// regenerated since it was added) still renders as one clean "Anytime"
-// section instead of two empty headers.
+// Groups habits into Morning / Afternoon / Evening / Anytime, in that fixed
+// order, and drops empty groups — so a plan that never uses time_of_day (or
+// hasn't been regenerated since it was added) still renders as one clean
+// "Anytime" section instead of a wall of empty headers.
 export function groupHabitsByTimeOfDay(habits: DailyHabit[]): HabitGroup[] {
   const groups: Record<TimeOfDay, DailyHabit[]> = {
     morning: [],
+    afternoon: [],
     evening: [],
     anytime: [],
   };
