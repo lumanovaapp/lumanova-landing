@@ -2,19 +2,20 @@
 
 import { Droplet, Scissors, Wand2, Shirt, ImageIcon, LucideIcon } from "lucide-react";
 import { motion, useReducedMotion } from "framer-motion";
-import { Analysis } from "@/lib/types";
+import { Analysis, ProfileTypes } from "@/lib/types";
 import { selectTargetLookAreas, TargetLookEntry } from "@/lib/target-look";
 
 const ICONS: Record<string, LucideIcon> = { Droplet, Scissors, Wand2, Shirt };
 
 interface TargetLookProps {
   analysis: Analysis | null;
+  profileTypes?: ProfileTypes;
   className?: string;
 }
 
-export default function TargetLook({ analysis, className = "" }: TargetLookProps) {
+export default function TargetLook({ analysis, profileTypes, className = "" }: TargetLookProps) {
   const reduceMotion = !!useReducedMotion();
-  const areas = selectTargetLookAreas(analysis);
+  const areas = selectTargetLookAreas(analysis, profileTypes);
 
   if (areas.length === 0) return null;
 
@@ -36,7 +37,12 @@ export default function TargetLook({ analysis, className = "" }: TargetLookProps
 
       <div
         className={`grid grid-cols-1 gap-5 ${
-          areas.length === 2 ? "sm:grid-cols-2" : "sm:grid-cols-2 lg:grid-cols-3"
+          // 4 cards (3 personalized + the always-on style card) settle into
+          // a clean 2x2 rather than an uneven 3-then-1 wrap; other counts
+          // keep the previous layout.
+          areas.length === 2 || areas.length === 4
+            ? "sm:grid-cols-2"
+            : "sm:grid-cols-2 lg:grid-cols-3"
         }`}
       >
         {areas.map((area, i) => (

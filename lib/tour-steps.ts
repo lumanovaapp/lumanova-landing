@@ -17,22 +17,6 @@ export interface TourStep {
 
 export const TOUR_STEPS: TourStep[] = [
   {
-    id: "streak",
-    route: "/dashboard",
-    target: "tour-streak",
-    title: "Your streak",
-    body: "Keep your streak alive by checking off your habits every day — miss a day and it resets, so consistency is everything. Earn a freeze to protect it once in a while.",
-    requiresPlan: true,
-  },
-  {
-    id: "habits",
-    route: "/dashboard",
-    target: "tour-habits",
-    title: "Today's habits",
-    body: "Your daily routine, built from your analysis. Head to your 90-Day Plan to check them off and keep your streak going.",
-    requiresPlan: true,
-  },
-  {
     id: "upload",
     route: "/dashboard",
     target: "tour-nav-upload",
@@ -46,20 +30,40 @@ export const TOUR_STEPS: TourStep[] = [
     title: "90-Day Plan",
     body: "Once you've scanned a photo, your personalized 90-day plan lives here — daily habits, phases, and your calendar.",
   },
+  // The next four all live on /dashboard/plan's "Today" tab (the default
+  // tab), so none of them need to switch tabs themselves — see PlanView's
+  // tour-sync effect, which forces "Today" active if the user had wandered
+  // to "Journey" before reaching this point in the tour.
   {
-    id: "calendar",
+    id: "streak",
     route: "/dashboard/plan",
-    target: "tour-calendar",
-    title: "Your 90-day calendar",
-    body: "Track your whole journey at a glance — gold means done, coral means missed. Keep an eye out for the milestone markers, too.",
+    target: "tour-plan-streak",
+    title: "Your streak",
+    body: "Keep your streak alive by checking off your habits every day — miss a day and it resets, so consistency is everything. Earn a freeze to protect it once in a while.",
     requiresPlan: true,
   },
   {
-    id: "milestones",
+    id: "week-strip",
     route: "/dashboard/plan",
-    target: "tour-milestones",
-    title: "Milestones",
-    body: "Right on the calendar, upload progress photos at day 30, 60, and 90 to see how far you've come.",
+    target: "tour-week-strip",
+    title: "Your week at a glance",
+    body: "Today's highlighted — the chain builds as you check off days. Tap any past day to look back, or browse other weeks with the arrows.",
+    requiresPlan: true,
+  },
+  {
+    id: "routine",
+    route: "/dashboard/plan",
+    target: "tour-routine",
+    title: "Today's routine",
+    body: "Your daily routine, split into morning and evening (plus afternoon or anytime habits when you have them) — check each off to build your streak.",
+    requiresPlan: true,
+  },
+  {
+    id: "journey",
+    route: "/dashboard/plan",
+    target: "tour-journey-tab",
+    title: "The Journey tab",
+    body: "Tap Journey anytime to see your 3 phases, your target look, and the full 90-day map.",
     requiresPlan: true,
   },
   {

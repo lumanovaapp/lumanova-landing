@@ -25,10 +25,33 @@ const MILESTONE_LABELS: Record<PhotoMilestone, string> = {
   day_90: "Day 90 Check-In",
 };
 
+// Mirrors Tailwind's `md` breakpoint. Below it: a full-width bottom-sheet
+// drawer (mobile screen space is tight, so the day's content deserves the
+// whole viewport). At/above it: a small inline panel that just expands in
+// normal document flow right where <DayDrawer> is rendered (directly under
+// the week strip's or full calendar's day grid) — no backdrop, no body
+// scroll lock, since it never covers the page.
+const DESKTOP_BREAKPOINT_PX = 768;
+
+function useIsDesktop(): boolean {
+  const [isDesktop, setIsDesktop] = useState(false);
+
+  useEffect(() => {
+    const mql = window.matchMedia(`(min-width: ${DESKTOP_BREAKPOINT_PX}px)`);
+    setIsDesktop(mql.matches);
+    const handleChange = (e: MediaQueryListEvent) => setIsDesktop(e.matches);
+    mql.addEventListener("change", handleChange);
+    return () => mql.removeEventListener("change", handleChange);
+  }, []);
+
+  return isDesktop;
+}
+
 // Locks the page behind the drawer, including on iOS Safari where a plain
 // `overflow: hidden` on body still lets the background rubber-band scroll.
 // Pinning body to `position: fixed` at its current scroll offset removes it
 // from the scroll chain entirely; we restore the exact offset on close.
+// Mobile-drawer only — the desktop inline panel never needs this.
 function useBodyScrollLock(active: boolean) {
   useEffect(() => {
     if (!active) return;
@@ -93,9 +116,12 @@ export default function DayDrawer({
 }: DayDrawerProps) {
   const router = useRouter();
   const reduceMotion = !!useReducedMotion();
+  const isDesktop = useIsDesktop();
   const frozenDaySet = new Set(frozenDays);
 
-  useBodyScrollLock(selectedDay !== null);
+  // Only the mobile bottom-sheet covers the page — the desktop inline panel
+  // never needs the scroll lock (passing `false` makes the hook a no-op).
+  useBodyScrollLock(selectedDay !== null && !isDesktop);
 
   const planStart = toDateOnlyUTC(new Date(createdAt));
   const today = toDateOnlyUTC(new Date());
@@ -122,6 +148,113 @@ export default function DayDrawer({
   const selectedMilestoneReached =
     selectedDay !== null && realDayNumber >= selectedDay;
   const selectedIsFrozen = selectedDay !== null && frozenDaySet.has(selectedDay);
+
+  const content = (
+    <>
+      {selectedIsFrozen && (
+        <div className="mb-6 flex items-center gap-2 rounded-2xl border border-aurora-mist/30 bg-aurora-mist/10 px-4 py-3">
+          <Shield className="w-4 h-4 text-aurora-mist flex-shrink-0" />
+          <p className="text-xs text-aurora-mist">
+            A streak freeze covered this day — it doesn&apos;t break your streak.
+          </p>
+        </div>
+      )}
+
+      {selectedMilestoneType && selectedMilestoneReached && (
+        <div className="mb-6">
+          <MilestoneSection
+            milestoneType={selectedMilestoneType}
+            photo={milestonePhotos[selectedMilestoneType]}
+            baselinePhotoUrl={baselinePhotoUrl}
+            onUploaded={() => router.refresh()}
+          />
+        </div>
+      )}
+
+      {selectedMilestoneType && !selectedMilestoneReached && (
+        <div className="mb-6 flex items-center gap-3 rounded-2xl border border-white/[0.08] bg-white/5 px-4 py-3">
+          <Lock className="w-4 h-4 text-cream-ivory/40 flex-shrink-0" />
+          <p className="text-xs text-cream-ivory/50">
+            {MILESTONE_LABELS[selectedMilestoneType]} unlocks on day{" "}
+            {selectedDay}.
+          </p>
+        </div>
+      )}
+
+      {isSelectedFuture ? (
+        // Future days must never reveal their habits — same "locked until
+        // you arrive" rule the tomorrow-teaser already follows elsewhere on
+        // the plan page. Only today's real, interactive list and past days'
+        // (read-only) history are ever shown.
+        <div className="flex items-center gap-3 rounded-2xl border border-white/[0.08] bg-white/5 px-4 py-3">
+          <Lock className="w-4 h-4 text-cream-ivory/40 flex-shrink-0" />
+          <p className="text-xs text-cream-ivory/50">
+            Unlocks on day {selectedDay}. Come back once you get there.
+          </p>
+        </div>
+      ) : (
+        <>
+          <p className="text-xs uppercase tracking-widest text-cream-ivory/50 font-medium mb-3">
+            {isSelectedToday ? "Today's Habits" : "Habits"}
+          </p>
+          <HabitList
+            habits={selectedHabits}
+            checks={checkinsByDate[selectedDateStr ?? ""] ?? {}}
+            onToggle={onToggleHabit}
+            interactive={isSelectedToday}
+            errorId={errorHabitId}
+            compact
+          />
+        </>
+      )}
+    </>
+  );
+
+  const header = (
+    <div className="flex items-center justify-between mb-6">
+      <div>
+        <p className="font-manrope font-bold text-xl text-cream-ivory">
+          Day {selectedDay}
+        </p>
+        <p className="text-xs text-cream-ivory/50">{selectedDateStr}</p>
+      </div>
+      <button
+        type="button"
+        onClick={onClose}
+        aria-label="Close"
+        className="w-9 h-9 flex items-center justify-center rounded-xl text-cream-ivory/70 hover:bg-white/5 hover:text-cream-ivory transition-colors focus-gold"
+      >
+        <X className="w-5 h-5" />
+      </button>
+    </div>
+  );
+
+  if (isDesktop) {
+    // A light, in-flow panel — expands right where <DayDrawer> sits in the
+    // tree (directly under the week strip's / full calendar's day grid), no
+    // backdrop, no scroll lock. A deliberate mount/unmount is fine here
+    // (unlike the check-in path) since this is a user-initiated click, not
+    // an automatic side effect of completing a habit.
+    return (
+      <AnimatePresence>
+        {selectedDay !== null && (
+          <motion.div
+            key="panel"
+            initial={reduceMotion ? false : { opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: reduceMotion ? 0.1 : 0.3, ease: [0.16, 1, 0.3, 1] }}
+            className="overflow-hidden"
+          >
+            <div className="mt-4 rounded-3xl border border-white/10 bg-charcoal/60 p-6">
+              {header}
+              {content}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    );
+  }
 
   return (
     <AnimatePresence>
@@ -151,79 +284,8 @@ export default function DayDrawer({
             }
             className="fixed inset-x-0 bottom-0 z-50 max-h-[85vh] overflow-y-auto overscroll-contain touch-pan-y rounded-t-3xl border-t border-white/10 bg-pure-black p-6 sm:p-8 sm:max-w-lg sm:mx-auto"
           >
-            <div className="flex items-center justify-between mb-6">
-              <div>
-                <p className="font-manrope font-bold text-xl text-cream-ivory">
-                  Day {selectedDay}
-                </p>
-                <p className="text-xs text-cream-ivory/50">{selectedDateStr}</p>
-              </div>
-              <button
-                type="button"
-                onClick={onClose}
-                aria-label="Close"
-                className="w-9 h-9 flex items-center justify-center rounded-xl text-cream-ivory/70 hover:bg-white/5 hover:text-cream-ivory transition-colors focus-gold"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {selectedIsFrozen && (
-              <div className="mb-6 flex items-center gap-2 rounded-2xl border border-aurora-mist/30 bg-aurora-mist/10 px-4 py-3">
-                <Shield className="w-4 h-4 text-aurora-mist flex-shrink-0" />
-                <p className="text-xs text-aurora-mist">
-                  A streak freeze covered this day — it doesn&apos;t break your streak.
-                </p>
-              </div>
-            )}
-
-            {selectedMilestoneType && selectedMilestoneReached && (
-              <div className="mb-6">
-                <MilestoneSection
-                  milestoneType={selectedMilestoneType}
-                  photo={milestonePhotos[selectedMilestoneType]}
-                  baselinePhotoUrl={baselinePhotoUrl}
-                  onUploaded={() => router.refresh()}
-                />
-              </div>
-            )}
-
-            {selectedMilestoneType && !selectedMilestoneReached && (
-              <div className="mb-6 flex items-center gap-3 rounded-2xl border border-white/[0.08] bg-white/5 px-4 py-3">
-                <Lock className="w-4 h-4 text-cream-ivory/40 flex-shrink-0" />
-                <p className="text-xs text-cream-ivory/50">
-                  {MILESTONE_LABELS[selectedMilestoneType]} unlocks on day{" "}
-                  {selectedDay}.
-                </p>
-              </div>
-            )}
-
-            {isSelectedFuture ? (
-              // Future days must never reveal their habits — same "locked
-              // until you arrive" rule the tomorrow-teaser already follows
-              // elsewhere on the plan page. Only today's real, interactive
-              // list and past days' (read-only) history are ever shown.
-              <div className="flex items-center gap-3 rounded-2xl border border-white/[0.08] bg-white/5 px-4 py-3">
-                <Lock className="w-4 h-4 text-cream-ivory/40 flex-shrink-0" />
-                <p className="text-xs text-cream-ivory/50">
-                  Unlocks on day {selectedDay}. Come back once you get there.
-                </p>
-              </div>
-            ) : (
-              <>
-                <p className="text-xs uppercase tracking-widest text-cream-ivory/50 font-medium mb-3">
-                  {isSelectedToday ? "Today's Habits" : "Habits"}
-                </p>
-                <HabitList
-                  habits={selectedHabits}
-                  checks={checkinsByDate[selectedDateStr ?? ""] ?? {}}
-                  onToggle={onToggleHabit}
-                  interactive={isSelectedToday}
-                  errorId={errorHabitId}
-                  compact
-                />
-              </>
-            )}
+            {header}
+            {content}
           </motion.div>
         </>
       )}

@@ -79,10 +79,7 @@ export default function PlanCalendar({
   }
 
   return (
-    <div
-      data-tour="tour-calendar"
-      className="w-full rounded-3xl border border-white/[0.08] bg-gradient-to-b from-white/[0.05] to-white/[0.02] shadow-[0_2px_4px_rgba(0,0,0,.3),0_16px_32px_rgba(0,0,0,.35)] p-5 sm:p-6 lg:p-7"
-    >
+    <div className="w-full rounded-3xl border border-white/[0.08] bg-gradient-to-b from-white/[0.05] to-white/[0.02] shadow-[0_2px_4px_rgba(0,0,0,.3),0_16px_32px_rgba(0,0,0,.35)] p-5 sm:p-6 lg:p-7">
       <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
         <h2 className="font-manrope font-semibold text-sm text-cream-ivory">
           Your 90 Days
@@ -146,7 +143,6 @@ export default function PlanCalendar({
                     key={day}
                     type="button"
                     onClick={() => setSelectedDay(day)}
-                    data-tour={day === 30 ? "tour-milestones" : undefined}
                     title={
                       milestoneNeedsAction
                         ? "Tap to check in"

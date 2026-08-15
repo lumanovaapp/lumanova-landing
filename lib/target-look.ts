@@ -1,4 +1,4 @@
-import { Analysis } from "@/lib/types";
+import { Analysis, ProfileTypes } from "@/lib/types";
 import { TARGET_LOOK_IMAGES } from "@/lib/target-look-images";
 
 // "Your Target Look" reference cards on the plan page — one per focus area,
@@ -13,10 +13,11 @@ export interface TargetLookEntry {
   // check-achievements.ts for the same pattern) — keeps this module plain
   // data, safe to import from server code too.
   icon: string;
-  // Sourced from lib/target-look-images.ts — that's the one file to edit to
-  // add real photos; null renders the placeholder card as a graceful
-  // fallback. Kept out of this map directly so editing an image path can
-  // never accidentally touch the copy/icon config below.
+  // Sourced from lib/target-look-images.ts, type-matched against the plan's
+  // profile_types (beard/hair) where applicable — null renders the
+  // placeholder card as a graceful fallback. Kept out of this map directly
+  // so editing an image path can never accidentally touch the copy/icon
+  // config below.
   imageUrl: string | null;
 }
 
@@ -68,12 +69,43 @@ function normalizeCategoryName(name: string): FocusAreaKey | null {
   return null;
 }
 
+// Resolves the reference image for a focus area. Beard and hair are
+// type-matched against the plan's profile_types (falling back to the
+// placeholder when the type is "unknown" or the plan predates that field);
+// skin and style aren't a type-per-user dimension, so they use one general
+// reference image each.
+function resolveImageUrl(
+  key: FocusAreaKey,
+  profileTypes?: ProfileTypes
+): string | null {
+  switch (key) {
+    case "beard": {
+      const type = profileTypes?.beard;
+      if (!type || type === "unknown") return null;
+      return TARGET_LOOK_IMAGES.beard[type];
+    }
+    case "hair": {
+      const type = profileTypes?.hair;
+      if (!type || type === "unknown") return null;
+      return TARGET_LOOK_IMAGES.hair[type];
+    }
+    case "skin":
+      return TARGET_LOOK_IMAGES.skin;
+    case "style":
+      return TARGET_LOOK_IMAGES.style;
+  }
+}
+
 // Picks up to `max` target-look cards from the user's real analysis —
 // "focus" (biggest opportunity) categories first, then "refine", so the
 // section always points at what actually matters for this person rather
-// than showing all four regardless of relevance.
+// than showing all four regardless of relevance. Style is then always
+// appended as a trailing card (unless it already made the personalized
+// cut) — good style is universal advice, not something tied to a specific
+// analysis finding, so it isn't subject to being crowded out.
 export function selectTargetLookAreas(
   analysis: Analysis | null,
+  profileTypes?: ProfileTypes,
   max = 3
 ): TargetLookEntry[] {
   if (!analysis) return [];
@@ -87,9 +119,20 @@ export function selectTargetLookAreas(
       const key = normalizeCategoryName(category.name);
       if (!key || seen.has(key)) continue;
       seen.add(key);
-      picks.push({ ...TARGET_LOOK_CONFIG[key], imageUrl: TARGET_LOOK_IMAGES[key] });
-      if (picks.length >= max) return picks;
+      picks.push({
+        ...TARGET_LOOK_CONFIG[key],
+        imageUrl: resolveImageUrl(key, profileTypes),
+      });
+      if (picks.length >= max) break;
     }
+    if (picks.length >= max) break;
+  }
+
+  if (!seen.has("style")) {
+    picks.push({
+      ...TARGET_LOOK_CONFIG.style,
+      imageUrl: resolveImageUrl("style", profileTypes),
+    });
   }
 
   return picks;

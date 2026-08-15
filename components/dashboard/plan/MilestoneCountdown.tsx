@@ -8,6 +8,10 @@ interface MilestoneCountdownProps {
    * the plan's real `created_at`, never computed or stored here. */
   day: number;
   className?: string;
+  /** Strips the outer card down to an icon + one line of text, for
+   * embedding inline in the compact streak bar. Default (false) keeps the
+   * full bordered card used on the dashboard home page. */
+  compact?: boolean;
 }
 
 const MILESTONE_DAYS = [30, 60, 90] as const;
@@ -23,11 +27,30 @@ const RING_STROKE = 5;
 const RING_RADIUS = (RING_SIZE - RING_STROKE) / 2;
 const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
 
-export default function MilestoneCountdown({ day, className = "" }: MilestoneCountdownProps) {
+export default function MilestoneCountdown({
+  day,
+  className = "",
+  compact = false,
+}: MilestoneCountdownProps) {
   const reduceMotion = !!useReducedMotion();
   const clampedDay = Math.min(90, Math.max(1, day));
 
   const nextMilestone = MILESTONE_DAYS.find((m) => clampedDay < m);
+
+  if (compact) {
+    return (
+      <div className={`flex items-center gap-1.5 min-w-0 ${className}`}>
+        <Camera className="w-3.5 h-3.5 text-lumen-gold flex-shrink-0" />
+        <span className="text-[11px] text-cream-ivory/60 whitespace-nowrap truncate">
+          {!nextMilestone
+            ? "All photos unlocked"
+            : clampedDay >= nextMilestone
+            ? `${MILESTONE_LABELS[nextMilestone]} unlocks today`
+            : `${MILESTONE_LABELS[nextMilestone]} in ${nextMilestone - clampedDay}d`}
+        </span>
+      </div>
+    );
+  }
 
   // Day 90+: every milestone is behind them — a completion state instead of
   // a countdown toward nothing.
