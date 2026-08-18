@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Image from "next/image";
 import { Menu, X, ArrowRight } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { SHOW_PUBLIC_SIGN_IN } from "@/lib/launch-flags";
 
 export default function Navigation() {
   const [scrolled, setScrolled] = useState(false);
@@ -47,12 +48,14 @@ export default function Navigation() {
 
         {/* Right: desktop nav links + mobile hamburger */}
         <div className="flex items-center justify-end gap-6">
-          <a
-            href="/login"
-            className="hidden lg:block text-[#F8F4E3]/65 text-sm font-medium hover:text-[#F4C430] transition-colors duration-200 focus-gold"
-          >
-            Sign in
-          </a>
+          {SHOW_PUBLIC_SIGN_IN && (
+            <a
+              href="/login"
+              className="hidden lg:block text-[#F8F4E3]/65 text-sm font-medium hover:text-[#F4C430] transition-colors duration-200 focus-gold"
+            >
+              Sign in
+            </a>
+          )}
           <a
             href="#waitlist"
             className="hidden lg:inline-flex items-center gap-1.5 bg-[#F4C430] text-[#0A0A0A] font-semibold text-sm px-6 py-2.5 rounded-full hover:bg-[#F4C430]/90 hover:shadow-[0_0_24px_rgba(244,196,48,0.45)] transition-all duration-300 active:scale-95 focus-gold"
@@ -82,13 +85,15 @@ export default function Navigation() {
             className="lg:hidden overflow-hidden bg-[#0A0A0A]/98 backdrop-blur-md border-t border-white/[0.08]"
           >
             <div className="px-4 sm:px-6 py-4 flex flex-col gap-2">
-              <a
-                href="/login"
-                onClick={() => setMenuOpen(false)}
-                className="flex items-center justify-center min-h-[48px] text-[#F8F4E3]/65 text-sm font-medium hover:text-[#F4C430] transition-colors duration-200 rounded-xl hover:bg-white/[0.04] focus-gold"
-              >
-                Sign in
-              </a>
+              {SHOW_PUBLIC_SIGN_IN && (
+                <a
+                  href="/login"
+                  onClick={() => setMenuOpen(false)}
+                  className="flex items-center justify-center min-h-[48px] text-[#F8F4E3]/65 text-sm font-medium hover:text-[#F4C430] transition-colors duration-200 rounded-xl hover:bg-white/[0.04] focus-gold"
+                >
+                  Sign in
+                </a>
+              )}
               <a
                 href="#waitlist"
                 onClick={() => setMenuOpen(false)}

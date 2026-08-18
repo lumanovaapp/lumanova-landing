@@ -74,7 +74,7 @@ function TargetLookCard({
       className="group rounded-3xl border border-white/[0.08] bg-gradient-to-b from-white/[0.05] to-white/[0.02] shadow-[0_2px_4px_rgba(0,0,0,.3),0_16px_32px_rgba(0,0,0,.35)] p-3 transition-colors duration-300 hover:border-lumen-gold/25"
     >
       <div
-        className={`relative aspect-[4/5] rounded-2xl overflow-hidden bg-gradient-to-br from-lumen-gold/[0.09] via-charcoal to-[#0A0A0A] ${
+        className={`relative aspect-[10/7] rounded-2xl overflow-hidden bg-gradient-to-br from-lumen-gold/[0.09] via-charcoal to-[#0A0A0A] ${
           area.imageUrl ? "border border-white/10" : "border border-dashed border-white/15"
         }`}
       >

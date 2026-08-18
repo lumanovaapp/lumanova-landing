@@ -129,8 +129,8 @@ export default function LoginPage() {
 
         <p className="text-center mt-6 text-sm text-cream-ivory/70">
           New here?{" "}
-          <Link href="/signup" className="text-lumen-gold font-medium hover:underline">
-            Sign up
+          <Link href="/#waitlist" className="text-lumen-gold font-medium hover:underline">
+            Join the waitlist
           </Link>
         </p>
       </motion.div>

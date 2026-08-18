@@ -2,9 +2,12 @@
 
 import { useState } from "react";
 import toast from "react-hot-toast";
-import { ArrowRight, Loader2, Star } from "lucide-react";
+import { ArrowRight, Check, Loader2, Star } from "lucide-react";
 import { motion } from "framer-motion";
 import SectionGlow from "@/components/SectionGlow";
+import { createClient } from "@/utils/supabase/client";
+
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const container = {
   hidden: {},
@@ -19,23 +22,38 @@ const item = {
 export default function WaitlistCTA() {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const [alreadyOnList, setAlreadyOnList] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !email.includes("@")) {
+    if (!email.trim() || !EMAIL_REGEX.test(email.trim())) {
       toast.error("Please enter a valid email.");
       return;
     }
 
     setLoading(true);
-    await new Promise((resolve) => setTimeout(resolve, 700));
-    console.log("Waitlist email:", email);
-
-    toast.success("✨ You're on the list. We'll be in touch.", {
-      duration: 5000,
-    });
-    setEmail("");
+    const supabase = createClient();
+    const { error } = await supabase
+      .from("waitlist")
+      .insert({ email: email.trim().toLowerCase() });
     setLoading(false);
+
+    if (error) {
+      // Unique violation — they're already on the list, treat as success.
+      if (error.code === "23505") {
+        setAlreadyOnList(true);
+        setSubmitted(true);
+        setEmail("");
+        return;
+      }
+      toast.error("Something went wrong. Please try again.");
+      return;
+    }
+
+    setAlreadyOnList(false);
+    setSubmitted(true);
+    setEmail("");
   };
 
   return (
@@ -77,35 +95,49 @@ export default function WaitlistCTA() {
           on launch day.
         </motion.p>
 
-        <motion.form
-          variants={item}
-          onSubmit={handleSubmit}
-          className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto"
-        >
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="your@email.com"
-            className="flex-1 bg-white/[0.07] border border-white/[0.18] text-white placeholder:text-white/30 text-sm px-5 py-4 rounded-full focus:outline-none focus:border-[#F4C430]/50 focus:bg-white/[0.10] transition-all duration-300 min-w-0 focus-gold"
-            disabled={loading}
-            required
-          />
-          <button
-            type="submit"
-            disabled={loading}
-            className="inline-flex items-center justify-center gap-2 bg-[#F4C430] text-[#0A0A0A] font-bold text-sm px-7 py-4 rounded-full hover:bg-[#F4C430]/90 hover:shadow-[0_0_36px_rgba(244,196,48,0.45)] disabled:opacity-60 transition-all duration-300 active:scale-95 flex-shrink-0 whitespace-nowrap focus-gold"
+        {submitted ? (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+            className="flex items-center justify-center gap-2.5 max-w-md mx-auto bg-[#F4C430]/[0.08] border border-[#F4C430]/30 text-[#F4C430] text-sm font-medium px-6 py-4 rounded-full"
           >
-            {loading ? (
-              <Loader2 size={16} className="animate-spin" />
-            ) : (
-              <>
-                Join the Waitlist
-                <ArrowRight size={15} />
-              </>
-            )}
-          </button>
-        </motion.form>
+            <Check size={16} className="flex-shrink-0" />
+            {alreadyOnList
+              ? "You're already on the list — we'll email you at launch."
+              : "You're on the list — we'll email you at launch."}
+          </motion.div>
+        ) : (
+          <motion.form
+            variants={item}
+            onSubmit={handleSubmit}
+            className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto"
+          >
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="your@email.com"
+              className="flex-1 bg-white/[0.07] border border-white/[0.18] text-white placeholder:text-white/30 text-sm px-5 py-4 rounded-full focus:outline-none focus:border-[#F4C430]/50 focus:bg-white/[0.10] transition-all duration-300 min-w-0 focus-gold"
+              disabled={loading}
+              required
+            />
+            <button
+              type="submit"
+              disabled={loading}
+              className="inline-flex items-center justify-center gap-2 bg-[#F4C430] text-[#0A0A0A] font-bold text-sm px-7 py-4 rounded-full hover:bg-[#F4C430]/90 hover:shadow-[0_0_36px_rgba(244,196,48,0.45)] disabled:opacity-60 transition-all duration-300 active:scale-95 flex-shrink-0 whitespace-nowrap focus-gold"
+            >
+              {loading ? (
+                <Loader2 size={16} className="animate-spin" />
+              ) : (
+                <>
+                  Join the Waitlist
+                  <ArrowRight size={15} />
+                </>
+              )}
+            </button>
+          </motion.form>
+        )}
 
         {/* Trust signal — mirrors the hero's proof strip so the final CTA
             closes the loop the opening moment promised (peak-end rule). */}

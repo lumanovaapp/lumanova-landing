@@ -99,6 +99,12 @@ export type DailyCoachLineRow = {
   created_at: string;
 };
 
+export type WaitlistRow = {
+  id: string;
+  email: string;
+  created_at: string;
+};
+
 export interface Database {
   public: {
     Tables: {
@@ -161,6 +167,12 @@ export interface Database {
           content: string;
         };
         Update: Partial<DailyCoachLineRow>;
+        Relationships: [];
+      };
+      waitlist: {
+        Row: WaitlistRow;
+        Insert: Partial<WaitlistRow> & { email: string };
+        Update: Partial<WaitlistRow>;
         Relationships: [];
       };
     };

@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { motion } from "framer-motion";
+import { SHOW_PUBLIC_SIGN_IN } from "@/lib/launch-flags";
 
 const TikTokIcon = () => (
   <svg
@@ -80,7 +81,7 @@ const linkColumns = [
   {
     heading: "Company",
     links: [
-      { label: "Sign in", href: "/login" },
+      ...(SHOW_PUBLIC_SIGN_IN ? [{ label: "Sign in", href: "/login" }] : []),
       { label: "Join the Waitlist", href: "#waitlist" },
     ],
   },

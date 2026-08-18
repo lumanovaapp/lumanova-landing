@@ -86,6 +86,14 @@ create table if not exists public.daily_coach_lines (
   unique (user_id, date)
 );
 
+-- Pre-launch email capture — public site only ever inserts here, never
+-- reads. Not linked to auth.users; a waitlist signup is not an account.
+create table if not exists public.waitlist (
+  id uuid primary key default gen_random_uuid(),
+  email text unique not null,
+  created_at timestamptz not null default now()
+);
+
 create index if not exists photos_user_id_idx on public.photos (user_id);
 create index if not exists plans_user_id_idx on public.plans (user_id);
 create index if not exists daily_checkins_user_id_idx on public.daily_checkins (user_id);
@@ -125,6 +133,7 @@ alter table public.plans enable row level security;
 alter table public.daily_checkins enable row level security;
 alter table public.streaks enable row level security;
 alter table public.daily_coach_lines enable row level security;
+alter table public.waitlist enable row level security;
 
 -- users: row id IS the user's own id
 create policy "Users can view own row" on public.users
@@ -185,6 +194,13 @@ create policy "Users can view own daily coach lines" on public.daily_coach_lines
 
 create policy "Users can insert own daily coach lines" on public.daily_coach_lines
   for insert with check (auth.uid() = user_id);
+
+-- waitlist: public can add their own email, but never read the list back
+-- (no select policy at all — RLS default-denies select for anon/authenticated).
+create policy "Anyone can join the waitlist" on public.waitlist
+  for insert
+  to anon, authenticated
+  with check (true);
 
 -- ============================================================
 -- 3. AUTO-CREATE public.users ROW ON SIGNUP
