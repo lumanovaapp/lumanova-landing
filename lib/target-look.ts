@@ -96,44 +96,36 @@ function resolveImageUrl(
   }
 }
 
-// Picks up to `max` target-look cards from the user's real analysis —
-// "focus" (biggest opportunity) categories first, then "refine", so the
-// section always points at what actually matters for this person rather
-// than showing all four regardless of relevance. Style is then always
-// appended as a trailing card (unless it already made the personalized
-// cut) — good style is universal advice, not something tied to a specific
-// analysis finding, so it isn't subject to being crowded out.
+// Fixed display order — Skin, Hair, Facial Hair, Style — independent of
+// priority or of the order the model happened to return categories in.
+const FOCUS_AREA_ORDER: FocusAreaKey[] = ["skin", "hair", "beard", "style"];
+
+// One target-look card per focus area actually present in the analysis, in
+// the fixed order above — NOT a "top N by priority" selection. An earlier
+// version filtered down to only "focus"/"refine" categories (capped at 3),
+// which silently dropped a category whenever its priority came back
+// "maintain" (already in good shape) — e.g. a user whose Hair and Facial
+// Hair both read "maintain" would see only Skin and Style. A reference
+// image for what a well-executed cut/beard looks like is still useful even
+// when it isn't flagged as a top opportunity, so every category the
+// analysis actually returned gets a card here regardless of its priority.
+// "style" is additionally always included even on the rare/older analysis
+// that's missing it — good style is universal advice, not tied to a
+// specific finding.
 export function selectTargetLookAreas(
   analysis: Analysis | null,
-  profileTypes?: ProfileTypes,
-  max = 3
+  profileTypes?: ProfileTypes
 ): TargetLookEntry[] {
   if (!analysis) return [];
 
-  const seen = new Set<FocusAreaKey>();
-  const picks: TargetLookEntry[] = [];
-
-  for (const priority of ["focus", "refine"] as const) {
-    for (const category of analysis.categories) {
-      if (category.priority !== priority) continue;
-      const key = normalizeCategoryName(category.name);
-      if (!key || seen.has(key)) continue;
-      seen.add(key);
-      picks.push({
-        ...TARGET_LOOK_CONFIG[key],
-        imageUrl: resolveImageUrl(key, profileTypes),
-      });
-      if (picks.length >= max) break;
-    }
-    if (picks.length >= max) break;
+  const present = new Set<FocusAreaKey>(["style"]);
+  for (const category of analysis.categories) {
+    const key = normalizeCategoryName(category.name);
+    if (key) present.add(key);
   }
 
-  if (!seen.has("style")) {
-    picks.push({
-      ...TARGET_LOOK_CONFIG.style,
-      imageUrl: resolveImageUrl("style", profileTypes),
-    });
-  }
-
-  return picks;
+  return FOCUS_AREA_ORDER.filter((key) => present.has(key)).map((key) => ({
+    ...TARGET_LOOK_CONFIG[key],
+    imageUrl: resolveImageUrl(key, profileTypes),
+  }));
 }

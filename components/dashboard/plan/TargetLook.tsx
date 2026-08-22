@@ -35,16 +35,17 @@ export default function TargetLook({ analysis, profileTypes, className = "" }: T
         </p>
       </div>
 
-      <div
-        className={`grid grid-cols-1 gap-5 ${
-          // 4 cards (3 personalized + the always-on style card) settle into
-          // a clean 2x2 rather than an uneven 3-then-1 wrap; other counts
-          // keep the previous layout.
-          areas.length === 2 || areas.length === 4
-            ? "sm:grid-cols-2"
-            : "sm:grid-cols-2 lg:grid-cols-3"
-        }`}
-      >
+      {/* 2 columns, stretching to fill the row — a clean 2x2 for the (now
+          always exactly 4, see lib/target-look.ts) cards, using the full
+          width of the already-padded content area instead of leaving Style
+          stranded alone with empty space beside it. This used to be a
+          fixed-width flex-wrap specifically because card COUNT varied
+          3-vs-4 between users, which made a stretching grid render
+          inconsistently — that's no longer possible now that the selection
+          logic always returns all four areas, so a plain stretching grid is
+          safe again and gives every card the same size as a natural
+          consequence of the grid being uniform, not by pinning a width. */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
         {areas.map((area, i) => (
           <TargetLookCard key={area.key} area={area} index={i} reduceMotion={reduceMotion} />
         ))}
@@ -71,10 +72,21 @@ function TargetLookCard({
       viewport={{ once: true, margin: "-60px" }}
       whileHover={reduceMotion ? undefined : { y: -4 }}
       transition={{ duration: 0.4, delay: reduceMotion ? 0 : index * 0.08, ease: [0.16, 1, 0.3, 1] }}
+      // No explicit width — a grid item, sized by its sm:grid-cols-2 track
+      // (see TargetLook above), which is what makes it equal to the other
+      // three cards: they all share the same grid, not a pinned width.
       className="group rounded-3xl border border-white/[0.08] bg-gradient-to-b from-white/[0.05] to-white/[0.02] shadow-[0_2px_4px_rgba(0,0,0,.3),0_16px_32px_rgba(0,0,0,.35)] p-3 transition-colors duration-300 hover:border-lumen-gold/25"
     >
+      {/* Fixed pixel height (not aspect-ratio) — a card must render at this
+          exact size for every image regardless of that image file's own
+          natural dimensions (e.g. a 1536x1024 source), and regardless of
+          whether the browser has resolved this element's width yet.
+          aspect-ratio depends on that width already being known; a fixed
+          height never does, so this is the one guarantee that holds for
+          every user in every layout pass. See also StyleGuide.tsx, which
+          uses this exact same height so the two sections match. */}
       <div
-        className={`relative aspect-[10/7] rounded-2xl overflow-hidden bg-gradient-to-br from-lumen-gold/[0.09] via-charcoal to-[#0A0A0A] ${
+        className={`relative w-full h-56 rounded-2xl overflow-hidden bg-gradient-to-br from-lumen-gold/[0.09] via-charcoal to-[#0A0A0A] ${
           area.imageUrl ? "border border-white/10" : "border border-dashed border-white/15"
         }`}
       >

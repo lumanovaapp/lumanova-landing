@@ -109,12 +109,20 @@ export default function OnboardingForm({
   }
 
   function handleFormKeyDown(e: KeyboardEvent<HTMLFormElement>) {
-    // A form with only one visible text field submits implicitly on Enter
-    // even with no submit button present — steps 1-2 must intercept that.
-    if (e.key === "Enter" && step < TOTAL_STEPS - 1) {
-      e.preventDefault();
-      goNext();
-    }
+    if (e.key !== "Enter") return;
+    // Always intercept Enter rather than letting the browser's default
+    // apply. On steps 0-2 that default would implicitly advance via a form
+    // submit (there's only one visible field); on the LAST step (reminder
+    // time) it's worse — the <input type="time"> can dispatch an Enter
+    // while the user is still adjusting the hour/minute/AM-PM segments
+    // (easy to trigger, especially from a mobile keyboard's "Done" key),
+    // which would otherwise silently complete onboarding and navigate to
+    // /dashboard before the user consciously chose "Complete Setup" or
+    // "Skip" — from their side that looks like the step vanishing on its
+    // own. Only an explicit click on one of those two buttons may finish
+    // this step now.
+    e.preventDefault();
+    if (step < TOTAL_STEPS - 1) goNext();
   }
 
   async function completeSetup(finalReminderEnabled: boolean, finalReminderTime: string) {
