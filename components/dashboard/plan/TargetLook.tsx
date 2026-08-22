@@ -77,26 +77,35 @@ function TargetLookCard({
       // three cards: they all share the same grid, not a pinned width.
       className="group rounded-3xl border border-white/[0.08] bg-gradient-to-b from-white/[0.05] to-white/[0.02] shadow-[0_2px_4px_rgba(0,0,0,.3),0_16px_32px_rgba(0,0,0,.35)] p-3 transition-colors duration-300 hover:border-lumen-gold/25"
     >
-      {/* Fixed pixel height (not aspect-ratio) — a card must render at this
-          exact size for every image regardless of that image file's own
-          natural dimensions (e.g. a 1536x1024 source), and regardless of
-          whether the browser has resolved this element's width yet.
-          aspect-ratio depends on that width already being known; a fixed
-          height never does, so this is the one guarantee that holds for
-          every user in every layout pass. See also StyleGuide.tsx, which
-          uses this exact same height so the two sections match. */}
+      {/* Square 1:1 frame, capped at max-h-[300px] — width comes from the
+          grid column (see TargetLook above), height is set from that width
+          via inline `aspectRatio` (not a Tailwind aspect-[1/1] class — see
+          the objectPosition note below for why), with the max-height as a
+          hard ceiling so a wide viewport can't blow the frame up past a
+          sensible size. 4:5 (portrait) got the zoom level right but made
+          every card too tall for two rows to sit comfortably; 1:1 keeps
+          that same pulled-back object-cover zoom (zoom is a function of
+          how the frame's aspect ratio compares to the source photo's, not
+          of absolute frame height) while roughly halving each card's
+          height. */}
       <div
-        className={`relative w-full h-56 rounded-2xl overflow-hidden bg-gradient-to-br from-lumen-gold/[0.09] via-charcoal to-[#0A0A0A] ${
+        style={{ aspectRatio: "1 / 1" }}
+        className={`relative w-full max-h-[300px] rounded-2xl overflow-hidden bg-gradient-to-br from-lumen-gold/[0.09] via-charcoal to-[#0A0A0A] ${
           area.imageUrl ? "border border-white/10" : "border border-dashed border-white/15"
         }`}
       >
         {area.imageUrl ? (
           // Swappable reference photo — see lib/target-look.ts. Plain <img>
           // since these are external/user-supplied URLs, not local assets.
+          // objectPosition is per-focus-area (see TARGET_LOOK_CONFIG) —
+          // applied as an inline style for the same reliability reason as
+          // the aspectRatio above, and because exact tunable percentages
+          // don't map cleanly onto a fixed Tailwind utility anyway.
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={area.imageUrl}
             alt={area.label}
+            style={{ objectPosition: area.objectPosition }}
             className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
           />
         ) : (

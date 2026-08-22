@@ -19,6 +19,15 @@ export interface TargetLookEntry {
   // so editing an image path can never accidentally touch the copy/icon
   // config below.
   imageUrl: string | null;
+  // CSS object-position for this area's image within its (portrait 4:5)
+  // frame — object-cover still crops to fill the frame, this just decides
+  // which part of the source photo survives that crop. Tuned per focus
+  // area since each is a different crop of a person (e.g. hair needs the
+  // top of the head in frame; style needs the collar/chest, not the
+  // waist) — see TargetLookCard, which applies this as an inline style
+  // (not a Tailwind class) so exact percentages are never at the mercy of
+  // arbitrary-value class generation.
+  objectPosition: string;
 }
 
 // Copy + icon per focus area — image paths live in lib/target-look-images.ts.
@@ -32,6 +41,8 @@ const TARGET_LOOK_CONFIG: Record<
     caption:
       "Calm, even-toned skin with a healthy natural glow — what consistent care builds toward.",
     icon: "Droplet",
+    // Center on the cheek/jaw, pulled back from the lips.
+    objectPosition: "50% 50%",
   },
   hair: {
     key: "hair",
@@ -39,6 +50,8 @@ const TARGET_LOOK_CONFIG: Record<
     caption:
       "A clean, well-defined shape suited to your hair type — a style, not just a haircut.",
     icon: "Scissors",
+    // Biased up so the full haircut, top of head included, stays in frame.
+    objectPosition: "50% 35%",
   },
   beard: {
     key: "beard",
@@ -46,6 +59,8 @@ const TARGET_LOOK_CONFIG: Record<
     caption:
       "Clean, defined edges and neckline — the shape we're guiding you toward.",
     icon: "Wand2",
+    // Biased slightly down toward jaw + neckline.
+    objectPosition: "50% 55%",
   },
   style: {
     key: "style",
@@ -53,6 +68,8 @@ const TARGET_LOOK_CONFIG: Record<
     caption:
       "Fit, color, and grooming working together — effortless, not overthought.",
     icon: "Shirt",
+    // Biased up to collar/chest so the shirt reads, not just the waist.
+    objectPosition: "50% 30%",
   },
 };
 
