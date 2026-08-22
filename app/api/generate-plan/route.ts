@@ -10,8 +10,9 @@ export const runtime = "nodejs";
 const SYSTEM_PROMPT = `You are the plan engine for Lumanova, a men's self-care coaching app. You turn a user's grooming/skincare/style analysis into a structured, motivating, genuinely PERSONALIZED 90-day plan built around daily habits that create streaks.
 
 Rules:
-- Supportive coach tone, specific and doable. No shaming, no attractiveness talk, no medical claims.
+- Supportive coach tone, specific and doable. No shaming, no attractiveness talk, no attractiveness scores, no medical claims or diagnoses, no extreme/restrictive diet advice — general wellness framing only (e.g. "ease up on dairy/sugar this week if breakouts are noted," never a diet plan, calorie target, or named condition).
 - Base everything on the user's analysis focus_areas and category recommendations, tailored to their goals.
+- This is comprehensive coaching, not a 3-step routine. A good plan visibly covers skin, hair, facial hair, AND lifestyle/style (when relevant) with real depth — never just "cleanse, SPF, comb." Use the sections below to make sure each dimension earns its place instead of getting a token mention.
 
 TYPE-AWARE — read the analysis closely and identify the user's actual type in each dimension before writing a single habit. Two different users' analyses should never produce the same habit set.
 - Beard/facial hair: clean-shaven, light stubble, patchy, or full beard — read this from the "Facial Hair & Grooming" category's observations. Clean-shaven or stubble gets line-up/edge-upkeep and growth-encouragement habits, never beard oil/conditioning. Full or patchy beard gets wash/oil/shaping/pattern-correction habits, never "keep it trimmed short."
@@ -19,8 +20,19 @@ TYPE-AWARE — read the analysis closely and identify the user's actual type in 
 - Skin: oily, dry, combination, or normal — read this from the "Skin" category's observations. Match cleanser/moisturizer weight and frequency to the actual type (oil-control routine for oily skin vs. a richer barrier-repair routine for dry skin).
 - Report what you inferred in "profile_types" so the rest of the app can reuse it without re-deriving it. Use "unknown" for any dimension the analysis genuinely doesn't give enough signal on — never guess just to fill the field.
 
+SKIN GOES BEYOND PRODUCTS — a skin habit's "detail" text can carry real lifestyle context, not just a product step, when it genuinely fits:
+- Hydration: where it strengthens a skin habit, fold in a plain "drink water through the day" note framed as ordinary wellness, not a rule — e.g. "skin holds a moisturizer's work better when you're actually hydrated to begin with."
+- Sleep: tie the evening skincare habit to a wind-down cue where it fits naturally (screens off, product on, lights down) — skin repairs overnight, so the same habit can anchor both.
+- Diet: ONLY if the analysis notes breakouts, oiliness, or congestion, one habit's detail may gently note that dairy/sugar is a trigger for some people and suggest easing back for a couple of weeks as a personal experiment — never a diet plan, elimination protocol, or calorie/macro guidance. If the analysis doesn't mention breakouts/oiliness/congestion, skip diet notes entirely.
+- These live inside existing skin habits' "detail" text, not as extra checkboxes — do not invent a separate "drink water" or "sleep more" habit unless it's the single "anytime" slot allowed below and genuinely earns its place over everything else that could fill it.
+
+STYLE & PRESENTATION — only build this out when "Style & Presentation" is genuinely a focus for this user (its priority is "focus" or "refine" in the analysis, or style shows up in focus_areas). When it is:
+- Include one concrete style habit (usually "morning," as part of getting dressed) whose "detail" gives REAL specifics, not vague encouragement: fit/silhouette guidance grounded in what the analysis actually says about build ("fitted through the shoulder, tapered leg — skip boxy/oversized fits" beats "dress well") AND one concrete color direction grounded in what the analysis says about skin tone/undertone (e.g. warmer undertones toward olive, rust, warm navy; cooler undertones toward true blue, charcoal, jewel tones — pick the side that matches this user, don't hedge both ways).
+- If the analysis gives no real signal on build or skin tone, keep the style habit simpler (proper sizing, one well-fitted layer) rather than inventing specifics that aren't grounded in what was actually observed.
+- If style isn't a focus/refine priority for this user, it's fine to omit a dedicated style habit entirely — don't force one in.
+
 MORNING / AFTERNOON / EVENING STRUCTURE — this app's entire purpose is building a real daily grooming/hygiene ROUTINE, not a flat to-do list. Every habit needs a "time_of_day", and it should almost always be "morning" or "evening":
-- "morning": cleanse, SPF, styling, line-up/edge upkeep, anything that starts the day.
+- "morning": cleanse, SPF, styling, line-up/edge upkeep, getting dressed, anything that starts the day.
 - "evening": treatment, moisturizer, beard oil/conditioning before bed, wind-down routine, anything that closes out the day.
 - "afternoon": use sparingly, only for a genuine midday action (reapplying SPF, a midday touch-up) — most plans should have zero afternoon habits, and none should have more than one.
 - "anytime": reserve this for the rare habit that genuinely has no time anchor (e.g. a once-a-week trim, staying hydrated through the day). At most ONE habit in the entire plan may be "anytime" — most plans should have zero. Before defaulting to "anytime," ask whether the habit more naturally opens or closes the day; almost everything does.
@@ -30,7 +42,8 @@ EVOLVING PHASES — the plan must visibly change across the three phases, not re
 - Phase 1 "Foundation" (phase_start: 1): the minimum viable routine — 3–4 habits establishing the basics for THIS user's type.
 - Phase 2 "Build" (phase_start: 2): Phase 1 habits keep running, and add 1–2 NEW habits that go deeper — a treatment, exfoliant, targeted technique, or a type-specific upgrade (e.g. a shaping routine once basic beard wash/oil is established, or a retinol/exfoliation night for oily/combination skin). Never just relabel a Phase 1 habit — it must be a genuinely new or meaningfully upgraded action.
 - Phase 3 "Refine" (phase_start: 3): Phase 1+2 habits keep running, and add at most 1 refinement habit — polish, consistency, or a maintenance step that only makes sense once the earlier habits are established.
-- 5–8 daily habits total across all three phases combined — enough for the routine to feel alive without becoming unmanageable.
+- Hair and beard habits specifically should get more technique-specific as phases advance, not just "keep doing it": Phase 1 is the right product for the type applied correctly; Phase 2 introduces a real technique (diffusing and scrunching for curls, a soap-cap line-up for a beard edge, a cold-water rinse for shine); Phase 3 is a refinement most people skip (a weekly deep-condition, a precision edge-up schedule).
+- 6–9 daily habits total across all three phases combined — enough for skin, hair/beard, and (when relevant) style to each get real depth without becoming unmanageable.
 - Each habit: a short label and a one-line detail explaining specifically why/how, for this user's type.
 - Exactly 3 phases of 30 days, each with a clear focus and 2–4 concrete milestones that reflect what's actually different about that phase for this user.
 - Output ONLY valid JSON matching the schema. No markdown, no text outside JSON.
@@ -153,7 +166,7 @@ export async function POST() {
 
   const { data: photo, error: photoError } = await supabase
     .from("photos")
-    .select("analysis")
+    .select("id, analysis")
     .eq("user_id", user.id)
     .not("analysis", "is", null)
     .order("created_at", { ascending: false })
@@ -190,10 +203,10 @@ export async function POST() {
   try {
     const response = await anthropic.messages.create({
       model: "claude-sonnet-5",
-      // Raised from 2000: profile_types, time_of_day per habit, and up to
-      // 8 (vs. the old 6) type-specific habits with real detail text made
-      // the old budget too tight for a full plan.
-      max_tokens: 3000,
+      // Raised from 3000: up to 9 (vs. the old 8) habits, each with richer
+      // detail text now that skin/style habits can carry real lifestyle and
+      // color/fit specifics, made the old budget too tight for a full plan.
+      max_tokens: 4000,
       // Thinking defaults to adaptive on Sonnet 5, which would eat into the
       // token budget meant for the JSON plan — keep it disabled.
       thinking: { type: "disabled" },
@@ -230,7 +243,20 @@ export async function POST() {
   }
 
   plan.daily_habits = normalizeHabits(plan.daily_habits);
+  // Not part of the model's JSON schema — stamped on after the fact so the
+  // upload-reveal page can tell whether a newer analysis than this one
+  // exists yet (see app/dashboard/upload/[id]/page.tsx's "update your plan?"
+  // prompt) without needing a separate DB column.
+  plan.source_photo_id = photo.id;
 
+  // This same upsert handles BOTH first-time generation and a later
+  // "regenerate from my latest analysis" (Settings → Plan & onboarding, and
+  // the upload-reveal page's update prompt) — the payload deliberately omits
+  // `created_at`, so ON CONFLICT only overwrites `plan_json`. That keeps the
+  // existing row's created_at (day count / week / streak math all key off
+  // it — see lib/streak.ts) frozen across a regenerate: content changes,
+  // progress doesn't move. daily_checkins and streaks are separate tables
+  // this route never touches, so they're untouched either way.
   const { error: upsertError } = await supabase
     .from("plans")
     .upsert({ user_id: user.id, plan_json: plan }, { onConflict: "user_id" });

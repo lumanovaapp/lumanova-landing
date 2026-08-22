@@ -22,10 +22,18 @@ import {
 } from "@/lib/types";
 import { Accent, ACCENT_THEME, ACCENT_LABELS } from "@/lib/accent";
 import { itemText } from "@/lib/format";
+import UpdatePlanPrompt from "@/components/dashboard/upload/UpdatePlanPrompt";
 
 interface AnalysisRevealProps {
   imageUrl: string;
   analysis: Analysis;
+  // True when the user already has a plan (of any vintage) — see
+  // app/dashboard/upload/[id]/page.tsx.
+  hasPlan?: boolean;
+  // True when that plan hasn't been regenerated from THIS analysis yet.
+  // Only meaningful when hasPlan is true; swaps the bottom CTA from
+  // "generate a plan" to "update your existing one."
+  offerPlanUpdate?: boolean;
 }
 
 // Fallback marker positions for analyses saved before "zone" was tracked.
@@ -65,6 +73,8 @@ function resolvePriority(category: AnalysisCategory): CategoryPriority {
 export default function AnalysisReveal({
   imageUrl,
   analysis,
+  hasPlan = false,
+  offerPlanUpdate = false,
 }: AnalysisRevealProps) {
   const reduceMotion = !!useReducedMotion();
 
@@ -272,18 +282,37 @@ export default function AnalysisReveal({
         ))}
       </div>
 
-      {/* CTA */}
-      <div className="mt-10 rounded-3xl border border-lumen-gold/20 bg-gradient-to-br from-lumen-gold/[0.07] to-lumen-gold/[0.02] p-8 sm:p-10 text-center">
-        <p className="font-manrope font-semibold text-lg sm:text-xl text-cream-ivory mb-6">
-          Ready to turn this into your plan?
-        </p>
-        <Link
-          href="/dashboard/plan"
-          className="inline-flex w-full sm:w-auto sm:min-w-[280px] h-14 px-8 rounded-full bg-lumen-gold text-pure-black font-manrope font-bold items-center justify-center gap-2 hover:bg-lumen-gold/90 hover:shadow-[0_0_24px_rgba(244,196,48,0.35)] active:scale-95 transition-all duration-300 focus-gold"
-        >
-          Generate my 90-day plan
-        </Link>
-      </div>
+      {/* CTA — three states: no plan yet offers to generate one; an
+          existing plan that hasn't seen this analysis offers to update it
+          without resetting progress (see UpdatePlanPrompt); an existing
+          plan already built from this exact analysis just links onward. */}
+      {offerPlanUpdate ? (
+        <UpdatePlanPrompt />
+      ) : hasPlan ? (
+        <div className="mt-10 rounded-3xl border border-white/[0.08] bg-gradient-to-b from-white/[0.05] to-white/[0.02] p-8 sm:p-10 text-center">
+          <p className="font-manrope font-semibold text-lg sm:text-xl text-cream-ivory mb-6">
+            Your plan already reflects this analysis.
+          </p>
+          <Link
+            href="/dashboard/plan"
+            className="inline-flex w-full sm:w-auto sm:min-w-[280px] h-14 px-8 rounded-full bg-lumen-gold text-pure-black font-manrope font-bold items-center justify-center gap-2 hover:bg-lumen-gold/90 hover:shadow-[0_0_24px_rgba(244,196,48,0.35)] active:scale-95 transition-all duration-300 focus-gold"
+          >
+            View my plan
+          </Link>
+        </div>
+      ) : (
+        <div className="mt-10 rounded-3xl border border-lumen-gold/20 bg-gradient-to-br from-lumen-gold/[0.07] to-lumen-gold/[0.02] p-8 sm:p-10 text-center">
+          <p className="font-manrope font-semibold text-lg sm:text-xl text-cream-ivory mb-6">
+            Ready to turn this into your plan?
+          </p>
+          <Link
+            href="/dashboard/plan"
+            className="inline-flex w-full sm:w-auto sm:min-w-[280px] h-14 px-8 rounded-full bg-lumen-gold text-pure-black font-manrope font-bold items-center justify-center gap-2 hover:bg-lumen-gold/90 hover:shadow-[0_0_24px_rgba(244,196,48,0.35)] active:scale-95 transition-all duration-300 focus-gold"
+          >
+            Generate my 90-day plan
+          </Link>
+        </div>
+      )}
     </div>
   );
 }

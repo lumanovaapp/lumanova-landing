@@ -68,6 +68,14 @@ export interface Plan {
   daily_habits: DailyHabit[];
   // Absent on plans generated before this field existed.
   profile_types?: ProfileTypes;
+  // Set server-side after the model responds (never part of the model's own
+  // JSON schema/output — see normalizeHabits in app/api/generate-plan for
+  // the same pattern with habit ids). Records which analyzed photo this
+  // plan's content was generated from, so the UI can tell whether a newer
+  // analysis exists that hasn't been folded into the plan yet — see
+  // app/dashboard/upload/[id]/page.tsx. Absent on plans generated before
+  // this field existed.
+  source_photo_id?: string;
 }
 
 export type PhotoMilestone = "baseline" | "day_30" | "day_60" | "day_90";
