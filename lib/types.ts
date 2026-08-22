@@ -17,11 +17,26 @@ export interface AnalysisCategory {
   style_suggestion?: string;
 }
 
+export type SkinUndertone = "warm" | "cool" | "neutral" | "unknown";
+export type SkinDepth = "light" | "medium" | "deep" | "unknown";
+
+export interface SkinTone {
+  undertone: SkinUndertone;
+  depth: SkinDepth;
+}
+
 export interface Analysis {
   summary: string;
   categories: AnalysisCategory[];
   quick_wins: string[];
   focus_areas: string[];
+  // Structured skin-tone read — separate from any mention of tone/undertone
+  // inside the Skin category's free-text "observations" (that's prose for a
+  // person to read; this is the field downstream code actually type-matches
+  // on, e.g. the Style & Color guide — see lib/style-guide.ts). "unknown" on
+  // either field when the model genuinely couldn't tell from the photo,
+  // never a guess. Absent on analyses saved before this field existed.
+  skin_tone?: SkinTone;
 }
 
 export type PhaseNumber = 1 | 2 | 3;
@@ -36,6 +51,8 @@ export interface Phase {
 
 export type TimeOfDay = "morning" | "afternoon" | "evening" | "anytime";
 
+export type HabitCategory = "skin" | "hair" | "beard" | "style";
+
 export interface DailyHabit {
   id: string;
   label: string;
@@ -46,6 +63,12 @@ export interface DailyHabit {
   // lib/habit-groups.ts instead of reading this directly, since it also
   // guards against an invalid/unexpected value from the model.
   time_of_day?: TimeOfDay;
+  // Which real-world area this habit targets. Absent on plans generated
+  // before this field existed, or normalized away server-side if the model
+  // returned something unrecognized — see normalizeHabits in
+  // app/api/generate-plan/route.ts. Lets a consumer find e.g. "the style
+  // habit" (see lib/style-guide.ts) without guessing from label/detail text.
+  category?: HabitCategory;
 }
 
 export type BeardType = "full" | "stubble" | "clean-shaven" | "patchy" | "unknown";

@@ -22,6 +22,7 @@ Rules:
 - For the Hair category only, also include "style_suggestion": a concrete cut/style direction based on the visible hair type, length, and texture — e.g. "a mid-length curly cut with tapered sides." If the current cut already works, say so instead, e.g. "maintain current length, just regular shape-up trims." Keep it a hedged recommendation tied to what's actually visible in the photo — never guarantee a result, and note that a stylist can tailor the specifics to face shape and preference. This is style/grooming guidance, not medical. Omit "style_suggestion" entirely for every other category.
 - For the Skin category, one observation should plainly name the visible skin tone/undertone (e.g. "warm olive undertone," "deep cool undertone") when you can tell from the photo — this is purely descriptive, feeds later color/style guidance, and is never a judgment. Skip it if lighting/photo quality make it genuinely unclear rather than guessing.
 - For the Style & Presentation category, ground observations in what's actually visible (current fit, colors worn, general build/proportions as relevant to fit) so recommendations can reference real fit and color specifics instead of generic "dress well" advice.
+- Always set the top-level "skin_tone" field: "undertone" (warm | cool | neutral | unknown) and "depth" (light | medium | deep | unknown), read from the same visual evidence as the Skin category's tone observation above. This is the structured version of that observation — later color-matching code reads this field, not the prose — so keep the two consistent. Use "unknown" for either value when lighting/photo quality make it genuinely unclear; never guess just to fill the field.
 - Output ONLY valid JSON matching the schema. No markdown, no text outside the JSON.
 - Return raw JSON only. No markdown, no code fences, no text before or after the JSON.
 
@@ -60,7 +61,11 @@ Schema:
     }
   ],
   "quick_wins": ["3 highest-impact things to start this week"],
-  "focus_areas": ["2-3 themes to anchor the 90-day plan"]
+  "focus_areas": ["2-3 themes to anchor the 90-day plan"],
+  "skin_tone": {
+    "undertone": "warm | cool | neutral | unknown",
+    "depth": "light | medium | deep | unknown"
+  }
 }`;
 
 const ETHNICITY_LABELS: Record<Ethnicity, string> = {

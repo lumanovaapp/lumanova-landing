@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { createClient } from "@/utils/supabase/server";
-import { DailyHabit, Plan, TimeOfDay } from "@/lib/types";
+import { DailyHabit, HabitCategory, Plan, TimeOfDay } from "@/lib/types";
 import { Ethnicity, Goal } from "@/types/database";
 import { parseModelJson } from "@/lib/parse-json";
 
@@ -27,8 +27,9 @@ SKIN GOES BEYOND PRODUCTS — a skin habit's "detail" text can carry real lifest
 - These live inside existing skin habits' "detail" text, not as extra checkboxes — do not invent a separate "drink water" or "sleep more" habit unless it's the single "anytime" slot allowed below and genuinely earns its place over everything else that could fill it.
 
 STYLE & PRESENTATION — only build this out when "Style & Presentation" is genuinely a focus for this user (its priority is "focus" or "refine" in the analysis, or style shows up in focus_areas). When it is:
-- Include one concrete style habit (usually "morning," as part of getting dressed) whose "detail" gives REAL specifics, not vague encouragement: fit/silhouette guidance grounded in what the analysis actually says about build ("fitted through the shoulder, tapered leg — skip boxy/oversized fits" beats "dress well") AND one concrete color direction grounded in what the analysis says about skin tone/undertone (e.g. warmer undertones toward olive, rust, warm navy; cooler undertones toward true blue, charcoal, jewel tones — pick the side that matches this user, don't hedge both ways).
-- If the analysis gives no real signal on build or skin tone, keep the style habit simpler (proper sizing, one well-fitted layer) rather than inventing specifics that aren't grounded in what was actually observed.
+- Include one concrete style habit (usually "morning," as part of getting dressed) whose "detail" gives REAL specifics, not vague encouragement: fit/silhouette guidance grounded in what the analysis actually says about build ("fitted through the shoulder, tapered leg — skip boxy/oversized fits" beats "dress well") AND one concrete color direction grounded in the analysis's skin_tone.
+- Color direction combines TWO axes from skin_tone, not undertone alone — real color theory, both matter: (1) undertone picks the hue family — warm leans earthy/golden (olive, rust, cream, warm navy), cool leans blue-based/jewel (true blue, charcoal, sapphire), neutral works with both; (2) depth picks how saturated that color can be — skin_tone.depth "deep" carries rich, saturated, bright/jewel-tone color well (bold color can be the main piece, not just an accent), while "light" or "medium" reads best in softer, mid-saturation tones and should avoid colors too close to their own skin tone (which washes them out). Combine both into one real recommendation, e.g. deep + warm → "a rich burnt-orange or deep olive overshirt," light + cool → "a soft dusty-blue or muted charcoal rather than head-to-toe black, which can flatten lighter cool skin."
+- If the analysis gives no real signal on build, undertone, or depth, keep the style habit simpler (proper sizing, one well-fitted layer) rather than inventing specifics that aren't grounded in what was actually observed.
 - If style isn't a focus/refine priority for this user, it's fine to omit a dedicated style habit entirely — don't force one in.
 
 MORNING / AFTERNOON / EVENING STRUCTURE — this app's entire purpose is building a real daily grooming/hygiene ROUTINE, not a flat to-do list. Every habit needs a "time_of_day", and it should almost always be "morning" or "evening":
@@ -44,7 +45,7 @@ EVOLVING PHASES — the plan must visibly change across the three phases, not re
 - Phase 3 "Refine" (phase_start: 3): Phase 1+2 habits keep running, and add at most 1 refinement habit — polish, consistency, or a maintenance step that only makes sense once the earlier habits are established.
 - Hair and beard habits specifically should get more technique-specific as phases advance, not just "keep doing it": Phase 1 is the right product for the type applied correctly; Phase 2 introduces a real technique (diffusing and scrunching for curls, a soap-cap line-up for a beard edge, a cold-water rinse for shine); Phase 3 is a refinement most people skip (a weekly deep-condition, a precision edge-up schedule).
 - 6–9 daily habits total across all three phases combined — enough for skin, hair/beard, and (when relevant) style to each get real depth without becoming unmanageable.
-- Each habit: a short label and a one-line detail explaining specifically why/how, for this user's type.
+- Each habit: a short label, a one-line detail explaining specifically why/how for this user's type, and a "category" — "skin," "hair," "beard," or "style" — for whichever single dimension it's actually about. Every habit gets exactly one category; there's no "other."
 - Exactly 3 phases of 30 days, each with a clear focus and 2–4 concrete milestones that reflect what's actually different about that phase for this user.
 - Output ONLY valid JSON matching the schema. No markdown, no text outside JSON.
 
@@ -85,7 +86,8 @@ Schema:
       "label": "Short habit name",
       "detail": "One-line detail, specific to this user's type",
       "phase_start": 1,
-      "time_of_day": "morning | afternoon | evening | anytime"
+      "time_of_day": "morning | afternoon | evening | anytime",
+      "category": "skin | hair | beard | style"
     }
   ]
 }`;
@@ -131,6 +133,7 @@ function slugify(text: string): string {
 }
 
 const VALID_TIMES_OF_DAY = new Set<TimeOfDay>(["morning", "afternoon", "evening", "anytime"]);
+const VALID_CATEGORIES = new Set<HabitCategory>(["skin", "hair", "beard", "style"]);
 
 // Habit checkboxes are keyed by habit_id across the whole app (checkin upserts,
 // calendar cells, streak math). The LLM output isn't guaranteed to produce
@@ -139,6 +142,12 @@ const VALID_TIMES_OF_DAY = new Set<TimeOfDay>(["morning", "afternoon", "evening"
 // Also clamps time_of_day to a known value so a malformed/omitted field from
 // the model can't reach the UI's grouping logic — see habitTimeOfDay() in
 // lib/habit-groups.ts, which applies the same guard for older stored plans.
+// category gets the same treatment, but left undefined (not defaulted to
+// some fallback category) when invalid/missing — there's no safe guess for
+// "which of skin/hair/beard/style is this," and category is only ever used
+// to positively find a specific habit (e.g. the style guide's style habit —
+// see lib/style-guide.ts), never to group/render every habit, so an absent
+// category just means that habit won't be picked up there.
 function normalizeHabits(habits: DailyHabit[]): DailyHabit[] {
   const seen = new Map<string, number>();
   return habits.map((habit, index) => {
@@ -149,7 +158,10 @@ function normalizeHabits(habits: DailyHabit[]): DailyHabit[] {
     const time_of_day = VALID_TIMES_OF_DAY.has(habit.time_of_day as TimeOfDay)
       ? habit.time_of_day
       : "anytime";
-    return { ...habit, id, time_of_day };
+    const category = VALID_CATEGORIES.has(habit.category as HabitCategory)
+      ? habit.category
+      : undefined;
+    return { ...habit, id, time_of_day, category };
   });
 }
 

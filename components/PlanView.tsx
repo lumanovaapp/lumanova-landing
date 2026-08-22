@@ -14,6 +14,7 @@ import MilestoneCountdown from "@/components/dashboard/plan/MilestoneCountdown";
 import TomorrowTeaser from "@/components/dashboard/plan/TomorrowTeaser";
 import DayCompleteCelebration from "@/components/dashboard/plan/DayCompleteCelebration";
 import TargetLook from "@/components/dashboard/plan/TargetLook";
+import StyleGuide from "@/components/dashboard/plan/StyleGuide";
 import PhaseJourney from "@/components/dashboard/plan/PhaseJourney";
 import WeekStrip from "@/components/dashboard/plan/WeekStrip";
 import TodayRoutine from "@/components/dashboard/plan/TodayRoutine";
@@ -427,6 +428,12 @@ export default function PlanView({
             profileTypes={plan.profile_types}
             className="mt-8 md:mt-10"
           />
+
+          {/* Your Colors & Style — type-matched by skin undertone the same
+              way Target Look is type-matched by beard/hair, placed right
+              after it so the two visual reference sections read as one
+              group. */}
+          <StyleGuide analysis={analysis} plan={plan} className="mt-8 md:mt-10" />
 
           {/* Full 90-day map — the "zoomed out" view. Checked occasionally,
               not part of the daily loop, so it's fine for this tab to
