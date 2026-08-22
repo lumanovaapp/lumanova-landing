@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
-import { Star, Shield } from "lucide-react";
+import { Star } from "lucide-react";
 import { Plan, PhotoMilestone, MilestonePhotoSummary } from "@/lib/types";
 import { ACCENT_THEME, ACCENT_ORDER } from "@/lib/accent";
 import {
@@ -12,7 +12,13 @@ import {
   phaseForDay,
   computeDayVisualState,
 } from "@/lib/streak";
+import { resolveDayCellState, DAY_CELL_STYLES, DayCellState } from "@/lib/day-cell-styles";
+import DayCellBadge from "@/components/dashboard/plan/DayCellBadge";
 import DayDrawer from "@/components/dashboard/plan/DayDrawer";
+
+// Full legend shown once above the dense 90-day map, since individual cells
+// there are too small for text labels — see DayCellBadge's "compact" variant.
+const LEGEND_STATES: DayCellState[] = ["done", "missed", "frozen", "upcoming"];
 
 interface PlanCalendarProps {
   plan: Plan;
@@ -84,19 +90,17 @@ export default function PlanCalendar({
         <h2 className="font-manrope font-semibold text-sm text-cream-ivory">
           Your 90 Days
         </h2>
-        <div className="flex items-center gap-2 text-[10px] text-cream-ivory/50">
-          <span className="flex items-center gap-1">
-            <span className="w-2 h-2 rounded-full bg-aurora-mist inline-block" />
-            Done
-          </span>
-          <span className="flex items-center gap-1">
-            <span className="w-2 h-2 rounded-full bg-warm-coral inline-block" />
-            Missed
-          </span>
-          <span className="flex items-center gap-1">
-            <span className="w-2 h-2 rounded-full bg-deep-teal border border-aurora-mist/50 inline-block" />
-            Frozen
-          </span>
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] text-cream-ivory/50">
+          {LEGEND_STATES.map((state) => {
+            const styles = DAY_CELL_STYLES[state];
+            const Icon = styles.badgeIcon;
+            return (
+              <span key={state} className="flex items-center gap-1">
+                {Icon && <Icon className={`w-3 h-3 ${styles.badgeIconColor}`} />}
+                {styles.badgeText}
+              </span>
+            );
+          })}
         </div>
       </div>
 
@@ -129,6 +133,8 @@ export default function PlanCalendar({
                 const visualState = dayVisualState(day);
                 const dateStr = dateToStr(dateForDay(day));
                 const isToday = dateStr === todayStr;
+                const cellState = resolveDayCellState(visualState, isToday);
+                const styles = DAY_CELL_STYLES[cellState];
                 const isMilestoneMarker =
                   day === 1 || day === 30 || day === 60 || day === 90;
                 const milestoneType = MILESTONE_DAYS[day];
@@ -157,43 +163,35 @@ export default function PlanCalendar({
                         ? `Day ${day} — today, tap to check off habits`
                         : `Day ${day}`
                     }
-                    className={`relative aspect-square overflow-visible rounded-md flex items-center justify-center text-[10px] font-semibold transition-all duration-200 cursor-pointer hover:scale-110 hover:brightness-110 hover:z-10 focus-gold ${
-                      visualState === "done"
-                        ? `${ACCENT_THEME.maintain.bgSolid} ${ACCENT_THEME.maintain.solidText}`
-                        : visualState === "frozen"
-                        ? "bg-deep-teal/60 text-aurora-mist border border-aurora-mist/40"
-                        : visualState === "missed"
-                        ? `${ACCENT_THEME.focus.bgSoft} ${ACCENT_THEME.focus.text} border ${ACCENT_THEME.focus.border}`
-                        : visualState === "future"
-                        ? "bg-white/5 text-cream-ivory/30"
-                        : "bg-white/10 text-cream-ivory"
-                    } ${
-                      isToday
-                        ? "ring-2 ring-lumen-gold ring-offset-1 ring-offset-pure-black"
-                        : ""
-                    }`}
+                    className={`relative aspect-square overflow-visible rounded-md flex items-center justify-center text-[10px] transition-all duration-200 cursor-pointer hover:scale-110 hover:brightness-110 hover:z-10 focus-gold ${styles.cell} ${styles.number}`}
                   >
                     {/* Today's own "done" cell gets a celebratory pulsing
-                        glow on top of the standard done color — a past done
-                        day stays plain teal, only *today* having just been
+                        glow on top of the standard today glow — a past done
+                        day stays plain, only *today* having just been
                         completed gets the extra flourish. */}
-                    {isToday && visualState === "done" && !reduceMotion && (
+                    {cellState === "today" && visualState === "done" && !reduceMotion && (
                       <motion.span
                         className="absolute -inset-1 rounded-lg pointer-events-none"
                         animate={{
                           boxShadow: [
-                            "0 0 0 0px rgba(244,196,48,0.45)",
-                            "0 0 8px 3px rgba(244,196,48,0)",
+                            "0 0 0 0px rgba(224,169,46,0.45)",
+                            "0 0 8px 3px rgba(224,169,46,0)",
                           ],
                         }}
                         transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
                       />
                     )}
                     {day}
-                    {visualState === "frozen" && (
-                      <Shield className="absolute -top-1 -right-1 w-2.5 h-2.5 text-aurora-mist fill-aurora-mist/30" />
-                    )}
-                    {isMilestoneMarker && visualState !== "frozen" && (
+                    <DayCellBadge
+                      state={cellState}
+                      variant="compact"
+                      className={
+                        cellState === "frozen"
+                          ? "absolute -top-1 -right-1"
+                          : "absolute -top-1 -left-1"
+                      }
+                    />
+                    {isMilestoneMarker && cellState !== "frozen" && (
                       <Star className="absolute -top-1 -right-1 w-2.5 h-2.5 text-lumen-gold fill-lumen-gold" />
                     )}
                     {milestoneNeedsAction && (
@@ -213,7 +211,7 @@ export default function PlanCalendar({
                     )}
                     {/* Affordance hinting today's cell opens a live check-in
                         drawer — a distinct corner from the milestone dot
-                        (bottom-left) and star/shield badges (top-right) so
+                        (bottom-left) and star/snowflake badges (top-right) so
                         they never collide when today doubles as either. */}
                     {todayNeedsCheckin && (
                       <motion.span

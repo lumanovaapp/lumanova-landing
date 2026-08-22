@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronLeft, ChevronRight, Rows3, Shield, Lock } from "lucide-react";
+import { ChevronLeft, ChevronRight, Rows3 } from "lucide-react";
 import { Plan, PhotoMilestone, MilestonePhotoSummary } from "@/lib/types";
 import {
   toDateOnlyUTC,
@@ -10,6 +10,8 @@ import {
   phaseForDay,
   computeDayVisualState,
 } from "@/lib/streak";
+import { resolveDayCellState, DAY_CELL_STYLES } from "@/lib/day-cell-styles";
+import DayCellBadge from "@/components/dashboard/plan/DayCellBadge";
 import DayDrawer from "@/components/dashboard/plan/DayDrawer";
 
 interface WeekStripProps {
@@ -144,17 +146,8 @@ export default function WeekStrip({
           const dow = date.getUTCDay();
           const weekdayLabel = WEEKDAY_LABELS[dow === 0 ? 6 : dow - 1];
           const isToday = dateToStr(date) === todayStr;
-
-          const stateClasses =
-            visualState === "done"
-              ? "bg-lumen-gold text-pure-black border-transparent"
-              : visualState === "frozen"
-              ? "bg-deep-teal/60 text-aurora-mist border border-aurora-mist/40"
-              : visualState === "missed"
-              ? "bg-warm-coral/10 text-warm-coral border border-warm-coral/25"
-              : visualState === "future"
-              ? "bg-white/5 text-cream-ivory/25 border border-white/5"
-              : "bg-white/10 text-cream-ivory border border-white/10";
+          const cellState = resolveDayCellState(visualState, isToday);
+          const styles = DAY_CELL_STYLES[cellState];
 
           return (
             <button
@@ -162,30 +155,19 @@ export default function WeekStrip({
               type="button"
               onClick={() => setSelectedDay(day)}
               aria-label={`${weekdayLabel} ${date.getUTCDate()}${isToday ? " — today" : ""}`}
-              className={`relative flex flex-col items-center justify-center gap-1 rounded-2xl transition-all duration-200 cursor-pointer hover:brightness-110 focus-gold ${stateClasses} ${
-                isToday
-                  ? "py-4 sm:py-5 ring-2 ring-lumen-gold ring-offset-2 ring-offset-pure-black scale-[1.04]"
-                  : "py-3 sm:py-3.5"
+              className={`relative flex flex-col items-center justify-center gap-1 rounded-2xl transition-all duration-200 cursor-pointer hover:brightness-110 focus-gold ${styles.cell} ${
+                isToday ? "py-4 sm:py-5 scale-[1.04]" : "py-3 sm:py-3.5"
               }`}
             >
-              <span
-                className={`text-[9px] font-semibold uppercase tracking-wide ${
-                  visualState === "done" ? "text-pure-black/60" : "opacity-60"
-                }`}
-              >
+              <span className="text-[9px] font-semibold uppercase tracking-wide text-cream-ivory/40">
                 {weekdayLabel}
               </span>
               <span
-                className={`font-manrope font-bold ${isToday ? "text-xl sm:text-2xl" : "text-sm sm:text-base"}`}
+                className={`font-manrope ${styles.number} ${isToday ? "text-xl sm:text-2xl" : "text-sm sm:text-base"}`}
               >
                 {date.getUTCDate()}
               </span>
-              {visualState === "frozen" && (
-                <Shield className="absolute -top-1 -right-1 w-3 h-3 text-aurora-mist fill-aurora-mist/30" />
-              )}
-              {visualState === "future" && (
-                <Lock className="absolute -top-1 -right-1 w-3 h-3 text-cream-ivory/25" />
-              )}
+              <DayCellBadge state={cellState} variant="full" />
             </button>
           );
         })}
