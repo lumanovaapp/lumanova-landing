@@ -63,6 +63,27 @@ export default function RoutineSection({
     if (!collapsed) setManuallyExpanded(false);
   }, [collapsed]);
 
+  // Which habit card is expanded to show its full steps / why / what-to-use.
+  // Single-open (one id, not a set) keeps the list as short as possible.
+  // null = every card collapsed to its compact header row.
+  const [expandedHabitId, setExpandedHabitId] = useState<string | null>(null);
+  // Seed the auto-expand exactly once, and only for the section that's live
+  // right now: its first not-yet-done habit opens so the user sees the next
+  // action without tapping. After the user taps any header (which flips
+  // `userDrove`), expansion is entirely theirs.
+  const [userDrove, setUserDrove] = useState(false);
+  useEffect(() => {
+    if (userDrove || !isCurrent) return;
+    const firstIncomplete = habits.find((h) => !checks[h.id]);
+    setExpandedHabitId(firstIncomplete ? firstIncomplete.id : null);
+    setUserDrove(true);
+  }, [userDrove, isCurrent, habits, checks]);
+
+  function toggleHabitExpanded(habitId: string) {
+    setUserDrove(true);
+    setExpandedHabitId((current) => (current === habitId ? null : habitId));
+  }
+
   if (total === 0) return null;
 
   const showCompact = collapsed && !manuallyExpanded;
@@ -172,6 +193,8 @@ export default function RoutineSection({
                 habit={habit}
                 done={!!checks[habit.id]}
                 onToggle={onToggle}
+                expanded={expandedHabitId === habit.id}
+                onExpandToggle={() => toggleHabitExpanded(habit.id)}
                 theme={theme}
                 popped={poppedId === habit.id}
                 hasError={errorId === habit.id}
