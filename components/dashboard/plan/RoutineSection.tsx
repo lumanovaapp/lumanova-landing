@@ -5,6 +5,7 @@ import { motion, useReducedMotion } from "framer-motion";
 import { Check, Sunrise, CloudSun, Moon, Sparkles, LucideIcon } from "lucide-react";
 import { DailyHabit, TimeOfDay } from "@/lib/types";
 import { TIME_OF_DAY_THEME } from "@/lib/time-of-day";
+import HabitCard from "./HabitCard";
 
 const ICONS: Record<string, LucideIcon> = { Sunrise, CloudSun, Moon, Sparkles };
 
@@ -165,60 +166,17 @@ export default function RoutineSection({
           </div>
 
           <div className="space-y-2.5">
-            {habits.map((habit) => {
-              const done = !!checks[habit.id];
-              const hasError = errorId === habit.id;
-              return (
-                <div key={habit.id}>
-                  <button
-                    type="button"
-                    onClick={() => onToggle(habit.id)}
-                    className={`w-full flex items-start gap-3 rounded-2xl border p-3.5 text-left transition-all duration-300 focus-gold ${
-                      done
-                        ? `${theme.border} ${theme.bgSoft} ${theme.ring}`
-                        : "border-white/10 bg-pure-black/20 hover:border-white/20 hover:bg-white/[0.04]"
-                    }`}
-                  >
-                    <motion.span
-                      animate={
-                        poppedId === habit.id ? { scale: [1, 1.3, 1] } : { scale: 1 }
-                      }
-                      transition={{ duration: 0.4 }}
-                      className={`flex-shrink-0 mt-0.5 w-6 h-6 rounded-full border-2 flex items-center justify-center ${
-                        done
-                          ? `${theme.border} bg-current ${theme.text}`
-                          : "border-white/20 bg-transparent"
-                      }`}
-                    >
-                      {done && <Check className="w-3.5 h-3.5 text-pure-black" />}
-                    </motion.span>
-                    <div className="flex-1 min-w-0">
-                      <p
-                        className={`text-sm font-medium ${
-                          done ? "text-cream-ivory/50 line-through" : "text-cream-ivory"
-                        }`}
-                      >
-                        {habit.label}
-                      </p>
-                      {habit.detail && (
-                        <p
-                          className={`text-xs mt-0.5 leading-relaxed ${
-                            done ? "text-cream-ivory/25" : "text-cream-ivory/45"
-                          }`}
-                        >
-                          {habit.detail}
-                        </p>
-                      )}
-                    </div>
-                  </button>
-                  {hasError && (
-                    <p className="mt-1 px-1 text-[10px] text-warm-coral">
-                      Couldn&apos;t save — reverted. Try again.
-                    </p>
-                  )}
-                </div>
-              );
-            })}
+            {habits.map((habit) => (
+              <HabitCard
+                key={habit.id}
+                habit={habit}
+                done={!!checks[habit.id]}
+                onToggle={onToggle}
+                theme={theme}
+                popped={poppedId === habit.id}
+                hasError={errorId === habit.id}
+              />
+            ))}
           </div>
         </div>
       )}

@@ -16,7 +16,11 @@ import { TOUR_STEPS, TourStep } from "@/lib/tour-steps";
 import WelcomeModal from "./WelcomeModal";
 import TourOverlay from "./TourOverlay";
 
-type Phase = "idle" | "welcome" | "touring";
+// "resolving" is the pre-decision state for a user whose server-provided
+// onboarded flag came through falsy: we show the dashboard (nothing extra)
+// and confirm the real value with a fresh read before ever rendering the
+// welcome modal. See the mount effect below.
+type Phase = "resolving" | "idle" | "welcome" | "touring";
 
 interface TourContextValue {
   // Restarts the guided tour from step one — used by the "Replay the tour"
@@ -54,9 +58,47 @@ export default function TourProvider({
   const router = useRouter();
   const pathname = usePathname();
 
-  const [phase, setPhase] = useState<Phase>(initialOnboarded ? "idle" : "welcome");
+  // Never start in "welcome". If the server says the user is already
+  // onboarded we're done ("idle"); otherwise we defer the decision to the
+  // mount effect ("resolving") instead of optimistically rendering the
+  // modal. `initialOnboarded` is read from the dashboard layout's RSC
+  // render, which the Router Cache can serve stale-false right after login
+  // /refresh for a user who has in fact already dismissed onboarding —
+  // rendering WelcomeModal off that stale value, then unmounting it a beat
+  // later when fresh data lands, is the flash this guards against.
+  const [phase, setPhase] = useState<Phase>(initialOnboarded ? "idle" : "resolving");
   const [stepIndex, setStepIndex] = useState(0);
   const onboardedRef = useRef(initialOnboarded);
+
+  // Confirm the onboarded flag with one authoritative read before the
+  // welcome modal can appear. Only runs when the server value was falsy —
+  // an already-onboarded user (prop true) never hits the network here.
+  // Fail closed: on any error, or a confirmed `onboarded: true`, stay idle
+  // rather than risk showing onboarding to someone who's past it (a genuine
+  // new user who hit a transient error just doesn't get the auto-prompt
+  // that once and can still start the tour from Help).
+  useEffect(() => {
+    if (initialOnboarded) return;
+    let cancelled = false;
+    const supabase = createClient();
+    supabase
+      .from("users")
+      .select("onboarded")
+      .eq("id", userId)
+      .single()
+      .then(({ data, error }) => {
+        if (cancelled) return;
+        if (error || data?.onboarded) {
+          onboardedRef.current = true;
+          setPhase("idle");
+        } else {
+          setPhase("welcome");
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [initialOnboarded, userId]);
 
   // Steps that need a plan (streak/habits/calendar/milestones) simply don't
   // exist in the DOM for a brand-new user — decided here from server state

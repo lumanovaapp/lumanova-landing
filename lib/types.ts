@@ -53,9 +53,28 @@ export type TimeOfDay = "morning" | "afternoon" | "evening" | "anytime";
 
 export type HabitCategory = "skin" | "hair" | "beard" | "style";
 
+export type HabitDifficulty = "easy" | "moderate" | "advanced";
+
+// The free / kitchen-first way to do a habit — something the user most
+// likely already owns (ice from the freezer, a clean towel, rice water).
+// Always the FIRST option shown, and visually the highlighted one.
+export interface HabitNaturalOption {
+  text: string;
+}
+
+// An OPTIONAL shop-bought upgrade, named only as a product CATEGORY — never
+// a brand. `budget` is a rough price hint like "~$8" when the model gave one.
+export interface HabitProductOption {
+  category: string;
+  budget?: string;
+}
+
 export interface DailyHabit {
   id: string;
   label: string;
+  // A one-line summary of the habit. Still required: it's what the compact
+  // calendar day-drawer list renders, and it's the fallback the habit card
+  // shows when the structured fields below are absent (older plans).
   detail: string;
   phase_start: PhaseNumber;
   // Absent on plans generated before this field existed — treat as
@@ -69,6 +88,24 @@ export interface DailyHabit {
   // app/api/generate-plan/route.ts. Lets a consumer find e.g. "the style
   // habit" (see lib/style-guide.ts) without guessing from label/detail text.
   category?: HabitCategory;
+
+  // --- Structured presentation fields (added 2026-08-30). Every one is
+  // optional: plans generated before this schema existed carry only
+  // `detail`, and HabitCard falls back to rendering that single line when
+  // these are missing. normalizeHabits() in app/api/generate-plan/route.ts
+  // sanitizes whatever the model returns into these shapes (or drops it). ---
+
+  // Rough minutes this habit takes, for the card's meta row.
+  time_minutes?: number;
+  difficulty?: HabitDifficulty;
+  // The "what to do" — a few short imperative lines, shown as an ordered
+  // list (collapsed behind a tap-to-expand once past the first couple).
+  steps?: string[];
+  // One brief sentence on why the habit works — shown brighter than the
+  // old grey detail line.
+  why_it_works?: string;
+  natural_option?: HabitNaturalOption;
+  product_option?: HabitProductOption;
 }
 
 export type BeardType = "full" | "stubble" | "clean-shaven" | "patchy" | "unknown";

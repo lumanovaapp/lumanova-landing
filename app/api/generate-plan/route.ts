@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { createClient } from "@/utils/supabase/server";
-import { DailyHabit, HabitCategory, Plan, TimeOfDay } from "@/lib/types";
+import { DailyHabit, HabitCategory, HabitDifficulty, Plan, TimeOfDay } from "@/lib/types";
 import { Ethnicity, Goal } from "@/types/database";
 import { parseModelJson } from "@/lib/parse-json";
 
@@ -45,7 +45,17 @@ EVOLVING PHASES — the plan must visibly change across the three phases, not re
 - Phase 3 "Refine" (phase_start: 3): Phase 1+2 habits keep running, and add at most 1 refinement habit — polish, consistency, or a maintenance step that only makes sense once the earlier habits are established.
 - Hair and beard habits specifically should get more technique-specific as phases advance, not just "keep doing it": Phase 1 is the right product for the type applied correctly; Phase 2 introduces a real technique (diffusing and scrunching for curls, a soap-cap line-up for a beard edge, a cold-water rinse for shine); Phase 3 is a refinement most people skip (a weekly deep-condition, a precision edge-up schedule).
 - 6–9 daily habits total across all three phases combined — enough for skin, hair/beard, and (when relevant) style to each get real depth without becoming unmanageable.
-- Each habit: a short label, a one-line detail explaining specifically why/how for this user's type, and a "category" — "skin," "hair," "beard," or "style" — for whichever single dimension it's actually about. Every habit gets exactly one category; there's no "other."
+- Each habit is a STRUCTURED object, not just a label + blurb. Fill every field that genuinely applies:
+  - "label": short habit name (e.g. "Cold water face rinse").
+  - "detail": ONE line summarising the habit — this is the compact fallback shown in dense views, so it must stand alone.
+  - "steps": 1–4 short imperative lines for what to actually do, in order (e.g. ["Fill a bowl with cold water + a few ice cubes", "Hold your face in it for 10–15 seconds", "Repeat 2–3 times, pat dry"]). No numbering in the strings themselves.
+  - "why_it_works": ONE plain sentence on the benefit ("Cold constricts blood vessels, so puffiness and redness settle and skin looks more awake."). No hype, no fake precision.
+  - "time_minutes": rough integer minutes (1–20 for most habits).
+  - "difficulty": "easy" | "moderate" | "advanced" — how much effort/skill it takes, not how important it is.
+  - "natural_option": { "text": "..." } — the FREE / kitchen-first way to do it, something the user most likely already owns ("A bowl + ice from the freezer"). Include this for any skincare/grooming/haircare habit. Omit only when there is genuinely nothing to "use" (e.g. "Go for a 20-minute walk").
+  - "product_option": { "category": "...", "budget": "~$8" } — an OPTIONAL shop-bought upgrade named ONLY as a product category, never a brand ("A gel eye-mask" / "An ice roller"). "budget" is a rough price hint. Omit the whole object when there's no meaningful product version.
+  - "category": "skin" | "hair" | "beard" | "style" — the single dimension this habit is about. Every habit gets exactly one; there's no "other".
+- Kitchen-first, always: "natural_option" comes first and is the real recommendation; "product_option" is a take-it-or-leave-it convenience. Never imply the user must buy anything.
 - Exactly 3 phases of 30 days, each with a clear focus and 2–4 concrete milestones that reflect what's actually different about that phase for this user.
 - Output ONLY valid JSON matching the schema. No markdown, no text outside JSON.
 
@@ -84,13 +94,24 @@ Schema:
     {
       "id": "slug-like-id",
       "label": "Short habit name",
-      "detail": "One-line detail, specific to this user's type",
+      "detail": "One-line summary that stands alone, specific to this user's type",
+      "steps": ["What to do, step 1", "Step 2", "Step 3"],
+      "why_it_works": "One plain sentence on the benefit.",
+      "time_minutes": 5,
+      "difficulty": "easy | moderate | advanced",
+      "natural_option": { "text": "Free / kitchen-first way to do it" },
+      "product_option": { "category": "Product category, no brands", "budget": "~$8" },
       "phase_start": 1,
       "time_of_day": "morning | afternoon | evening | anytime",
       "category": "skin | hair | beard | style"
     }
   ]
-}`;
+}
+
+"steps", "why_it_works", "time_minutes", "difficulty", "natural_option" and
+"product_option" are all OPTIONAL per habit — include them whenever they add
+real value (they almost always do), but a habit with just label/detail/
+phase_start/time_of_day/category is still valid. "detail" is never optional.`;
 
 const ETHNICITY_LABELS: Record<Ethnicity, string> = {
   south_asian: "South Asian",
@@ -134,6 +155,54 @@ function slugify(text: string): string {
 
 const VALID_TIMES_OF_DAY = new Set<TimeOfDay>(["morning", "afternoon", "evening", "anytime"]);
 const VALID_CATEGORIES = new Set<HabitCategory>(["skin", "hair", "beard", "style"]);
+const VALID_DIFFICULTIES = new Set<HabitDifficulty>(["easy", "moderate", "advanced"]);
+
+// The model's optional structured fields arrive as untrusted JSON — coerce
+// each into the exact shape lib/types.ts promises, or drop it. A dropped
+// field just means HabitCard falls back to the plain `detail` line for that
+// slice, exactly like an older stored plan.
+function cleanString(value: unknown, max = 300): string | undefined {
+  if (typeof value !== "string") return undefined;
+  const trimmed = value.trim();
+  return trimmed ? trimmed.slice(0, max) : undefined;
+}
+
+// Returns EVERY structured key explicitly (undefined when the model's value
+// was missing/malformed) so the caller can spread this straight over the raw
+// habit and be sure a bad raw value never survives underneath. undefined
+// keys drop out when the plan is JSON-serialised for storage.
+function normalizeStructuredHabitFields(habit: DailyHabit) {
+  const steps = Array.isArray(habit.steps)
+    ? habit.steps
+        .map((s) => cleanString(s))
+        .filter((s): s is string => !!s)
+        .slice(0, 6)
+    : [];
+
+  const minutes =
+    typeof habit.time_minutes === "number" && Number.isFinite(habit.time_minutes)
+      ? Math.max(1, Math.min(180, Math.round(habit.time_minutes)))
+      : undefined;
+
+  const naturalText = cleanString(habit.natural_option?.text);
+  const productCategory = cleanString(habit.product_option?.category);
+  const productBudget = cleanString(habit.product_option?.budget, 40);
+
+  return {
+    steps: steps.length > 0 ? steps : undefined,
+    why_it_works: cleanString(habit.why_it_works),
+    time_minutes: minutes,
+    difficulty: VALID_DIFFICULTIES.has(habit.difficulty as HabitDifficulty)
+      ? habit.difficulty
+      : undefined,
+    natural_option: naturalText ? { text: naturalText } : undefined,
+    product_option: productCategory
+      ? productBudget
+        ? { category: productCategory, budget: productBudget }
+        : { category: productCategory }
+      : undefined,
+  };
+}
 
 // Habit checkboxes are keyed by habit_id across the whole app (checkin upserts,
 // calendar cells, streak math). The LLM output isn't guaranteed to produce
@@ -161,7 +230,16 @@ function normalizeHabits(habits: DailyHabit[]): DailyHabit[] {
     const category = VALID_CATEGORIES.has(habit.category as HabitCategory)
       ? habit.category
       : undefined;
-    return { ...habit, id, time_of_day, category };
+    return {
+      ...habit,
+      id,
+      time_of_day,
+      category,
+      // Spread last: overwrites each raw structured field with its
+      // sanitized value, or with undefined when the model's value didn't
+      // hold up — so a malformed steps/natural_option/etc. can't survive.
+      ...normalizeStructuredHabitFields(habit),
+    };
   });
 }
 
@@ -215,10 +293,11 @@ export async function POST() {
   try {
     const response = await anthropic.messages.create({
       model: "claude-sonnet-5",
-      // Raised from 3000: up to 9 (vs. the old 8) habits, each with richer
-      // detail text now that skin/style habits can carry real lifestyle and
-      // color/fit specifics, made the old budget too tight for a full plan.
-      max_tokens: 4000,
+      // Raised again (4000 -> 8000): each habit is now a structured object
+      // with steps[], why_it_works, a natural option and an optional product
+      // option, so a full plan's JSON is roughly twice the size it was when
+      // habits carried a single `detail` string.
+      max_tokens: 8000,
       // Thinking defaults to adaptive on Sonnet 5, which would eat into the
       // token budget meant for the JSON plan — keep it disabled.
       thinking: { type: "disabled" },
