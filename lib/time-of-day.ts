@@ -71,3 +71,55 @@ export function getCurrentTimeOfDay(date: Date = new Date()): "morning" | "after
   if (hour < 17) return "afternoon";
   return "evening";
 }
+
+// --- Forgiving time-lock for checking a section off ------------------------
+//
+// Goal: stop obvious back-fill (ticking tonight's evening routine at 8am, or
+// retroactively completing a whole day at 11pm) WITHOUT punishing real life.
+// So the windows are deliberately generous:
+//   - `startHour`: a section can't be checked before its part of the day has
+//     actually begun. This is the anti-back-fill rule.
+//   - `lockHour`: a generous grace past the window's natural end. After this,
+//     an unchecked section locks for the day. Kept late so a normal
+//     evening check-in still lets you complete the day.
+// "anytime" has no window — always checkable.
+//
+// All hours are the user's LOCAL clock (these run client-side only).
+type LockableTime = Exclude<TimeOfDay, "anytime">;
+
+export const SECTION_CHECK_WINDOWS: Record<LockableTime, { startHour: number; lockHour: number }> = {
+  // Checkable from the start of the day until ~6pm.
+  morning: { startHour: 0, lockHour: 18 },
+  // Not before noon; checkable until ~10pm.
+  afternoon: { startHour: 12, lockHour: 22 },
+  // Not before ~5pm; checkable for the rest of the day.
+  evening: { startHour: 17, lockHour: 24 },
+};
+
+export type SectionLockState = "open" | "too-early" | "locked";
+
+// "open"      — inside the (generous) window, habits are checkable now.
+// "too-early" — its part of the day hasn't started; checking is blocked so
+//               the day can't be back-filled ahead of time.
+// "locked"    — past the generous grace; an unchecked section is done for the
+//               day (it simply never gets a done check-in, so the streak
+//               reflects reality — no separate streak bookkeeping needed).
+export function sectionLockState(
+  time: TimeOfDay,
+  now: Date = new Date()
+): SectionLockState {
+  if (time === "anytime") return "open";
+  const { startHour, lockHour } = SECTION_CHECK_WINDOWS[time];
+  const hour = now.getHours() + now.getMinutes() / 60;
+  if (hour < startHour) return "too-early";
+  if (hour >= lockHour) return "locked";
+  return "open";
+}
+
+// Short, non-punishing copy for a section that can't be checked right now.
+export function sectionLockLabel(time: LockableTime, state: "too-early" | "locked"): string {
+  if (state === "too-early") {
+    return time === "afternoon" ? "Opens at midday" : "Opens this evening";
+  }
+  return "Locked for today — pick it back up tomorrow";
+}

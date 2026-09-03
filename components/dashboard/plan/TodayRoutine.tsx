@@ -4,7 +4,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useReducedMotion } from "framer-motion";
 import { DailyHabit, TimeOfDay } from "@/lib/types";
 import { groupHabitsByTimeOfDay } from "@/lib/habit-groups";
-import { getCurrentTimeOfDay } from "@/lib/time-of-day";
+import { getCurrentTimeOfDay, sectionLockState, SectionLockState } from "@/lib/time-of-day";
 import RoutineSection from "./RoutineSection";
 
 interface TodayRoutineProps {
@@ -31,14 +31,29 @@ export default function TodayRoutine({
   const reduceMotion = !!useReducedMotion();
 
   // Computed on mount (client-only — the server has no notion of the user's
-  // local clock) and refreshed hourly so the glow follows the user across a
-  // long-open tab instead of freezing at whatever time the page first loaded.
+  // local clock) and refreshed hourly so the glow — and the time-lock below —
+  // follows the user across a long-open tab instead of freezing at whatever
+  // time the page first loaded.
   const [now, setNow] = useState<TimeOfDay | null>(null);
+  // The live wall-clock, kept in step with `now`, used only for the forgiving
+  // check-in time-lock. null until mount so SSR renders nothing locked.
+  const [clock, setClock] = useState<Date | null>(null);
 
   useEffect(() => {
-    setNow(getCurrentTimeOfDay());
-    const interval = window.setInterval(() => setNow(getCurrentTimeOfDay()), 60 * 60 * 1000);
+    const tick = () => {
+      setNow(getCurrentTimeOfDay());
+      setClock(new Date());
+    };
+    tick();
+    const interval = window.setInterval(tick, 60 * 60 * 1000);
     return () => window.clearInterval(interval);
+  }, []);
+
+  // Re-check the lock a bit more often than hourly so a section that crosses
+  // its boundary (e.g. morning locking at 6pm) updates without a reload.
+  useEffect(() => {
+    const id = window.setInterval(() => setClock(new Date()), 5 * 60 * 1000);
+    return () => window.clearInterval(id);
   }, []);
 
   const groups = groupHabitsByTimeOfDay(habits);
@@ -113,19 +128,29 @@ export default function TodayRoutine({
     return !!doneMap[time] && !settling[time];
   }
 
+  const lockFor = (time: TimeOfDay): SectionLockState =>
+    clock ? sectionLockState(time, clock) : "open";
+
   const incomplete = groups.filter((g) => !isSettled(g.time));
   const complete = groups.filter((g) => isSettled(g.time));
 
-  // The current-time section leads among incomplete ones; a completed
+  // A section that's locked for the day (past its generous window, still
+  // unchecked) has nothing the user can act on now — sink it below the
+  // sections they can still do something about, but keep it visible so the
+  // day's real state is honest.
+  const actionable = incomplete.filter((g) => lockFor(g.time) !== "locked");
+  const lockedOut = incomplete.filter((g) => lockFor(g.time) === "locked");
+
+  // The current-time section leads among actionable ones; a completed
   // section (even if its time matches "now") has nothing left to surface,
   // so it never leads — it's already filtered into `complete` above.
-  const currentIdx = now ? incomplete.findIndex((g) => g.time === now) : -1;
-  const orderedIncomplete =
+  const currentIdx = now ? actionable.findIndex((g) => g.time === now) : -1;
+  const orderedActionable =
     currentIdx > 0
-      ? [incomplete[currentIdx], ...incomplete.slice(0, currentIdx), ...incomplete.slice(currentIdx + 1)]
-      : incomplete;
+      ? [actionable[currentIdx], ...actionable.slice(0, currentIdx), ...actionable.slice(currentIdx + 1)]
+      : actionable;
 
-  const ordered = [...orderedIncomplete, ...complete];
+  const ordered = [...orderedActionable, ...lockedOut, ...complete];
 
   return (
     <div className="flex flex-col gap-4">
@@ -137,6 +162,7 @@ export default function TodayRoutine({
           checks={checks}
           onToggle={onToggle}
           isCurrent={group.time === now && !doneMap[group.time]}
+          lockState={lockFor(group.time)}
           collapsed={isSettled(group.time)}
           celebrating={!!settling[group.time]}
           poppedId={poppedId}

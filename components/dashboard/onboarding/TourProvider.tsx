@@ -11,10 +11,22 @@ import {
   useState,
 } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import { Loader2 } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 import { TOUR_STEPS, TourStep } from "@/lib/tour-steps";
 import WelcomeModal from "./WelcomeModal";
 import TourOverlay from "./TourOverlay";
+
+// Neutral hold shown while the onboarded flag is being confirmed — no
+// dashboard content, no onboarding UI, so neither can flash before the
+// decision lands. Matches the dashboard's dark ground.
+function OnboardingResolving() {
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-[#0A0A0A] via-[#0D0A06] to-[#0A0A0A] flex items-center justify-center">
+      <Loader2 className="w-6 h-6 text-lumen-gold/70 animate-spin" aria-label="Loading" />
+    </div>
+  );
+}
 
 // "resolving" is the pre-decision state for a user whose server-provided
 // onboarded flag came through falsy: we show the dashboard (nothing extra)
@@ -81,14 +93,27 @@ export default function TourProvider({
     if (initialOnboarded) return;
     let cancelled = false;
     const supabase = createClient();
+
+    // Failsafe: never leave the dashboard hidden behind the neutral loading
+    // state if the confirm read hangs. Fall through to the normal dashboard
+    // (idle) — worst case a genuine new user just doesn't get the auto-prompt
+    // this once and can still start the tour from Help.
+    const failsafe = window.setTimeout(() => {
+      if (!cancelled) {
+        onboardedRef.current = true;
+        setPhase("idle");
+      }
+    }, 3000);
+
     supabase
       .from("users")
       .select("onboarded")
       .eq("id", userId)
-      .single()
+      .maybeSingle()
       .then(({ data, error }) => {
         if (cancelled) return;
-        if (error || data?.onboarded) {
+        window.clearTimeout(failsafe);
+        if (error || data?.onboarded || !data) {
           onboardedRef.current = true;
           setPhase("idle");
         } else {
@@ -97,6 +122,7 @@ export default function TourProvider({
       });
     return () => {
       cancelled = true;
+      window.clearTimeout(failsafe);
     };
   }, [initialOnboarded, userId]);
 
@@ -171,7 +197,13 @@ export default function TourProvider({
 
   return (
     <TourContext.Provider value={contextValue}>
-      {children}
+      {/* Until the onboarded flag is confirmed, hold a neutral loading state
+          rather than painting the dashboard — otherwise an unconfirmed
+          new-user value flashes the dashboard for a beat before the welcome
+          modal drops on top of it. `resolving` is only ever entered when the
+          server value came through falsy; a confirmed-onboarded user (the
+          common case) starts in `idle` and never sees this. */}
+      {phase === "resolving" ? <OnboardingResolving /> : children}
 
       {phase === "welcome" && (
         <WelcomeModal onTakeTour={startTour} onSkip={handleSkipWelcome} />

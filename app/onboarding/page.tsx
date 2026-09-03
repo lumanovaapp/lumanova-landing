@@ -16,9 +16,13 @@ export default async function OnboardingPage() {
     .from("users")
     .select("onboarding_completed, age, ethnicity, goals")
     .eq("id", user.id)
-    .single();
+    .maybeSingle();
 
-  if (profile?.onboarding_completed) {
+  // Mirror of the dashboard guard: only bounce to /dashboard when we
+  // positively confirm onboarding is done. A transient null read shows the
+  // wizard (correct for a real new user); the dashboard's own guard no
+  // longer bounces back here on an ambiguous read, so the two can't ping-pong.
+  if (profile?.onboarding_completed === true) {
     redirect("/dashboard");
   }
 

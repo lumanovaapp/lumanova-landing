@@ -157,20 +157,29 @@ export default function OnboardingForm({
     completeSetup(false, DEFAULT_REMINDER_TIME);
   }
 
-  async function handleSubmit(e: FormEvent) {
-    e.preventDefault();
-    if (step !== TOTAL_STEPS - 1) {
-      goNext();
-      return;
-    }
-
+  // The final (reminder) step is finished ONLY from here — an explicit click
+  // on "Complete Setup". It is deliberately not wired to form submission.
+  function handleCompleteSetup() {
     const validationError = validateStep(step);
     if (validationError) {
       setError(validationError);
       return;
     }
+    completeSetup(reminderEnabled, reminderTime);
+  }
 
-    await completeSetup(reminderEnabled, reminderTime);
+  function handleSubmit(e: FormEvent) {
+    // A form submit never *completes* onboarding — it only ever means "advance
+    // to the next step". The reminder step is the last one, so a submit there
+    // is a no-op. This is what stops the reminder step from finishing on its
+    // own: on mobile the <input type="time">'s keyboard "Go"/"Done" key (and
+    // some pickers) can raise a submit with no cancelable Enter keydown for
+    // handleFormKeyDown to intercept, which was silently ending onboarding
+    // before the user confirmed the time.
+    e.preventDefault();
+    if (step < TOTAL_STEPS - 1) {
+      goNext();
+    }
   }
 
   return (
@@ -370,7 +379,8 @@ export default function OnboardingForm({
             </motion.button>
           ) : (
             <motion.button
-              type="submit"
+              type="button"
+              onClick={handleCompleteSetup}
               disabled={loading}
               whileTap={{ scale: 0.98 }}
               className="flex-1 h-14 rounded-2xl bg-lumen-gold text-pure-black font-manrope font-bold text-base hover:shadow-[0_0_28px_rgba(244,196,48,0.45)] transition-shadow duration-300 disabled:opacity-60 disabled:cursor-not-allowed"

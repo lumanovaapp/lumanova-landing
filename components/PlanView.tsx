@@ -16,6 +16,7 @@ import DayCompleteCelebration from "@/components/dashboard/plan/DayCompleteCeleb
 import TargetLook from "@/components/dashboard/plan/TargetLook";
 import StyleGuide from "@/components/dashboard/plan/StyleGuide";
 import PhaseJourney from "@/components/dashboard/plan/PhaseJourney";
+import MilestoneTimeline from "@/components/dashboard/plan/MilestoneTimeline";
 import WeekStrip from "@/components/dashboard/plan/WeekStrip";
 import TodayRoutine from "@/components/dashboard/plan/TodayRoutine";
 import { useTour } from "@/components/dashboard/onboarding/TourProvider";
@@ -419,6 +420,22 @@ export default function PlanView({
             plan={plan}
             day={day}
             currentPhaseNumber={currentPhaseNumber}
+          />
+
+          {/* Progress photos as a date-based timeline — baseline / 30 / 60 /
+              90 grouped by phase, each captured milestone linking into the
+              same DayDrawer used everywhere else for its comparison. */}
+          <MilestoneTimeline
+            plan={plan}
+            createdAt={createdAt}
+            day={day}
+            checkinsByDate={checkinsByDate}
+            onToggleHabit={toggleHabit}
+            errorHabitId={errorId}
+            milestonePhotos={milestonePhotos}
+            frozenDays={frozenDays}
+            baselinePhotoUrl={baselinePhotoUrl}
+            className="mt-8 md:mt-10"
           />
 
           {/* Your Target Look — reference visuals for the user's real focus

@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
-import { Check, Sunrise, CloudSun, Moon, Sparkles, LucideIcon } from "lucide-react";
+import { Check, Sunrise, CloudSun, Moon, Sparkles, Lock, Clock3, LucideIcon } from "lucide-react";
 import { DailyHabit, TimeOfDay } from "@/lib/types";
-import { TIME_OF_DAY_THEME } from "@/lib/time-of-day";
+import { TIME_OF_DAY_THEME, SectionLockState, sectionLockLabel } from "@/lib/time-of-day";
 import HabitCard from "./HabitCard";
 
 const ICONS: Record<string, LucideIcon> = { Sunrise, CloudSun, Moon, Sparkles };
@@ -23,6 +23,11 @@ interface RoutineSectionProps {
   // Ordering/placement is the parent's job (TodayRoutine), not this
   // component's.
   isCurrent: boolean;
+  // Forgiving check-in time-lock (see lib/time-of-day.ts). "open" = normal;
+  // "too-early" = its part of the day hasn't started; "locked" = past the
+  // generous grace. Anything but "open" makes this section's habits
+  // non-interactive with a short, non-punishing note.
+  lockState?: SectionLockState;
   // Parent says this section is done AND has finished its settle hold —
   // render the compact "done" summary row instead of the full card. Can be
   // overridden locally by tapping that row to peek back in and uncheck
@@ -42,6 +47,7 @@ export default function RoutineSection({
   checks,
   onToggle,
   isCurrent,
+  lockState = "open",
   collapsed,
   celebrating,
   poppedId = null,
@@ -53,6 +59,13 @@ export default function RoutineSection({
 
   const doneCount = habits.filter((h) => checks[h.id]).length;
   const total = habits.length;
+
+  // "anytime" is never locked; sectionLockLabel only covers the three real
+  // slots. The `time !== "anytime"` in `locked` narrows `time` for the call.
+  const locked = lockState !== "open" && time !== "anytime";
+  const lockNote = locked
+    ? sectionLockLabel(time, lockState as "too-early" | "locked")
+    : null;
 
   // Manual "peek back in" override — reset the moment the parent says this
   // section isn't in the collapsed-done state anymore (e.g. a habit got
@@ -73,11 +86,11 @@ export default function RoutineSection({
   // `userDrove`), expansion is entirely theirs.
   const [userDrove, setUserDrove] = useState(false);
   useEffect(() => {
-    if (userDrove || !isCurrent) return;
+    if (userDrove || !isCurrent || locked) return;
     const firstIncomplete = habits.find((h) => !checks[h.id]);
     setExpandedHabitId(firstIncomplete ? firstIncomplete.id : null);
     setUserDrove(true);
-  }, [userDrove, isCurrent, habits, checks]);
+  }, [userDrove, isCurrent, habits, checks, locked]);
 
   function toggleHabitExpanded(habitId: string) {
     setUserDrove(true);
@@ -186,6 +199,23 @@ export default function RoutineSection({
             </div>
           </div>
 
+          {lockNote && (
+            <div
+              className={`mb-3 flex items-center gap-2 rounded-xl border px-3 py-2 text-[12px] ${
+                lockState === "locked"
+                  ? "border-white/10 bg-white/[0.03] text-cream-ivory/50"
+                  : `${theme.border} ${theme.bgSoft} ${theme.text}`
+              }`}
+            >
+              {lockState === "locked" ? (
+                <Lock className="w-3.5 h-3.5 flex-shrink-0" />
+              ) : (
+                <Clock3 className="w-3.5 h-3.5 flex-shrink-0" />
+              )}
+              <span>{lockNote}</span>
+            </div>
+          )}
+
           <div className="space-y-2.5">
             {habits.map((habit) => (
               <HabitCard
@@ -193,6 +223,7 @@ export default function RoutineSection({
                 habit={habit}
                 done={!!checks[habit.id]}
                 onToggle={onToggle}
+                interactive={!locked}
                 expanded={expandedHabitId === habit.id}
                 onExpandToggle={() => toggleHabitExpanded(habit.id)}
                 theme={theme}

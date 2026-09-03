@@ -18,14 +18,21 @@ export default async function DashboardPage() {
     .from("users")
     .select("full_name, age, ethnicity, goals, onboarding_completed")
     .eq("id", user.id)
-    .single();
+    .maybeSingle();
 
-  if (!profile?.onboarding_completed) {
+  // Only send them to the wizard when we POSITIVELY know it isn't done.
+  // For an already-authenticated user the row always exists (created by the
+  // signup trigger) — a null/unreadable read here is a transient session or
+  // Router-Cache artifact, and bouncing to /onboarding on it is exactly the
+  // "onboarding flashes before the dashboard" flicker. Treat unknown as
+  // "let them in"; a genuine new user always arrives here with the flag
+  // already set true (OnboardingForm sets it before pushing to /dashboard).
+  if (profile && profile.onboarding_completed === false) {
     redirect("/onboarding");
   }
 
   const fullName =
-    profile.full_name ||
+    profile?.full_name ||
     (user.user_metadata?.full_name as string | undefined) ||
     user.email ||
     "there";
@@ -79,9 +86,9 @@ export default async function DashboardPage() {
   return (
     <DashboardView
       fullName={fullName}
-      age={profile.age}
-      ethnicity={profile.ethnicity}
-      goals={profile.goals ?? []}
+      age={profile?.age ?? null}
+      ethnicity={profile?.ethnicity ?? null}
+      goals={profile?.goals ?? []}
       hasAnalysis={state.hasAnalysis}
       hasPlan={state.hasPlan}
       latestPhotoId={state.latestPhotoId}

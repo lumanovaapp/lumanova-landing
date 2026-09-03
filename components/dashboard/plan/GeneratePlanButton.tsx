@@ -5,7 +5,19 @@ import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { apiErrorFromJson, fetchWithTimeout, toFriendlyMessage } from "@/lib/api-error";
 
-export default function GeneratePlanButton() {
+interface GeneratePlanButtonProps {
+  // Where to send the user once the plan is built. Defaults to a plain
+  // refresh (the plan page swaps itself in). The analysis-reveal page passes
+  // "/dashboard/plan" so its "Generate my 90-day plan" button lands the user
+  // straight on the finished plan instead of a second "Generate" screen.
+  afterGenerateHref?: string;
+  label?: string;
+}
+
+export default function GeneratePlanButton({
+  afterGenerateHref,
+  label = "Generate my plan",
+}: GeneratePlanButtonProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -18,6 +30,9 @@ export default function GeneratePlanButton() {
       const response = await fetchWithTimeout("/api/generate-plan", { method: "POST" });
       if (!response.ok) {
         throw await apiErrorFromJson(response, "Could not generate your plan.");
+      }
+      if (afterGenerateHref) {
+        router.push(afterGenerateHref);
       }
       router.refresh();
     } catch (err) {
@@ -40,7 +55,7 @@ export default function GeneratePlanButton() {
         className="w-full inline-flex items-center justify-center gap-2 bg-lumen-gold text-pure-black font-manrope font-bold rounded-full px-8 py-4 hover:bg-lumen-gold/90 hover:shadow-[0_0_24px_rgba(244,196,48,0.35)] active:scale-95 transition-all duration-300 disabled:opacity-60 disabled:cursor-not-allowed disabled:active:scale-100 focus-gold"
       >
         {loading && <Loader2 className="w-5 h-5 animate-spin" />}
-        {loading ? "Building your plan…" : "Generate my plan"}
+        {loading ? "Building your plan…" : label}
       </button>
       {loading && (
         <p className="font-inter text-xs text-cream-ivory/50 mt-3">

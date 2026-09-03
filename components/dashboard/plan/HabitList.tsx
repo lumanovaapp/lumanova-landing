@@ -1,9 +1,11 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Check, Sun, Moon, Sparkles, LucideIcon } from "lucide-react";
+import { Check, Sun, Moon, Sparkles, Lock, Clock3, LucideIcon } from "lucide-react";
 import { DailyHabit } from "@/lib/types";
 import { groupHabitsByTimeOfDay, TIME_OF_DAY_LABELS } from "@/lib/habit-groups";
+import { sectionLockState, sectionLockLabel } from "@/lib/time-of-day";
 import { ACCENT_THEME } from "@/lib/accent";
 
 const TIME_ICONS: Record<string, LucideIcon> = {
@@ -45,10 +47,29 @@ export default function HabitList({
   const doneTheme = ACCENT_THEME.maintain;
   const groups = groupHabitsByTimeOfDay(habits);
 
+  // `interactive` is only ever true for TODAY (past/future days are read-only
+  // in the drawer), so this is exactly where the forgiving check-in
+  // time-lock applies. null until mount → SSR renders nothing locked.
+  const [clock, setClock] = useState<Date | null>(null);
+  useEffect(() => {
+    if (!interactive) return;
+    setClock(new Date());
+    const id = window.setInterval(() => setClock(new Date()), 5 * 60 * 1000);
+    return () => window.clearInterval(id);
+  }, [interactive]);
+
   return (
     <div className={compact ? "space-y-4" : "space-y-5"}>
       {groups.map((group) => {
-        const Icon = TIME_ICONS[group.time];
+        const time = group.time;
+        const Icon = TIME_ICONS[time];
+        const lockState =
+          interactive && clock ? sectionLockState(time, clock) : "open";
+        const lockNote =
+          lockState !== "open" && time !== "anytime"
+            ? sectionLockLabel(time, lockState)
+            : null;
+        const locked = lockNote !== null;
         return (
           <div key={group.time}>
             <div className="flex items-center gap-1.5 mb-2.5">
@@ -57,23 +78,34 @@ export default function HabitList({
                 {TIME_OF_DAY_LABELS[group.time]}
               </p>
             </div>
+            {lockNote && (
+              <div className="mb-2.5 flex items-center gap-1.5 text-[11px] text-cream-ivory/45">
+                {lockState === "locked" ? (
+                  <Lock className="w-3 h-3 flex-shrink-0" />
+                ) : (
+                  <Clock3 className="w-3 h-3 flex-shrink-0" />
+                )}
+                <span>{lockNote}</span>
+              </div>
+            )}
             <div className={`grid grid-cols-1 ${compact ? "" : "sm:grid-cols-2"} gap-3`}>
               {group.habits.map((habit) => {
                 const done = !!checks[habit.id];
                 const hasError = errorId === habit.id;
+                const canToggle = interactive && !locked;
                 return (
                   <div key={habit.id}>
                     <button
                       type="button"
-                      disabled={!interactive}
-                      onClick={() => interactive && onToggle(habit.id)}
+                      disabled={!canToggle}
+                      onClick={() => canToggle && onToggle(habit.id)}
                       className={`w-full flex items-start gap-3 rounded-2xl border text-left transition-all duration-300 focus-gold ${
                         compact ? "p-3" : "p-3.5 sm:p-4"
                       } ${
                         done
                           ? `${doneTheme.border} ${doneTheme.bgSoft} ${doneTheme.ring}`
                           : "border-white/10 bg-pure-black/20 hover:border-white/20 hover:bg-white/[0.04]"
-                      } ${interactive ? "cursor-pointer" : "opacity-70 cursor-default"}`}
+                      } ${canToggle ? "cursor-pointer" : "opacity-70 cursor-default"}`}
                     >
                       <motion.span
                         animate={
