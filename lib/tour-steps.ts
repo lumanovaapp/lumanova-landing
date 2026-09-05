@@ -63,7 +63,15 @@ export const TOUR_STEPS: TourStep[] = [
     route: "/dashboard/plan",
     target: "tour-journey-tab",
     title: "The Journey tab",
-    body: "Tap Journey anytime to see your 3 phases, your target look, and the full 90-day map.",
+    body: "Tap Journey anytime to see your 3 phases, your target look, and your colours & style guide.",
+    requiresPlan: true,
+  },
+  {
+    id: "progress",
+    route: "/dashboard/plan",
+    target: "tour-progress-tab",
+    title: "The Progress tab",
+    body: "Track your transformation here — your milestone photo timeline and the full 90-day map of every day you've done, missed, or frozen.",
     requiresPlan: true,
   },
   {

@@ -11,7 +11,15 @@ import PlanView from "@/components/PlanView";
 
 const SIGNED_URL_TTL_SECONDS = 3600;
 
-export default async function PlanPage() {
+export default async function PlanPage({
+  searchParams,
+}: {
+  // `?generate=1` is set by the analysis page's "Generate my 90-day plan"
+  // CTA — it makes the "analysis ready" screen below start generating
+  // immediately instead of waiting for a second click. Ignored once a plan
+  // exists (PlanView just renders).
+  searchParams?: { generate?: string };
+}) {
   const supabase = createClient();
 
   const {
@@ -146,7 +154,7 @@ export default async function PlanPage() {
             We&apos;ll turn your saved analysis into a phased plan with daily
             habits built for streaks.
           </p>
-          <GeneratePlanButton />
+          <GeneratePlanButton autoStart={searchParams?.generate === "1"} />
           {state.latestPhotoId && (
             <Link
               href={`/dashboard/upload/${state.latestPhotoId}`}

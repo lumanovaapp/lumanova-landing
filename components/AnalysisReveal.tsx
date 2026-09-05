@@ -23,7 +23,6 @@ import {
 import { Accent, ACCENT_THEME, ACCENT_LABELS } from "@/lib/accent";
 import { itemText } from "@/lib/format";
 import UpdatePlanPrompt from "@/components/dashboard/upload/UpdatePlanPrompt";
-import GeneratePlanButton from "@/components/dashboard/plan/GeneratePlanButton";
 
 interface AnalysisRevealProps {
   imageUrl: string;
@@ -306,14 +305,15 @@ export default function AnalysisReveal({
           <p className="font-manrope font-semibold text-lg sm:text-xl text-cream-ivory mb-6">
             Ready to turn this into your plan?
           </p>
-          {/* Builds the plan here and drops the user straight on the finished
-              plan page — no second "Generate" screen in between. */}
-          <div className="mx-auto w-full sm:max-w-sm">
-            <GeneratePlanButton
-              afterGenerateHref="/dashboard/plan"
-              label="Generate my 90-day plan"
-            />
-          </div>
+          {/* Routes to the 90-Day Plan page and generates there (see
+              app/dashboard/plan/page.tsx + GeneratePlanButton's autoStart) —
+              the user lands on the Today tab with their finished plan. */}
+          <Link
+            href="/dashboard/plan?generate=1"
+            className="inline-flex w-full sm:w-auto sm:min-w-[280px] h-14 px-8 rounded-full bg-lumen-gold text-pure-black font-manrope font-bold items-center justify-center gap-2 hover:bg-lumen-gold/90 hover:shadow-[0_0_24px_rgba(244,196,48,0.35)] active:scale-95 transition-all duration-300 focus-gold"
+          >
+            Generate my 90-day plan
+          </Link>
         </div>
       )}
     </div>

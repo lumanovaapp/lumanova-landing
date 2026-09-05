@@ -23,7 +23,7 @@ import { useTour } from "@/components/dashboard/onboarding/TourProvider";
 
 const MAX_FREEZES = 2;
 
-type PlanTab = "today" | "journey";
+type PlanTab = "today" | "journey" | "progress";
 
 interface PlanViewProps {
   plan: Plan;
@@ -87,12 +87,14 @@ export default function PlanView({
   const [tab, setTab] = useState<PlanTab>("today");
   const { activeTarget } = useTour();
 
-  // The guided tour's plan-page steps live on the Today tab (streak bar,
-  // week strip, routine) — force that tab active when one of them is the
+  // The guided tour's plan-page content steps live on the Today tab (streak
+  // bar, week strip, routine) — force that tab active when one of them is the
   // current step, same reasoning as MobileNav opening its drawer for
   // nav-targeted steps. A plain route push to the same URL doesn't reset
-  // component state, so without this a user already sitting on the Journey
-  // tab would have the tour point at elements that aren't on screen.
+  // component state, so without this a user already sitting on the Journey or
+  // Progress tab would have the tour point at elements that aren't on screen.
+  // (The Journey/Progress tab steps target the tab buttons themselves, which
+  // are always rendered, so they need no switch.)
   useEffect(() => {
     if (
       activeTarget === "tour-plan-streak" ||
@@ -223,6 +225,13 @@ export default function PlanView({
 
   const streakTheme = ACCENT_THEME.refine;
 
+  const tabButtonClass = (active: boolean) =>
+    `px-5 py-2 rounded-full text-sm font-manrope font-semibold transition-all duration-300 focus-gold ${
+      active
+        ? "bg-lumen-gold text-pure-black shadow-[0_0_16px_rgba(244,196,48,0.3)]"
+        : "text-cream-ivory/55 hover:text-cream-ivory"
+    }`;
+
   return (
     <>
     <DayCompleteCelebration active={celebrate} streak={streak} coachLine={coachLine} />
@@ -246,18 +255,15 @@ export default function PlanView({
         </p>
       </motion.div>
 
-      {/* Tab control — Today (the daily loop, default) vs. Journey (the
-          big-picture view, checked occasionally). */}
+      {/* Tab control — Today (the daily loop, default), Journey (the plan /
+          guidance content) and Progress (milestone photos + the full map).
+          Each tab stays short and focused; nothing is duplicated across them. */}
       <div className="mb-6 inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/[0.03] p-1">
         <button
           type="button"
           onClick={() => setTab("today")}
           aria-pressed={tab === "today"}
-          className={`px-5 py-2 rounded-full text-sm font-manrope font-semibold transition-all duration-300 focus-gold ${
-            tab === "today"
-              ? "bg-lumen-gold text-pure-black shadow-[0_0_16px_rgba(244,196,48,0.3)]"
-              : "text-cream-ivory/55 hover:text-cream-ivory"
-          }`}
+          className={tabButtonClass(tab === "today")}
         >
           Today
         </button>
@@ -266,17 +272,22 @@ export default function PlanView({
           onClick={() => setTab("journey")}
           aria-pressed={tab === "journey"}
           data-tour="tour-journey-tab"
-          className={`px-5 py-2 rounded-full text-sm font-manrope font-semibold transition-all duration-300 focus-gold ${
-            tab === "journey"
-              ? "bg-lumen-gold text-pure-black shadow-[0_0_16px_rgba(244,196,48,0.3)]"
-              : "text-cream-ivory/55 hover:text-cream-ivory"
-          }`}
+          className={tabButtonClass(tab === "journey")}
         >
           Journey
         </button>
+        <button
+          type="button"
+          onClick={() => setTab("progress")}
+          aria-pressed={tab === "progress"}
+          data-tour="tour-progress-tab"
+          className={tabButtonClass(tab === "progress")}
+        >
+          Progress
+        </button>
       </div>
 
-      {tab === "today" ? (
+      {tab === "today" && (
         <motion.div
           key="today"
           initial={{ opacity: 0, y: reduceMotion ? 0 : 12 }}
@@ -348,7 +359,7 @@ export default function PlanView({
           {/* Week strip — the default, glanceable view of "where am I."
               Tapping a day (mobile: bottom drawer, desktop: inline panel)
               shows that day read-only/locked; "View full plan" switches to
-              the Journey tab's full 90-day map instead of inlining it here. */}
+              the Progress tab's full 90-day map instead of inlining it here. */}
           <div data-tour="tour-week-strip" className="mt-4">
             <WeekStrip
               plan={plan}
@@ -359,7 +370,7 @@ export default function PlanView({
               milestonePhotos={milestonePhotos}
               frozenDays={frozenDays}
               baselinePhotoUrl={baselinePhotoUrl}
-              onViewFullPlan={() => setTab("journey")}
+              onViewFullPlan={() => setTab("progress")}
             />
           </div>
 
@@ -405,7 +416,9 @@ export default function PlanView({
             </motion.div>
           </section>
         </motion.div>
-      ) : (
+      )}
+
+      {tab === "journey" && (
         <motion.div
           key="journey"
           initial={{ opacity: 0, y: reduceMotion ? 0 : 12 }}
@@ -422,22 +435,6 @@ export default function PlanView({
             currentPhaseNumber={currentPhaseNumber}
           />
 
-          {/* Progress photos as a date-based timeline — baseline / 30 / 60 /
-              90 grouped by phase, each captured milestone linking into the
-              same DayDrawer used everywhere else for its comparison. */}
-          <MilestoneTimeline
-            plan={plan}
-            createdAt={createdAt}
-            day={day}
-            checkinsByDate={checkinsByDate}
-            onToggleHabit={toggleHabit}
-            errorHabitId={errorId}
-            milestonePhotos={milestonePhotos}
-            frozenDays={frozenDays}
-            baselinePhotoUrl={baselinePhotoUrl}
-            className="mt-8 md:mt-10"
-          />
-
           {/* Your Target Look — reference visuals for the user's real focus
               areas, so the daily habits point at a concrete destination. */}
           <TargetLook
@@ -451,10 +448,35 @@ export default function PlanView({
               after it so the two visual reference sections read as one
               group. */}
           <StyleGuide analysis={analysis} plan={plan} className="mt-8 md:mt-10" />
+        </motion.div>
+      )}
 
-          {/* Full 90-day map — the "zoomed out" view. Checked occasionally,
-              not part of the daily loop, so it's fine for this tab to
-              scroll freely. */}
+      {tab === "progress" && (
+        <motion.div
+          key="progress"
+          initial={{ opacity: 0, y: reduceMotion ? 0 : 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: reduceMotion ? 0.15 : 0.35 }}
+          className="mb-12"
+        >
+          {/* Progress photos as a date-based timeline — baseline / 30 / 60 /
+              90 grouped by phase, each captured milestone linking into the
+              same DayDrawer used everywhere else for its comparison. */}
+          <MilestoneTimeline
+            plan={plan}
+            createdAt={createdAt}
+            day={day}
+            checkinsByDate={checkinsByDate}
+            onToggleHabit={toggleHabit}
+            errorHabitId={errorId}
+            milestonePhotos={milestonePhotos}
+            frozenDays={frozenDays}
+            baselinePhotoUrl={baselinePhotoUrl}
+          />
+
+          {/* Full 90-day map — the "zoomed out" view, with the
+              Done / Missed / Frozen legend. Checked occasionally, not part of
+              the daily loop, so it's fine for this tab to scroll freely. */}
           <div className="mt-8 md:mt-10">
             <h2 className="font-manrope font-bold text-lg sm:text-xl text-cream-ivory mb-4">
               Full 90-day map
