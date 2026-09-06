@@ -61,7 +61,26 @@ body {
     display: none;
   }
 
+  /* Click/tap ripple for primary CTAs — see lib/use-ripple.ts + RippleLayer. */
+  @keyframes ripple-spread {
+    to {
+      transform: scale(1);
+      opacity: 0;
+    }
+  }
+
+  .animate-ripple {
+    transform: scale(0);
+    opacity: 0.45;
+    animation: ripple-spread 600ms ease-out forwards;
+  }
+
   @media (prefers-reduced-motion: reduce) {
+    .animate-ripple {
+      animation: none;
+      display: none;
+    }
+
     .card-lift:hover {
       transform: none;
     }

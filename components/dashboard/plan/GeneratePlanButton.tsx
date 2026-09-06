@@ -6,6 +6,8 @@ import { motion } from "framer-motion";
 import { Loader2 } from "lucide-react";
 import { apiErrorFromJson, fetchWithTimeout, toFriendlyMessage } from "@/lib/api-error";
 import { ProgressStage, useStagedProgress } from "@/lib/use-staged-progress";
+import { useRipple } from "@/lib/use-ripple";
+import RippleLayer from "@/components/RippleLayer";
 
 const STAGES: ProgressStage[] = [
   { label: "Reading your analysis…", progress: 20 },
@@ -30,6 +32,7 @@ export default function GeneratePlanButton({ autoStart = false }: GeneratePlanBu
   const [loading, setLoading] = useState(autoStart);
   const [error, setError] = useState("");
   const { stage, reduceMotion } = useStagedProgress(STAGES, STEP_MS);
+  const { ripples, onPointerDown } = useRipple();
   // Guards against a second run — a manual click while auto-start is in
   // flight, or React's dev double-invoked mount effect.
   const startedRef = useRef(false);
@@ -74,9 +77,11 @@ export default function GeneratePlanButton({ autoStart = false }: GeneratePlanBu
       <button
         type="button"
         onClick={handleGenerate}
+        onPointerDown={onPointerDown}
         disabled={loading}
-        className="w-full inline-flex items-center justify-center gap-2 bg-lumen-gold text-pure-black font-manrope font-bold rounded-full px-8 py-4 hover:bg-lumen-gold/90 hover:shadow-[0_0_24px_rgba(244,196,48,0.35)] active:scale-95 transition-all duration-300 disabled:opacity-60 disabled:cursor-not-allowed disabled:active:scale-100 focus-gold"
+        className="relative overflow-hidden w-full inline-flex items-center justify-center gap-2 bg-lumen-gold text-pure-black font-manrope font-bold rounded-full px-8 py-4 hover:bg-lumen-gold/90 hover:shadow-[0_0_24px_rgba(244,196,48,0.35)] active:scale-95 transition-all duration-300 disabled:opacity-60 disabled:cursor-not-allowed disabled:active:scale-100 focus-gold"
       >
+        <RippleLayer ripples={ripples} />
         {loading && <Loader2 className="w-5 h-5 animate-spin" />}
         {loading ? stage.label : "Generate my plan"}
       </button>

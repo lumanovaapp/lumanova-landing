@@ -3,6 +3,7 @@
 import { useState, FormEvent } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
+import { Loader2 } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 import { useRouter } from "next/navigation";
 import AuthLogo from "@/components/auth/AuthLogo";
@@ -45,13 +46,17 @@ export default function LoginPage() {
 
     setLoading(true);
     const { error } = await supabase.auth.signInWithPassword({ email, password });
-    setLoading(false);
 
     if (error) {
+      setLoading(false);
       setFormError(error.message);
       return;
     }
 
+    // Left true on success — this page is about to be replaced by the
+    // dashboard (which has its own loading.tsx), so there's no "done" state
+    // to return to. Resetting it here would flash the button back to normal
+    // for a beat before navigation actually lands.
     router.push("/dashboard");
     router.refresh();
   }
@@ -121,9 +126,10 @@ export default function LoginPage() {
             type="submit"
             disabled={loading}
             whileTap={{ scale: 0.98 }}
-            className="mt-2 h-14 w-full rounded-2xl bg-lumen-gold text-pure-black font-manrope font-bold text-base hover:shadow-[0_0_28px_rgba(244,196,48,0.45)] transition-shadow duration-300 disabled:opacity-60 disabled:cursor-not-allowed"
+            className="mt-2 h-14 w-full inline-flex items-center justify-center gap-2 rounded-2xl bg-lumen-gold text-pure-black font-manrope font-bold text-base hover:shadow-[0_0_28px_rgba(244,196,48,0.45)] transition-shadow duration-300 disabled:opacity-60 disabled:cursor-not-allowed"
           >
-            {loading ? "Logging in..." : "Log In"}
+            {loading && <Loader2 className="w-5 h-5 animate-spin" />}
+            {loading ? "Logging in…" : "Log In"}
           </motion.button>
         </form>
 

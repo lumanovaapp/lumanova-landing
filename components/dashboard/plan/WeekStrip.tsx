@@ -25,7 +25,13 @@ interface WeekStripProps {
   baselinePhotoUrl: string | null;
   // Reveals the full 90-day map further down the page — see PlanView.
   onViewFullPlan: () => void;
+  // A reached milestone day (30/60/90) routes here instead of opening the
+  // habits drawer — see PlanView's `goToMilestone`, which switches to the
+  // Progress tab and scrolls to that milestone's inline upload panel.
+  onMilestoneDay: (day: number) => void;
 }
+
+const MILESTONE_DAYS = new Set([30, 60, 90]);
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 const DAYS_PER_WEEK = 7;
@@ -43,6 +49,7 @@ export default function WeekStrip({
   frozenDays,
   baselinePhotoUrl,
   onViewFullPlan,
+  onMilestoneDay,
 }: WeekStripProps) {
   const frozenDaySet = new Set(frozenDays);
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
@@ -153,7 +160,11 @@ export default function WeekStrip({
             <button
               key={day}
               type="button"
-              onClick={() => setSelectedDay(day)}
+              onClick={() =>
+                MILESTONE_DAYS.has(day) && day <= realDayNumber
+                  ? onMilestoneDay(day)
+                  : setSelectedDay(day)
+              }
               aria-label={`${weekdayLabel} ${date.getUTCDate()}${isToday ? " — today" : ""}`}
               className={`relative flex flex-col items-center justify-center gap-1 rounded-2xl transition-all duration-200 cursor-pointer hover:brightness-110 focus-gold ${styles.cell} ${
                 isToday ? "py-4 sm:py-5 scale-[1.04]" : "py-3 sm:py-3.5"

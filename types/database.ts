@@ -36,6 +36,9 @@ export type User = {
   // 'HH:MM' 24h local time — no timezone stored, interpreted client-side.
   reminder_enabled: boolean;
   reminder_time: string;
+  // Set by app/api/cron/reminders when a daily nudge is sent — guards
+  // against sending twice in the same UTC day. Null until the first reminder.
+  last_reminded_at: string | null;
   created_at: string;
   updated_at: string;
 };

@@ -12,6 +12,8 @@ import {
 } from "@/lib/upload-photo";
 import { apiErrorFromJson, fetchWithTimeout, toFriendlyMessage } from "@/lib/api-error";
 import { showAchievementToasts } from "@/components/AchievementToast";
+import { useRipple } from "@/lib/use-ripple";
+import RippleLayer from "@/components/RippleLayer";
 
 type Stage = "idle" | "uploading" | "analyzing";
 
@@ -35,6 +37,7 @@ export default function UploadForm() {
   const [uploadedPhotoId, setUploadedPhotoId] = useState<string | null>(null);
   const [showCamera, setShowCamera] = useState(false);
   const [mobile, setMobile] = useState(false);
+  const { ripples, onPointerDown } = useRipple();
 
   useEffect(() => {
     setMobile(isMobileDevice());
@@ -193,8 +196,10 @@ export default function UploadForm() {
             <button
               type="button"
               onClick={handleUpload}
-              className="flex-1 h-14 inline-flex items-center justify-center gap-2 rounded-full bg-lumen-gold text-pure-black font-manrope font-bold hover:bg-lumen-gold/90 hover:shadow-[0_0_24px_rgba(244,196,48,0.35)] active:scale-95 transition-all duration-300 focus-gold"
+              onPointerDown={onPointerDown}
+              className="relative overflow-hidden flex-1 h-14 inline-flex items-center justify-center gap-2 rounded-full bg-lumen-gold text-pure-black font-manrope font-bold hover:bg-lumen-gold/90 hover:shadow-[0_0_24px_rgba(244,196,48,0.35)] active:scale-95 transition-all duration-300 focus-gold"
             >
+              <RippleLayer ripples={ripples} />
               {error ? "Try again" : "Analyze my photo"}
             </button>
           </div>

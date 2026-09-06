@@ -1,11 +1,13 @@
 "use client";
 
-import { useState } from "react";
-import { motion, useReducedMotion } from "framer-motion";
-import { Camera, Check, Lock, ArrowRight, Loader2 } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { Camera, Check, ChevronDown, Lock, Loader2, Maximize2 } from "lucide-react";
 import { Plan, PhotoMilestone, MilestonePhotoSummary } from "@/lib/types";
 import { toDateOnlyUTC, addDays } from "@/lib/streak";
-import DayDrawer from "@/components/dashboard/plan/DayDrawer";
+import { MilestoneSection } from "@/components/dashboard/plan/MilestoneSection";
+import PhotoLightbox, { LightboxImage } from "@/components/dashboard/plan/PhotoLightbox";
 
 interface MilestoneTimelineProps {
   plan: Plan;
@@ -14,12 +16,14 @@ interface MilestoneTimelineProps {
    * created_at by PlanView. Progression here is purely date-based: a
    * milestone unlocks by calendar day, never by how consistent the user was. */
   day: number;
-  checkinsByDate: Record<string, Record<string, boolean>>;
-  onToggleHabit: (habitId: string) => void;
-  errorHabitId: string | null;
   milestonePhotos: Partial<Record<PhotoMilestone, MilestonePhotoSummary>>;
-  frozenDays: number[];
   baselinePhotoUrl: string | null;
+  // Set by PlanView when a milestone day is clicked from the week strip or
+  // full calendar — those surfaces route reached milestone days here instead
+  // of opening the habits drawer. Expands that milestone's inline panel and
+  // scrolls it into view; cleared via onFocusHandled once actioned.
+  focusDay?: number | null;
+  onFocusHandled?: () => void;
   className?: string;
 }
 
@@ -43,20 +47,46 @@ export default function MilestoneTimeline({
   plan,
   createdAt,
   day,
-  checkinsByDate,
-  onToggleHabit,
-  errorHabitId,
   milestonePhotos,
-  frozenDays,
   baselinePhotoUrl,
+  focusDay,
+  onFocusHandled,
   className = "",
 }: MilestoneTimelineProps) {
+  const router = useRouter();
   const reduceMotion = !!useReducedMotion();
-  // Opening this drawer is how every "Compare vs baseline" / "Upload your
-  // Day N photo" action is served — it's the same shared DayDrawer the week
-  // strip and full calendar use, so the upload + comparison + retry flows
-  // are reused verbatim rather than re-implemented here.
-  const [selectedDay, setSelectedDay] = useState<number | null>(null);
+  // Which milestone's upload/comparison panel is expanded inline, right
+  // under its row — this IS the upload surface now, not a launcher into the
+  // shared day-habits drawer, so a milestone click can never be mistaken for
+  // "open today's habits" again.
+  const [expandedDay, setExpandedDay] = useState<number | null>(null);
+  // Lets a timeline row's thumbnail itself be tapped to view that photo
+  // full-size, independent of expanding the upload/comparison panel.
+  const [lightboxPhoto, setLightboxPhoto] = useState<LightboxImage | null>(null);
+  const rowRefs = useRef<Partial<Record<number, HTMLDivElement | null>>>({});
+
+  // Driven by PlanView: a milestone clicked in the week strip or full
+  // calendar switches to this tab and sets `focusDay`, which expands that
+  // row's panel and scrolls it into view with context — never a blind tab
+  // switch that leaves the user hunting for what changed.
+  useEffect(() => {
+    if (focusDay == null) return;
+    setExpandedDay(focusDay);
+    const timer = window.setTimeout(
+      () => {
+        rowRefs.current[focusDay]?.scrollIntoView({
+          behavior: reduceMotion ? "auto" : "smooth",
+          block: "center",
+        });
+      },
+      // Gives the tab's own enter transition (see PlanView) time to finish
+      // so the scroll lands on final layout, not a still-animating one.
+      reduceMotion ? 50 : 350
+    );
+    onFocusHandled?.();
+    return () => window.clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focusDay]);
 
   const planStart = toDateOnlyUTC(new Date(createdAt));
   const dateForDay = (d: number) =>
@@ -100,8 +130,10 @@ export default function MilestoneTimeline({
           const isNextUpcoming = !reached && point.day === nextUpcomingDay;
           const locked = !reached && !isNextUpcoming;
 
-          const canOpen = !isBaseline && (captured || due);
-          const openDrawer = () => canOpen && setSelectedDay(point.day);
+          const canExpand = !isBaseline && (captured || due);
+          const expanded = expandedDay === point.day;
+          const toggleExpand = () =>
+            canExpand && setExpandedDay((current) => (current === point.day ? null : point.day));
 
           // How far the plan has moved from this point toward the next one —
           // fills the connector line, same motif as PhaseJourney's spine.
@@ -131,6 +163,9 @@ export default function MilestoneTimeline({
               )}
 
               <motion.div
+                ref={(el) => {
+                  rowRefs.current[point.day] = el;
+                }}
                 initial={reduceMotion ? false : { opacity: 0, y: 16 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, margin: "-60px" }}
@@ -191,19 +226,33 @@ export default function MilestoneTimeline({
                   }`}
                 >
                   <div className="flex items-start gap-3.5">
-                    {/* Thumbnail (captured points only) */}
+                    {/* Thumbnail (captured points only) — tappable to view
+                        full-size without needing to expand the panel. */}
                     {thumbUrl ? (
-                      <div className="flex-shrink-0 w-16 h-16 rounded-xl overflow-hidden border border-white/10 bg-white/5">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setLightboxPhoto({
+                            url: thumbUrl,
+                            label: isBaseline ? "Baseline" : point.label,
+                          })
+                        }
+                        aria-label={`View ${point.label} photo full-size`}
+                        className="group relative flex-shrink-0 w-16 h-16 sm:w-20 sm:h-20 rounded-xl overflow-hidden border border-white/10 bg-white/5 focus-gold"
+                      >
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
                           src={thumbUrl}
                           alt={`${point.label} progress photo`}
-                          className="w-full h-full object-cover"
+                          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.05]"
                         />
-                      </div>
+                        <span className="absolute inset-0 flex items-center justify-center bg-pure-black/0 group-hover:bg-pure-black/30 transition-colors duration-300">
+                          <Maximize2 className="w-3.5 h-3.5 text-cream-ivory opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                        </span>
+                      </button>
                     ) : (
                       <div
-                        className={`flex-shrink-0 w-16 h-16 rounded-xl border flex items-center justify-center ${
+                        className={`flex-shrink-0 w-16 h-16 sm:w-20 sm:h-20 rounded-xl border flex items-center justify-center ${
                           highlight
                             ? "border-lumen-gold/25 bg-lumen-gold/[0.06] text-lumen-gold/70"
                             : "border-white/[0.08] bg-white/[0.02] text-cream-ivory/25"
@@ -248,7 +297,9 @@ export default function MilestoneTimeline({
                         {isBaseline && baselinePhotoUrl && " · where you started"}
                       </p>
 
-                      {/* State-specific line + action */}
+                      {/* State-specific line + action — every actionable
+                          state expands the panel below inline instead of
+                          opening the day-habits drawer. */}
                       {isBaseline ? null : analyzing ? (
                         <p className="mt-2 text-xs text-cream-ivory/60 flex items-center gap-1.5">
                           <Loader2 className="w-3 h-3 animate-spin" />
@@ -257,29 +308,33 @@ export default function MilestoneTimeline({
                       ) : failed ? (
                         <button
                           type="button"
-                          onClick={openDrawer}
+                          onClick={toggleExpand}
                           className="mt-2.5 inline-flex items-center gap-1.5 text-xs font-semibold text-warm-coral hover:underline underline-offset-4 focus-gold"
                         >
                           Comparison didn&apos;t finish — open to retry
-                          <ArrowRight className="w-3.5 h-3.5" />
+                          <ChevronDown
+                            className={`w-3.5 h-3.5 transition-transform duration-300 ${expanded ? "rotate-180" : ""}`}
+                          />
                         </button>
                       ) : captured ? (
                         <button
                           type="button"
-                          onClick={openDrawer}
+                          onClick={toggleExpand}
                           className="mt-2.5 inline-flex items-center gap-1.5 text-xs font-semibold text-lumen-gold hover:underline underline-offset-4 focus-gold"
                         >
-                          Compare vs baseline
-                          <ArrowRight className="w-3.5 h-3.5" />
+                          {expanded ? "Hide comparison" : "Compare vs baseline"}
+                          <ChevronDown
+                            className={`w-3.5 h-3.5 transition-transform duration-300 ${expanded ? "rotate-180" : ""}`}
+                          />
                         </button>
                       ) : due ? (
                         <button
                           type="button"
-                          onClick={openDrawer}
+                          onClick={toggleExpand}
                           className="mt-2.5 inline-flex items-center gap-2 h-9 px-4 rounded-full bg-lumen-gold text-pure-black text-xs font-manrope font-bold hover:bg-lumen-gold/90 hover:shadow-[0_0_20px_rgba(244,196,48,0.35)] active:scale-95 transition-all duration-300 focus-gold"
                         >
                           <Camera className="w-3.5 h-3.5" />
-                          Upload your {point.label} photo
+                          {expanded ? "Hide" : `Upload your ${point.label} photo`}
                         </button>
                       ) : isNextUpcoming ? (
                         <p className="mt-2 text-xs text-cream-ivory/70">
@@ -296,6 +351,30 @@ export default function MilestoneTimeline({
                       )}
                     </div>
                   </div>
+
+                  {/* Inline upload / comparison panel — expands right here,
+                      in context, instead of navigating anywhere else. */}
+                  <AnimatePresence initial={false}>
+                    {expanded && !isBaseline && (
+                      <motion.div
+                        key="panel"
+                        initial={reduceMotion ? false : { opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: "auto" }}
+                        exit={{ opacity: 0, height: 0 }}
+                        transition={{ duration: reduceMotion ? 0.1 : 0.3, ease: [0.16, 1, 0.3, 1] }}
+                        className="overflow-hidden"
+                      >
+                        <div className="mt-4">
+                          <MilestoneSection
+                            milestoneType={point.key}
+                            photo={photo}
+                            baselinePhotoUrl={baselinePhotoUrl}
+                            onUploaded={() => router.refresh()}
+                          />
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
               </motion.div>
             </div>
@@ -303,17 +382,10 @@ export default function MilestoneTimeline({
         })}
       </div>
 
-      <DayDrawer
-        plan={plan}
-        createdAt={createdAt}
-        checkinsByDate={checkinsByDate}
-        onToggleHabit={onToggleHabit}
-        errorHabitId={errorHabitId}
-        milestonePhotos={milestonePhotos}
-        frozenDays={frozenDays}
-        baselinePhotoUrl={baselinePhotoUrl}
-        selectedDay={selectedDay}
-        onClose={() => setSelectedDay(null)}
+      <PhotoLightbox
+        images={lightboxPhoto ? [lightboxPhoto] : []}
+        index={lightboxPhoto ? 0 : null}
+        onClose={() => setLightboxPhoto(null)}
       />
     </section>
   );

@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { AlertTriangle, Loader2 } from "lucide-react";
 import { apiErrorFromJson, fetchWithTimeout, toFriendlyMessage } from "@/lib/api-error";
+import { useRipple } from "@/lib/use-ripple";
+import RippleLayer from "@/components/RippleLayer";
 
 interface RetryAnalysisProps {
   photoId: string;
@@ -14,6 +16,7 @@ export default function RetryAnalysis({ photoId }: RetryAnalysisProps) {
   const router = useRouter();
   const [retrying, setRetrying] = useState(false);
   const [error, setError] = useState("");
+  const { ripples, onPointerDown } = useRipple();
 
   async function handleRetry() {
     setRetrying(true);
@@ -58,9 +61,11 @@ export default function RetryAnalysis({ photoId }: RetryAnalysisProps) {
         <button
           type="button"
           onClick={handleRetry}
+          onPointerDown={onPointerDown}
           disabled={retrying}
-          className="h-14 px-8 inline-flex items-center justify-center gap-2 rounded-full bg-lumen-gold text-pure-black font-manrope font-bold hover:bg-lumen-gold/90 hover:shadow-[0_0_24px_rgba(244,196,48,0.35)] active:scale-95 transition-all duration-300 focus-gold disabled:opacity-60 disabled:cursor-not-allowed disabled:active:scale-100"
+          className="relative overflow-hidden h-14 px-8 inline-flex items-center justify-center gap-2 rounded-full bg-lumen-gold text-pure-black font-manrope font-bold hover:bg-lumen-gold/90 hover:shadow-[0_0_24px_rgba(244,196,48,0.35)] active:scale-95 transition-all duration-300 focus-gold disabled:opacity-60 disabled:cursor-not-allowed disabled:active:scale-100"
         >
+          <RippleLayer ripples={ripples} />
           {retrying && <Loader2 className="w-4 h-4 animate-spin" />}
           {retrying ? "Analyzing your features…" : "Try again"}
         </button>

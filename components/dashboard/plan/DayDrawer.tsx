@@ -3,12 +3,11 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
-import { Check, X, Loader2, Shield, Lock } from "lucide-react";
+import { X, Shield, Lock } from "lucide-react";
 import { Plan, PhotoMilestone, MilestonePhotoSummary } from "@/lib/types";
 import { toDateOnlyUTC, addDays, dateToStr, phaseForDay } from "@/lib/streak";
-import MilestoneUpload from "@/components/dashboard/plan/MilestoneUpload";
 import HabitList from "@/components/dashboard/plan/HabitList";
-import { apiErrorFromJson, fetchWithTimeout, toFriendlyMessage } from "@/lib/api-error";
+import { MilestoneSection, MILESTONE_LABELS } from "@/components/dashboard/plan/MilestoneSection";
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
@@ -16,13 +15,6 @@ const MILESTONE_DAYS: Record<number, PhotoMilestone> = {
   30: "day_30",
   60: "day_60",
   90: "day_90",
-};
-
-const MILESTONE_LABELS: Record<PhotoMilestone, string> = {
-  baseline: "Baseline",
-  day_30: "Day 30 Check-In",
-  day_60: "Day 60 Check-In",
-  day_90: "Day 90 Check-In",
 };
 
 // Mirrors Tailwind's `md` breakpoint. Below it: a full-width bottom-sheet
@@ -97,7 +89,10 @@ interface DayDrawerProps {
   baselinePhotoUrl: string | null;
   // null = closed. Shared by the week strip and the full 90-day map so both
   // trigger the exact same drawer, with the exact same read/lock/checkable
-  // rules, instead of each maintaining its own copy.
+  // rules, instead of each maintaining its own copy. Milestone days that have
+  // been reached never reach this component anymore — WeekStrip/PlanCalendar
+  // route those to the Progress tab's inline milestone panel instead (see
+  // PlanView's `goToMilestone`) — this only ever opens for a plain habit day.
   selectedDay: number | null;
   onClose: () => void;
 }
@@ -290,171 +285,5 @@ export default function DayDrawer({
         </>
       )}
     </AnimatePresence>
-  );
-}
-
-interface MilestoneSectionProps {
-  milestoneType: PhotoMilestone;
-  photo: MilestonePhotoSummary | undefined;
-  baselinePhotoUrl: string | null;
-  onUploaded: () => void;
-}
-
-function MilestoneSection({
-  milestoneType,
-  photo,
-  baselinePhotoUrl,
-  onUploaded,
-}: MilestoneSectionProps) {
-  const [retrying, setRetrying] = useState(false);
-  const [retryError, setRetryError] = useState("");
-
-  async function handleRetry() {
-    if (!photo) return;
-    setRetrying(true);
-    setRetryError("");
-
-    try {
-      const response = await fetchWithTimeout("/api/milestone-compare", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ photoId: photo.id }),
-      });
-      if (!response.ok) {
-        throw await apiErrorFromJson(response, "Comparison failed again.");
-      }
-      onUploaded();
-    } catch (err) {
-      setRetryError(toFriendlyMessage(err));
-    } finally {
-      setRetrying(false);
-    }
-  }
-
-  if (!photo) {
-    return (
-      <MilestoneUpload
-        milestoneType={milestoneType}
-        label={`Check in — ${MILESTONE_LABELS[milestoneType]}`}
-        onUploaded={onUploaded}
-      />
-    );
-  }
-
-  if (photo.comparison) {
-    const c = photo.comparison;
-    return (
-      <div className="rounded-3xl border border-lumen-gold/20 bg-gradient-to-br from-lumen-gold/[0.07] to-lumen-gold/[0.02] p-5">
-        <p className="text-xs uppercase tracking-widest text-lumen-gold font-medium mb-2">
-          {MILESTONE_LABELS[milestoneType]}
-        </p>
-        {(baselinePhotoUrl || photo.photoUrl) && (
-          <div className="grid grid-cols-2 gap-2 mb-3">
-            <div>
-              <div className="aspect-square rounded-lg overflow-hidden bg-white/5 border border-white/10">
-                {baselinePhotoUrl && (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={baselinePhotoUrl}
-                    alt="Baseline selfie"
-                    className="w-full h-full object-cover"
-                  />
-                )}
-              </div>
-              <p className="text-[10px] uppercase tracking-wide text-cream-ivory/40 mt-1 text-center">
-                Before
-              </p>
-            </div>
-            <div>
-              <div className="aspect-square rounded-lg overflow-hidden bg-white/5 border border-white/10">
-                {photo.photoUrl && (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={photo.photoUrl}
-                    alt="Current progress selfie"
-                    className="w-full h-full object-cover"
-                  />
-                )}
-              </div>
-              <p className="text-[10px] uppercase tracking-wide text-cream-ivory/40 mt-1 text-center">
-                After
-              </p>
-            </div>
-          </div>
-        )}
-        <p className="font-manrope font-semibold text-sm text-cream-ivory mb-3">
-          {c.headline}
-        </p>
-        {c.improvements.length > 0 && (
-          <div className="mb-3">
-            <p className="text-[11px] uppercase tracking-wide text-cream-ivory/50 font-medium mb-1.5">
-              Improvements
-            </p>
-            <ul className="space-y-1">
-              {c.improvements.map((item, i) => (
-                <li
-                  key={i}
-                  className="flex items-start gap-2 text-xs text-cream-ivory"
-                >
-                  <Check className="w-3.5 h-3.5 text-lumen-gold flex-shrink-0 mt-0.5" />
-                  <span>{item}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-        {c.keep_working.length > 0 && (
-          <div className="mb-3">
-            <p className="text-[11px] uppercase tracking-wide text-cream-ivory/50 font-medium mb-1.5">
-              Keep Working On
-            </p>
-            <ul className="space-y-1">
-              {c.keep_working.map((item, i) => (
-                <li key={i} className="text-xs text-cream-ivory/70">
-                  {item}
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-        <p className="text-xs text-cream-ivory/60 italic">{c.next_focus}</p>
-      </div>
-    );
-  }
-
-  if (photo.status === "failed") {
-    return (
-      <div className="rounded-3xl border border-warm-coral/30 bg-warm-coral/5 p-5">
-        <p className="text-sm text-warm-coral mb-3">
-          {retryError || "We couldn't compare your progress photo."}
-        </p>
-        <button
-          type="button"
-          onClick={handleRetry}
-          disabled={retrying}
-          className="h-9 px-4 rounded-full bg-lumen-gold text-pure-black text-xs font-manrope font-bold flex items-center gap-2 hover:bg-lumen-gold/90 active:scale-95 transition-all duration-300 disabled:opacity-60 disabled:active:scale-100 focus-gold"
-        >
-          {retrying && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-          {retrying ? "Comparing your progress…" : "Try again"}
-        </button>
-        {retrying && (
-          <p className="text-xs text-cream-ivory/50 mt-2">
-            This usually takes about 10 seconds.
-          </p>
-        )}
-      </div>
-    );
-  }
-
-  return (
-    <div className="rounded-3xl border border-white/[0.08] bg-gradient-to-b from-white/[0.05] to-white/[0.02] p-5 flex items-center gap-3">
-      <Loader2 className="w-4 h-4 text-lumen-gold animate-spin flex-shrink-0" />
-      <div>
-        <p className="text-sm text-cream-ivory/70">Analyzing your progress…</p>
-        <p className="text-xs text-cream-ivory/50 mt-0.5">
-          This usually takes about 10 seconds.
-        </p>
-      </div>
-    </div>
   );
 }

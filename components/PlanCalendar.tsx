@@ -29,6 +29,10 @@ interface PlanCalendarProps {
   milestonePhotos: Partial<Record<PhotoMilestone, MilestonePhotoSummary>>;
   frozenDays: number[];
   baselinePhotoUrl: string | null;
+  // A reached milestone day (30/60/90) routes here instead of opening the
+  // habits drawer — see PlanView's `goToMilestone`, which switches to the
+  // Progress tab and scrolls to that milestone's inline upload panel.
+  onMilestoneDay: (day: number) => void;
 }
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
@@ -52,6 +56,7 @@ export default function PlanCalendar({
   milestonePhotos,
   frozenDays,
   baselinePhotoUrl,
+  onMilestoneDay,
 }: PlanCalendarProps) {
   const reduceMotion = !!useReducedMotion();
   const frozenDaySet = new Set(frozenDays);
@@ -148,7 +153,9 @@ export default function PlanCalendar({
                   <button
                     key={day}
                     type="button"
-                    onClick={() => setSelectedDay(day)}
+                    onClick={() =>
+                      milestoneReached ? onMilestoneDay(day) : setSelectedDay(day)
+                    }
                     title={
                       milestoneNeedsAction
                         ? "Tap to check in"

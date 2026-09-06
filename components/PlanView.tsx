@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useRef, useState, CSSProperties } from "react";
-import { motion, useReducedMotion } from "framer-motion";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import toast from "react-hot-toast";
 import { Flame, Shield } from "lucide-react";
 import { Analysis, Plan, PhotoMilestone, MilestonePhotoSummary } from "@/lib/types";
@@ -24,6 +24,12 @@ import { useTour } from "@/components/dashboard/onboarding/TourProvider";
 const MAX_FREEZES = 2;
 
 type PlanTab = "today" | "journey" | "progress";
+
+const PLAN_TABS: { key: PlanTab; label: string; tourTarget?: string }[] = [
+  { key: "today", label: "Today" },
+  { key: "journey", label: "Journey", tourTarget: "tour-journey-tab" },
+  { key: "progress", label: "Progress", tourTarget: "tour-progress-tab" },
+];
 
 interface PlanViewProps {
   plan: Plan;
@@ -85,6 +91,15 @@ export default function PlanView({
   const [errorId, setErrorId] = useState<string | null>(null);
   const [celebrate, setCelebrate] = useState(false);
   const [tab, setTab] = useState<PlanTab>("today");
+  // A milestone day (30/60/90) clicked from the week strip or full calendar
+  // lands here instead of opening the habits drawer — switches to the
+  // Progress tab and tells MilestoneTimeline which row to expand + scroll
+  // to. Cleared once MilestoneTimeline has acted on it.
+  const [focusMilestoneDay, setFocusMilestoneDay] = useState<number | null>(null);
+  function goToMilestone(day: number) {
+    setTab("progress");
+    setFocusMilestoneDay(day);
+  }
   const { activeTarget } = useTour();
 
   // The guided tour's plan-page content steps live on the Today tab (streak
@@ -225,13 +240,6 @@ export default function PlanView({
 
   const streakTheme = ACCENT_THEME.refine;
 
-  const tabButtonClass = (active: boolean) =>
-    `px-5 py-2 rounded-full text-sm font-manrope font-semibold transition-all duration-300 focus-gold ${
-      active
-        ? "bg-lumen-gold text-pure-black shadow-[0_0_16px_rgba(244,196,48,0.3)]"
-        : "text-cream-ivory/55 hover:text-cream-ivory"
-    }`;
-
   return (
     <>
     <DayCompleteCelebration active={celebrate} streak={streak} coachLine={coachLine} />
@@ -259,40 +267,43 @@ export default function PlanView({
           guidance content) and Progress (milestone photos + the full map).
           Each tab stays short and focused; nothing is duplicated across them. */}
       <div className="mb-6 inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/[0.03] p-1">
-        <button
-          type="button"
-          onClick={() => setTab("today")}
-          aria-pressed={tab === "today"}
-          className={tabButtonClass(tab === "today")}
-        >
-          Today
-        </button>
-        <button
-          type="button"
-          onClick={() => setTab("journey")}
-          aria-pressed={tab === "journey"}
-          data-tour="tour-journey-tab"
-          className={tabButtonClass(tab === "journey")}
-        >
-          Journey
-        </button>
-        <button
-          type="button"
-          onClick={() => setTab("progress")}
-          aria-pressed={tab === "progress"}
-          data-tour="tour-progress-tab"
-          className={tabButtonClass(tab === "progress")}
-        >
-          Progress
-        </button>
+        {PLAN_TABS.map(({ key, label, tourTarget }) => {
+          const active = tab === key;
+          return (
+            <button
+              key={key}
+              type="button"
+              onClick={() => setTab(key)}
+              aria-pressed={active}
+              data-tour={tourTarget}
+              className={`relative px-5 py-2 rounded-full text-sm font-manrope font-semibold transition-colors duration-300 focus-gold ${
+                active ? "text-pure-black" : "text-cream-ivory/55 hover:text-cream-ivory"
+              }`}
+            >
+              {active && (
+                <motion.div
+                  layoutId="plan-tab-indicator"
+                  className="absolute inset-0 rounded-full bg-lumen-gold shadow-[0_0_16px_rgba(244,196,48,0.3)]"
+                  transition={{ duration: reduceMotion ? 0 : 0.3, ease: [0.16, 1, 0.3, 1] }}
+                />
+              )}
+              <span className="relative z-10">{label}</span>
+            </button>
+          );
+        })}
       </div>
 
+      {/* mode="wait" so switching tabs fades the old content out before the
+          new one fades in — no overlap, no layout jump — instead of the old
+          content just vanishing instantly while the new one animates in. */}
+      <AnimatePresence mode="wait">
       {tab === "today" && (
         <motion.div
           key="today"
-          initial={{ opacity: 0, y: reduceMotion ? 0 : 12 }}
+          initial={{ opacity: 0, y: reduceMotion ? 0 : 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: reduceMotion ? 0.15 : 0.35 }}
+          exit={{ opacity: 0, y: reduceMotion ? 0 : -10 }}
+          transition={{ duration: reduceMotion ? 0 : 0.3, ease: [0.16, 1, 0.3, 1] }}
         >
           {/* Compact streak bar — streak, best, freezes, day progress, and
               the milestone countdown, folded into one slim row instead of
@@ -371,6 +382,7 @@ export default function PlanView({
               frozenDays={frozenDays}
               baselinePhotoUrl={baselinePhotoUrl}
               onViewFullPlan={() => setTab("progress")}
+              onMilestoneDay={goToMilestone}
             />
           </div>
 
@@ -421,9 +433,10 @@ export default function PlanView({
       {tab === "journey" && (
         <motion.div
           key="journey"
-          initial={{ opacity: 0, y: reduceMotion ? 0 : 12 }}
+          initial={{ opacity: 0, y: reduceMotion ? 0 : 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: reduceMotion ? 0.15 : 0.35 }}
+          exit={{ opacity: 0, y: reduceMotion ? 0 : -10 }}
+          transition={{ duration: reduceMotion ? 0 : 0.3, ease: [0.16, 1, 0.3, 1] }}
           className="mb-12"
         >
           {/* The phase journey — a path, not a flat list: current phase
@@ -454,24 +467,23 @@ export default function PlanView({
       {tab === "progress" && (
         <motion.div
           key="progress"
-          initial={{ opacity: 0, y: reduceMotion ? 0 : 12 }}
+          initial={{ opacity: 0, y: reduceMotion ? 0 : 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: reduceMotion ? 0.15 : 0.35 }}
+          exit={{ opacity: 0, y: reduceMotion ? 0 : -10 }}
+          transition={{ duration: reduceMotion ? 0 : 0.3, ease: [0.16, 1, 0.3, 1] }}
           className="mb-12"
         >
           {/* Progress photos as a date-based timeline — baseline / 30 / 60 /
-              90 grouped by phase, each captured milestone linking into the
-              same DayDrawer used everywhere else for its comparison. */}
+              90 grouped by phase, each reached milestone expanding its own
+              upload/comparison panel inline right here. */}
           <MilestoneTimeline
             plan={plan}
             createdAt={createdAt}
             day={day}
-            checkinsByDate={checkinsByDate}
-            onToggleHabit={toggleHabit}
-            errorHabitId={errorId}
             milestonePhotos={milestonePhotos}
-            frozenDays={frozenDays}
             baselinePhotoUrl={baselinePhotoUrl}
+            focusDay={focusMilestoneDay}
+            onFocusHandled={() => setFocusMilestoneDay(null)}
           />
 
           {/* Full 90-day map — the "zoomed out" view, with the
@@ -490,10 +502,12 @@ export default function PlanView({
               milestonePhotos={milestonePhotos}
               frozenDays={frozenDays}
               baselinePhotoUrl={baselinePhotoUrl}
+              onMilestoneDay={goToMilestone}
             />
           </div>
         </motion.div>
       )}
+      </AnimatePresence>
     </div>
     </>
   );
