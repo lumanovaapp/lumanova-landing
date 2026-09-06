@@ -1,5 +1,5 @@
 import { redirect, notFound } from "next/navigation";
-import { createClient } from "@/utils/supabase/server";
+import { createClient, getUser } from "@/utils/supabase/server";
 import AnalyzingStatus from "@/components/dashboard/upload/AnalyzingStatus";
 import RetryAnalysis from "@/components/dashboard/upload/RetryAnalysis";
 import AnalysisReveal from "@/components/AnalysisReveal";
@@ -15,7 +15,7 @@ export default async function UploadResultPage({
 
   const {
     data: { user },
-  } = await supabase.auth.getUser();
+  } = await getUser();
 
   if (!user) {
     redirect("/login");
@@ -40,22 +40,20 @@ export default async function UploadResultPage({
     return <RetryAnalysis photoId={photo.id} />;
   }
 
-  const { data: signed } = await supabase.storage
-    .from("selfies")
-    .createSignedUrl(photo.storage_path, 3600);
-
-  // Milestone photos (day_30/60/90) never reach here in practice — they
-  // never get an `analysis` written (only a baseline/comparison), so they'd
-  // already have been caught by the !photo.analysis check above. Checked
-  // explicitly anyway so the "update your plan?" prompt's condition is
-  // self-evidently correct without relying on that indirection.
-  const { data: planRow } = photo.photo_type
-    ? { data: null }
-    : await supabase
-        .from("plans")
-        .select("plan_json")
-        .eq("user_id", user.id)
-        .maybeSingle();
+  // Independent of each other — fetched together instead of one after the
+  // other now that both only depend on `photo`, not on each other.
+  const [{ data: signed }, { data: planRow }] = await Promise.all([
+    supabase.storage.from("selfies").createSignedUrl(photo.storage_path, 3600),
+    // Milestone photos (day_30/60/90) never reach here in practice — they
+    // never get an `analysis` written (only a baseline/comparison), so
+    // they'd already have been caught by the !photo.analysis check above.
+    // Checked explicitly anyway so the "update your plan?" prompt's
+    // condition is self-evidently correct without relying on that
+    // indirection.
+    photo.photo_type
+      ? Promise.resolve({ data: null })
+      : supabase.from("plans").select("plan_json").eq("user_id", user.id).maybeSingle(),
+  ]);
 
   const hasPlan = !!planRow;
   // Only offer to update when this analysis hasn't already been folded into

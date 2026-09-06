@@ -2,8 +2,19 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { motion } from "framer-motion";
 import { Loader2 } from "lucide-react";
 import { apiErrorFromJson, fetchWithTimeout, toFriendlyMessage } from "@/lib/api-error";
+import { ProgressStage, useStagedProgress } from "@/lib/use-staged-progress";
+
+const STAGES: ProgressStage[] = [
+  { label: "Reading your analysis…", progress: 20 },
+  { label: "Building your routine…", progress: 55 },
+  { label: "Personalizing to your type…", progress: 78 },
+  { label: "Almost ready…", progress: 90 },
+];
+
+const STEP_MS = 2000;
 
 interface GeneratePlanButtonProps {
   // When true, generation starts automatically on mount (the button shows
@@ -18,6 +29,7 @@ export default function GeneratePlanButton({ autoStart = false }: GeneratePlanBu
   const router = useRouter();
   const [loading, setLoading] = useState(autoStart);
   const [error, setError] = useState("");
+  const { stage, reduceMotion } = useStagedProgress(STAGES, STEP_MS);
   // Guards against a second run — a manual click while auto-start is in
   // flight, or React's dev double-invoked mount effect.
   const startedRef = useRef(false);
@@ -66,12 +78,22 @@ export default function GeneratePlanButton({ autoStart = false }: GeneratePlanBu
         className="w-full inline-flex items-center justify-center gap-2 bg-lumen-gold text-pure-black font-manrope font-bold rounded-full px-8 py-4 hover:bg-lumen-gold/90 hover:shadow-[0_0_24px_rgba(244,196,48,0.35)] active:scale-95 transition-all duration-300 disabled:opacity-60 disabled:cursor-not-allowed disabled:active:scale-100 focus-gold"
       >
         {loading && <Loader2 className="w-5 h-5 animate-spin" />}
-        {loading ? "Building your plan…" : "Generate my plan"}
+        {loading ? stage.label : "Generate my plan"}
       </button>
       {loading && (
-        <p className="font-inter text-xs text-cream-ivory/50 mt-3">
-          This usually takes 5-10 seconds.
-        </p>
+        <div className="w-full max-w-sm mt-4">
+          <div className="w-full h-1.5 rounded-full bg-white/[0.08] overflow-hidden">
+            <motion.div
+              className="h-full rounded-full bg-gradient-to-r from-lumen-gold/70 to-lumen-gold"
+              initial={false}
+              animate={{ width: `${stage.progress}%` }}
+              transition={{ duration: reduceMotion ? 0 : 1, ease: [0.16, 1, 0.3, 1] }}
+            />
+          </div>
+          <p className="font-inter text-xs text-cream-ivory/50 mt-3 text-center">
+            This usually takes 5-10 seconds.
+          </p>
+        </div>
       )}
     </div>
   );

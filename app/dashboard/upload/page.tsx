@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ArrowRight, Scissors, Shirt, Sparkles, Wind, LucideIcon } from "lucide-react";
-import { createClient } from "@/utils/supabase/server";
+import { createClient, getUser } from "@/utils/supabase/server";
 import { getUserState } from "@/lib/user-state";
 import UploadForm from "@/components/dashboard/upload/UploadForm";
 
@@ -23,7 +23,7 @@ export default async function UploadPage() {
 
   const {
     data: { user },
-  } = await supabase.auth.getUser();
+  } = await getUser();
 
   if (!user) {
     redirect("/login");

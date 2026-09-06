@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { createClient } from "@/utils/supabase/server";
+import { createClient, getUser } from "@/utils/supabase/server";
 import EditNameCard from "@/components/dashboard/settings/EditNameCard";
 import ChangePasswordCard from "@/components/dashboard/settings/ChangePasswordCard";
 import ChangeEmailCard from "@/components/dashboard/settings/ChangeEmailCard";
@@ -24,7 +24,7 @@ export default async function SettingsPage() {
 
   const {
     data: { user },
-  } = await supabase.auth.getUser();
+  } = await getUser();
 
   if (!user) {
     redirect("/login");

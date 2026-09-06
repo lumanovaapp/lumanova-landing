@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { createClient } from "@/utils/supabase/server";
+import { createClient, getUser } from "@/utils/supabase/server";
 import { BADGES } from "@/lib/badges";
 import AchievementsGrid from "@/components/dashboard/achievements/AchievementsGrid";
 
@@ -8,7 +8,7 @@ export default async function AchievementsPage() {
 
   const {
     data: { user },
-  } = await supabase.auth.getUser();
+  } = await getUser();
 
   if (!user) {
     redirect("/login");

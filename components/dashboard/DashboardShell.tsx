@@ -2,6 +2,7 @@ import { ReactNode } from "react";
 import Sidebar from "./Sidebar";
 import MobileNav from "./MobileNav";
 import TourProvider from "./onboarding/TourProvider";
+import PageTransition from "./PageTransition";
 import SectionGlow from "@/components/SectionGlow";
 
 interface DashboardShellProps {
@@ -36,7 +37,7 @@ export default function DashboardShell({
 
         <div className="lg:pl-64">
           <main className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-10 xl:px-14 py-6 lg:py-10 [padding-bottom:max(2rem,env(safe-area-inset-bottom))]">
-            {children}
+            <PageTransition>{children}</PageTransition>
           </main>
         </div>
       </div>

@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Camera, Sparkles, ArrowRight } from "lucide-react";
-import { createClient } from "@/utils/supabase/server";
+import { createClient, getUser } from "@/utils/supabase/server";
 import { getUserState } from "@/lib/user-state";
 import { MilestonePhotoSummary, PhotoMilestone } from "@/lib/types";
 import { buildDoneFlags, computeStreakState } from "@/lib/streak";
@@ -24,7 +24,7 @@ export default async function PlanPage({
 
   const {
     data: { user },
-  } = await supabase.auth.getUser();
+  } = await getUser();
 
   if (!user) {
     redirect("/login");
@@ -33,49 +33,59 @@ export default async function PlanPage({
   const state = await getUserState(supabase, user.id);
 
   if (state.hasPlan && state.plan && state.planCreatedAt) {
-    // Kicked off now so it runs alongside the sequential queries below
-    // instead of adding to their latency — a cache hit resolves instantly
-    // either way, and a cache miss (one Anthropic call, once per user per
-    // day) overlaps with everything else already in flight.
-    const coachLinePromise = getOrCreateDailyCoachLine(supabase, user.id);
-
-    const { data: checkinRows } = await supabase
-      .from("daily_checkins")
-      .select("habit_id, date, done")
-      .eq("user_id", user.id);
-
-    const { data: streakRow } = await supabase
-      .from("streaks")
-      .select("current_streak, longest_streak, freezes")
-      .eq("user_id", user.id)
-      .maybeSingle();
-
-    const { data: milestoneRows } = await supabase
-      .from("photos")
-      .select("id, photo_type, status, comparison, storage_path")
-      .eq("user_id", user.id)
-      .in("photo_type", ["day_30", "day_60", "day_90"])
-      .order("created_at", { ascending: true });
-
-    const { data: explicitBaseline } = await supabase
-      .from("photos")
-      .select("storage_path")
-      .eq("user_id", user.id)
-      .eq("photo_type", "baseline")
-      .maybeSingle();
-
-    let baselineStoragePath = explicitBaseline?.storage_path ?? null;
-    if (!baselineStoragePath) {
-      const { data: earliestAnalyzed } = await supabase
+    // These five reads are all independent of one another (the baseline
+    // fallback pair is the only internal chain), so they used to run as five
+    // sequential round trips to Postgres — a straight-line waterfall that
+    // was the biggest single contributor to this page's load latency. Fired
+    // together instead: one round trip's worth of wall-clock time for all of
+    // them. The coach line is kicked off in the same batch — a cache hit
+    // resolves instantly either way, and a cache miss (one Anthropic call,
+    // once per user per day) overlaps with everything else in flight.
+    const [
+      { data: checkinRows },
+      { data: streakRow },
+      { data: milestoneRows },
+      { data: explicitBaseline },
+      { data: earliestAnalyzed },
+      coachLine,
+    ] = await Promise.all([
+      supabase
+        .from("daily_checkins")
+        .select("habit_id, date, done")
+        .eq("user_id", user.id),
+      supabase
+        .from("streaks")
+        .select("current_streak, longest_streak, freezes")
+        .eq("user_id", user.id)
+        .maybeSingle(),
+      supabase
+        .from("photos")
+        .select("id, photo_type, status, comparison, storage_path")
+        .eq("user_id", user.id)
+        .in("photo_type", ["day_30", "day_60", "day_90"])
+        .order("created_at", { ascending: true }),
+      supabase
+        .from("photos")
+        .select("storage_path")
+        .eq("user_id", user.id)
+        .eq("photo_type", "baseline")
+        .maybeSingle(),
+      // Only used when there's no explicit baseline, but cheap enough to
+      // just always fetch alongside everything else rather than adding a
+      // second sequential stage for the rare case it's needed.
+      supabase
         .from("photos")
         .select("storage_path")
         .eq("user_id", user.id)
         .not("analysis", "is", null)
         .order("created_at", { ascending: true })
         .limit(1)
-        .maybeSingle();
-      baselineStoragePath = earliestAnalyzed?.storage_path ?? null;
-    }
+        .maybeSingle(),
+      getOrCreateDailyCoachLine(supabase, user.id),
+    ]);
+
+    const baselineStoragePath =
+      explicitBaseline?.storage_path ?? earliestAnalyzed?.storage_path ?? null;
 
     const [baselineSigned, ...milestoneSigned] = await Promise.all([
       baselineStoragePath
@@ -116,8 +126,6 @@ export default async function PlanPage({
     const frozenDays = computeStreakState(doneFlags).frozenDayIndices.map(
       (i) => i + 1
     );
-
-    const coachLine = await coachLinePromise;
 
     return (
       <PlanView

@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { Database } from "@/types/database";
@@ -27,3 +28,15 @@ export function createClient() {
     }
   );
 }
+
+// `supabase.auth.getUser()` makes a real network round-trip to Supabase's
+// Auth server (unlike `getSession()`, which just reads the local JWT) — it's
+// not free. The dashboard layout and every dashboard page each call it
+// independently, and since they're rendered as part of the same request,
+// that was 2+ redundant Auth-server round trips on every single navigation.
+// `cache()` dedupes calls to this within one render pass so the layout and
+// the page share a single call.
+export const getUser = cache(async () => {
+  const supabase = createClient();
+  return supabase.auth.getUser();
+});
