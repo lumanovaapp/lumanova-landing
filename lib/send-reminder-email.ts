@@ -6,6 +6,12 @@ import { Resend } from "resend";
 // of which address/domain sends it.
 const FROM = "Lumanova <hello@send.lumanova.app>";
 
+// Same fallback pattern as PLAN_URL in app/api/cron/reminders/route.ts.
+// Email clients fetch images over the open internet, not from this app's
+// filesystem/dev server, so this has to be a full public URL — a relative
+// "/logo.png" would just fail to load in every inbox.
+const LOGO_URL = `${process.env.NEXT_PUBLIC_APP_URL ?? "https://lumanova.app"}/logo.png`;
+
 let resendClient: Resend | null = null;
 function getResend(): Resend {
   if (!resendClient) resendClient = new Resend(process.env.RESEND_API_KEY);
@@ -47,6 +53,9 @@ Open your plan: ${planUrl}
 — Lumanova`;
 
   const html = `<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;color:#1a1a1a;max-width:480px;margin:0 auto;padding:32px 24px;">
+<div style="text-align:center;padding:0 0 24px;">
+<img src="${LOGO_URL}" alt="Lumanova" width="140" style="max-width:140px;width:100%;height:auto;display:inline-block;" />
+</div>
 <p style="margin:0 0 16px;font-size:15px;line-height:1.6;">Hey ${escapeHtml(firstName)},</p>
 <p style="margin:0 0 20px;font-size:16px;line-height:1.6;font-weight:600;">${escapeHtml(headline)}</p>
 <p style="margin:0 0 8px;font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:#8a8a8a;">Still to do today</p>
