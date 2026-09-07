@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { AnimatePresence, motion } from "framer-motion";
 import { Menu, X } from "lucide-react";
 import NavList from "./NavList";
@@ -55,9 +56,13 @@ export default function MobileNav({ fullName, email }: MobileNavProps) {
     <>
       <header className="sticky top-0 z-30 flex lg:hidden items-center justify-between bg-[#0A0A0A]/85 backdrop-blur-md border-b border-white/[0.08] px-4 py-3 [padding-top:max(0.75rem,env(safe-area-inset-top))]">
         <Link href="/dashboard" className="flex items-center gap-2 focus-gold">
-          <span className="font-manrope font-bold text-lumen-gold text-[26px] leading-none drop-shadow-[0_0_10px_rgba(244,196,48,0.3)]">
-            L
-          </span>
+          <Image
+            src="/logo.png"
+            alt="Lumanova"
+            width={26}
+            height={26}
+            className="w-[26px] h-[26px] drop-shadow-[0_0_8px_rgba(244,196,48,0.25)]"
+          />
         </Link>
         <button
           type="button"
