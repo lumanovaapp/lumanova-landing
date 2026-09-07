@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, FormEvent } from "react";
+import { Suspense, useState, FormEvent } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { Loader2 } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import AuthLogo from "@/components/auth/AuthLogo";
 import PasswordInput from "@/components/auth/PasswordInput";
 
@@ -20,8 +20,18 @@ const inputClass =
   "w-full h-14 rounded-xl bg-white/5 border border-white/10 text-cream-ivory text-base placeholder:text-cream-ivory/40 px-4 focus:outline-none focus:border-lumen-gold transition-colors";
 
 export default function LoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginForm />
+    </Suspense>
+  );
+}
+
+function LoginForm() {
   const router = useRouter();
   const supabase = createClient();
+  const searchParams = useSearchParams();
+  const justReset = searchParams.get("reset") === "success";
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -78,6 +88,12 @@ export default function LoginPage() {
           Continue your glow-up.
         </p>
 
+        {justReset && !formError && (
+          <div className="mb-6 rounded-xl bg-lumen-gold/10 border border-lumen-gold/30 px-4 py-3 text-sm text-lumen-gold">
+            Password updated. Log in with your new password.
+          </div>
+        )}
+
         {formError && (
           <div className="mb-6 rounded-xl bg-red-500/10 border border-red-500/30 px-4 py-3 text-sm text-red-400">
             {formError}
@@ -115,7 +131,7 @@ export default function LoginPage() {
 
           <div className="flex justify-end -mt-1">
             <Link
-              href="#"
+              href="/forgot-password"
               className="text-sm text-cream-ivory/60 hover:text-lumen-gold transition-colors"
             >
               Forgot password?
