@@ -3,14 +3,14 @@ import Image from "next/image";
 export default function AuthLogo() {
   return (
     <div className="relative flex justify-center mb-8">
-      <div className="absolute w-20 h-20 rounded-full bg-lumen-gold/25 blur-2xl" />
+      <div className="absolute w-32 h-32 rounded-full bg-lumen-gold/25 blur-2xl" />
       <Image
         src="/logo.png"
         alt="Lumanova"
-        width={64}
-        height={64}
+        width={96}
+        height={96}
         priority
-        className="relative w-16 h-16 drop-shadow-[0_0_18px_rgba(244,196,48,0.35)]"
+        className="relative w-24 h-24 drop-shadow-[0_0_18px_rgba(244,196,48,0.35)]"
       />
     </div>
   );

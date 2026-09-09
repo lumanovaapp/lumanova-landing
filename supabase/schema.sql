@@ -37,6 +37,13 @@ alter table public.users add column if not exists reminder_enabled boolean not n
 alter table public.users add column if not exists reminder_time text not null default '20:00';
 alter table public.users add column if not exists last_reminded_at timestamptz;
 alter table public.users add column if not exists timezone text not null default 'UTC';
+-- Nullable and no default on purpose: null means "unknown" (an existing row
+-- from before this column existed), which Settings → Security reads as "no
+-- last-changed date available" rather than fabricating one. Set at signup
+-- (below) and again by the change-password flow — see
+-- app/api/account/notify-password-changed/route.ts and
+-- components/dashboard/settings/security/ChangePasswordForm.tsx.
+alter table public.users add column if not exists password_changed_at timestamptz;
 
 create table if not exists public.photos (
   id uuid primary key default gen_random_uuid(),
@@ -227,12 +234,13 @@ security definer
 set search_path = public
 as $$
 begin
-  insert into public.users (id, email, full_name, timezone)
+  insert into public.users (id, email, full_name, timezone, password_changed_at)
   values (
     new.id,
     new.email,
     new.raw_user_meta_data ->> 'full_name',
-    coalesce(new.raw_user_meta_data ->> 'timezone', 'UTC')
+    coalesce(new.raw_user_meta_data ->> 'timezone', 'UTC'),
+    now()
   );
   return new;
 end;

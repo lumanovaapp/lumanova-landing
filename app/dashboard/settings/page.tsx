@@ -1,19 +1,24 @@
 import { redirect } from "next/navigation";
 import { createClient, getUser } from "@/utils/supabase/server";
 import EditNameCard from "@/components/dashboard/settings/EditNameCard";
-import ChangePasswordCard from "@/components/dashboard/settings/ChangePasswordCard";
 import ChangeEmailCard from "@/components/dashboard/settings/ChangeEmailCard";
-import DeleteAccountCard from "@/components/dashboard/settings/DeleteAccountCard";
 import LogoutCard from "@/components/dashboard/settings/LogoutCard";
 import RemindersCard from "@/components/dashboard/settings/RemindersCard";
 import PlanAnalysisCard from "@/components/dashboard/settings/PlanAnalysisCard";
 import AboutCard from "@/components/dashboard/settings/AboutCard";
+import SettingsMenuItem from "@/components/dashboard/settings/SettingsMenuItem";
 import packageJson from "@/package.json";
 
 const sectionLabelClass =
   "text-xs font-bold tracking-[0.18em] uppercase text-cream-ivory/40 mb-4";
 
 const cardGridClass = "grid grid-cols-1 md:grid-cols-2 gap-6";
+
+// Cards run 2-up in cardGridClass. A section with only one card gets this
+// instead of sitting lopsided in the left column with a half-empty row
+// beside it — same span-2 trick the old ChangePasswordCard used for the
+// same reason.
+const soloCardClass = "md:col-span-2";
 
 // Each card's entrance is offset by a small stagger so the page cascades in
 // on load instead of popping in all at once.
@@ -55,11 +60,19 @@ export default async function SettingsPage() {
       </header>
 
       {/* Full-width, grouped sections — cards run 2-up within each group
-          instead of stacking one-per-row down a narrow center column. */}
+          instead of stacking one-per-row down a narrow center column.
+          Reads top to bottom as: who you are (Profile) → how the app
+          behaves for you (Preferences, Notifications) → the app in general
+          → account protection (Security) → irreversible actions (Danger
+          Zone), which stays last and visually separated regardless of what
+          else is on the page. Security itself and account deletion live on
+          their own dedicated sub-pages (see /dashboard/settings/security and
+          /dashboard/settings/danger) rather than as fields here — this page
+          only links to them via SettingsMenuItem. */}
       <div className="mt-10 lg:mt-12 flex flex-col gap-14">
-        {/* Account */}
+        {/* Profile */}
         <section>
-          <h2 className={sectionLabelClass}>Account</h2>
+          <h2 className={sectionLabelClass}>Profile</h2>
           <div className={cardGridClass}>
             <EditNameCard
               userId={user.id}
@@ -67,9 +80,6 @@ export default async function SettingsPage() {
               delay={0 * STAGGER_STEP}
             />
             <ChangeEmailCard currentEmail={user.email ?? ""} delay={1 * STAGGER_STEP} />
-            <div className="md:col-span-2">
-              <ChangePasswordCard delay={2 * STAGGER_STEP} />
-            </div>
           </div>
         </section>
 
@@ -77,14 +87,25 @@ export default async function SettingsPage() {
         <section>
           <h2 className={sectionLabelClass}>Preferences</h2>
           <div className={cardGridClass}>
-            <RemindersCard
-              userId={user.id}
-              initialReminderEnabled={profile?.reminder_enabled ?? true}
-              initialReminderTime={profile?.reminder_time ?? "20:00"}
-              initialTimezone={profile?.timezone ?? "UTC"}
-              delay={3 * STAGGER_STEP}
-            />
-            <PlanAnalysisCard delay={4 * STAGGER_STEP} hasPlan={!!planRow} />
+            <div className={soloCardClass}>
+              <PlanAnalysisCard delay={2 * STAGGER_STEP} hasPlan={!!planRow} />
+            </div>
+          </div>
+        </section>
+
+        {/* Notifications */}
+        <section>
+          <h2 className={sectionLabelClass}>Notifications</h2>
+          <div className={cardGridClass}>
+            <div className={soloCardClass}>
+              <RemindersCard
+                userId={user.id}
+                initialReminderEnabled={profile?.reminder_enabled ?? true}
+                initialReminderTime={profile?.reminder_time ?? "20:00"}
+                initialTimezone={profile?.timezone ?? "UTC"}
+                delay={3 * STAGGER_STEP}
+              />
+            </div>
           </div>
         </section>
 
@@ -92,20 +113,42 @@ export default async function SettingsPage() {
         <section>
           <h2 className={sectionLabelClass}>General</h2>
           <div className={cardGridClass}>
-            <AboutCard appVersion={packageJson.version} delay={5 * STAGGER_STEP} />
-            <LogoutCard delay={6 * STAGGER_STEP} />
+            <AboutCard appVersion={packageJson.version} delay={4 * STAGGER_STEP} />
+            <LogoutCard delay={5 * STAGGER_STEP} />
+          </div>
+        </section>
+
+        {/* Security — menu item only, no fields on this page. */}
+        <section>
+          <h2 className={sectionLabelClass}>Security</h2>
+          <div className="max-w-xl">
+            <SettingsMenuItem
+              href="/dashboard/settings/security"
+              icon="key-round"
+              label="Security"
+              description="Password and account protection."
+              delay={6 * STAGGER_STEP}
+            />
           </div>
         </section>
 
         {/* Danger zone — pulled apart from the rest of the page with its own
             divider and de-emphasized width so a destructive action never
-            reads as just another settings row. */}
+            reads as just another settings row. Always last, regardless of
+            what else is on the page. */}
         <section className="pt-10 border-t border-white/[0.06]">
           <h2 className="text-xs font-bold tracking-[0.18em] uppercase text-red-400/50 mb-4">
             Danger zone
           </h2>
           <div className="max-w-xl">
-            <DeleteAccountCard email={user.email ?? undefined} delay={7 * STAGGER_STEP} />
+            <SettingsMenuItem
+              href="/dashboard/settings/danger"
+              icon="alert-triangle"
+              label="Danger Zone"
+              description="Delete your account and all associated data."
+              variant="danger"
+              delay={7 * STAGGER_STEP}
+            />
           </div>
         </section>
       </div>

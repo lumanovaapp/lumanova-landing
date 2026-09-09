@@ -30,7 +30,13 @@ export default function NavList({ onNavigate }: NavListProps) {
           );
         }
 
-        const isActive = pathname === href;
+        // startsWith (not exact match) so a nested route like
+        // /dashboard/settings/security still highlights its parent's nav
+        // item. Excluding "/dashboard" itself matters: every other href is
+        // a subpath of it, so without this exclusion "Dashboard" would
+        // light up on every single page in the sidebar.
+        const isActive =
+          pathname === href || (href !== "/dashboard" && pathname.startsWith(`${href}/`));
 
         return (
           <Link

@@ -7,6 +7,8 @@ import { createClient } from "@/utils/supabase/client";
 import { useRouter } from "next/navigation";
 import AuthLogo from "@/components/auth/AuthLogo";
 import PasswordInput from "@/components/auth/PasswordInput";
+import PasswordStrengthMeter from "@/components/auth/PasswordStrengthMeter";
+import { passwordMeetsRequirements } from "@/lib/password-strength";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -38,7 +40,9 @@ export default function SignupPage() {
     if (!email.trim()) next.email = "Email is required.";
     else if (!EMAIL_REGEX.test(email)) next.email = "Enter a valid email address.";
     if (!password) next.password = "Password is required.";
-    else if (password.length < 8) next.password = "Password must be at least 8 characters.";
+    else if (!passwordMeetsRequirements(password))
+      next.password =
+        "Password must be 8+ characters with an uppercase letter, a number, and a special character.";
     if (!confirmPassword) next.confirmPassword = "Please confirm your password.";
     else if (password !== confirmPassword) next.confirmPassword = "Passwords do not match.";
 
@@ -142,6 +146,11 @@ export default function SignupPage() {
             />
             {errors.password && (
               <p className="mt-1.5 text-sm text-red-400">{errors.password}</p>
+            )}
+            {password.length > 0 && (
+              <div className="mt-3">
+                <PasswordStrengthMeter password={password} />
+              </div>
             )}
           </div>
 

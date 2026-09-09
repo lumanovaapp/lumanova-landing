@@ -59,9 +59,9 @@ export default function MobileNav({ fullName, email }: MobileNavProps) {
           <Image
             src="/logo.png"
             alt="Lumanova"
-            width={26}
-            height={26}
-            className="w-[26px] h-[26px] drop-shadow-[0_0_8px_rgba(244,196,48,0.25)]"
+            width={32}
+            height={32}
+            className="w-8 h-8 drop-shadow-[0_0_8px_rgba(244,196,48,0.25)]"
           />
         </Link>
         <button

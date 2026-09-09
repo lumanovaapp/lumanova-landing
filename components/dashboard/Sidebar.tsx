@@ -15,9 +15,9 @@ export default function Sidebar({ fullName, email }: SidebarProps) {
         <Image
           src="/logo.png"
           alt="Lumanova"
-          width={28}
-          height={28}
-          className="w-7 h-7 drop-shadow-[0_0_10px_rgba(244,196,48,0.3)]"
+          width={36}
+          height={36}
+          className="w-9 h-9 drop-shadow-[0_0_10px_rgba(244,196,48,0.3)]"
         />
         <span className="font-manrope font-bold text-cream-ivory text-lg">
           Lumanova

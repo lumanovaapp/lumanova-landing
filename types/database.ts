@@ -40,6 +40,10 @@ export type User = {
   // IANA zone name (e.g. "Asia/Colombo"), captured from the browser at
   // signup and editable in Settings. Defaults to 'UTC'.
   timezone: string;
+  // Null for rows created before this column existed — Settings → Security
+  // treats that as "no last-changed date available" rather than fabricating
+  // one. Set at signup and on every successful change-password.
+  password_changed_at: string | null;
   // Set by app/api/cron/reminders when a daily nudge is sent — guards
   // against sending twice in the same UTC day. Null until the first reminder.
   last_reminded_at: string | null;

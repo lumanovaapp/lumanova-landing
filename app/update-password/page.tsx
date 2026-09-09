@@ -8,8 +8,8 @@ import { createClient } from "@/utils/supabase/client";
 import { useRouter } from "next/navigation";
 import AuthLogo from "@/components/auth/AuthLogo";
 import PasswordInput from "@/components/auth/PasswordInput";
-
-const MIN_PASSWORD_LENGTH = 8;
+import PasswordStrengthMeter from "@/components/auth/PasswordStrengthMeter";
+import { passwordMeetsRequirements } from "@/lib/password-strength";
 
 const inputClass =
   "w-full h-14 rounded-xl bg-white/5 border border-white/10 text-cream-ivory text-base placeholder:text-cream-ivory/40 px-4 focus:outline-none focus:border-lumen-gold transition-colors";
@@ -94,8 +94,10 @@ export default function UpdatePasswordPage() {
     e.preventDefault();
     setFormError("");
 
-    if (password.length < MIN_PASSWORD_LENGTH) {
-      setFieldError(`Password must be at least ${MIN_PASSWORD_LENGTH} characters.`);
+    if (!passwordMeetsRequirements(password)) {
+      setFieldError(
+        "Password must be 8+ characters with an uppercase letter, a number, and a special character."
+      );
       return;
     }
     if (password !== confirmPassword) {
@@ -193,6 +195,11 @@ export default function UpdatePasswordPage() {
                   }}
                   className={`${inputClass} pr-12`}
                 />
+                {password.length > 0 && (
+                  <div className="mt-3">
+                    <PasswordStrengthMeter password={password} />
+                  </div>
+                )}
               </div>
 
               <div>
