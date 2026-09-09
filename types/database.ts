@@ -33,9 +33,13 @@ export type User = {
   // dashboard product tour, so it doesn't show again after they take it
   // or skip it.
   onboarded: boolean;
-  // 'HH:MM' 24h local time — no timezone stored, interpreted client-side.
+  // 'HH:MM' 24h local time, interpreted in `timezone` below (see
+  // app/api/cron/reminders/route.ts).
   reminder_enabled: boolean;
   reminder_time: string;
+  // IANA zone name (e.g. "Asia/Colombo"), captured from the browser at
+  // signup and editable in Settings. Defaults to 'UTC'.
+  timezone: string;
   // Set by app/api/cron/reminders when a daily nudge is sent — guards
   // against sending twice in the same UTC day. Null until the first reminder.
   last_reminded_at: string | null;

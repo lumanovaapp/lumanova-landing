@@ -33,7 +33,7 @@ export default async function SettingsPage() {
   const [{ data: profile }, { data: planRow }] = await Promise.all([
     supabase
       .from("users")
-      .select("full_name, reminder_enabled, reminder_time")
+      .select("full_name, reminder_enabled, reminder_time, timezone")
       .eq("id", user.id)
       .single(),
     supabase.from("plans").select("user_id").eq("user_id", user.id).maybeSingle(),
@@ -81,6 +81,7 @@ export default async function SettingsPage() {
               userId={user.id}
               initialReminderEnabled={profile?.reminder_enabled ?? true}
               initialReminderTime={profile?.reminder_time ?? "20:00"}
+              initialTimezone={profile?.timezone ?? "UTC"}
               delay={3 * STAGGER_STEP}
             />
             <PlanAnalysisCard delay={4 * STAGGER_STEP} hasPlan={!!planRow} />

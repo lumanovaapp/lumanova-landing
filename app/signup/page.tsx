@@ -52,11 +52,21 @@ export default function SignupPage() {
     if (!validate()) return;
 
     setLoading(true);
+    // Best-effort: Intl.DateTimeFormat().resolvedOptions().timeZone is
+    // supported in every browser we target, but never let a lookup failure
+    // block signup — handle_new_user() falls back to 'UTC' when this is
+    // missing, and the user can still set it manually in Settings.
+    let timezone: string | undefined;
+    try {
+      timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    } catch {
+      timezone = undefined;
+    }
     const { error } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        data: { full_name: fullName },
+        data: { full_name: fullName, timezone },
       },
     });
     setLoading(false);

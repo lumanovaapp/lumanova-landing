@@ -24,6 +24,20 @@ create table if not exists public.users (
   updated_at timestamptz not null default now()
 );
 
+-- Defensive: add columns that may not exist yet on a project created before
+-- these were introduced (this file is re-run, not migrated). reminder_enabled/
+-- reminder_time/last_reminded_at power the daily reminder cron (see
+-- app/api/cron/reminders/route.ts) and predate this file tracking them.
+-- `timezone` is an IANA zone name (e.g. "Asia/Colombo") captured from the
+-- browser at signup via Intl.DateTimeFormat().resolvedOptions().timeZone —
+-- see app/signup/page.tsx and handle_new_user() below. Defaults to 'UTC' so
+-- existing rows (and any insert that races the trigger) keep behaving the
+-- same as before this column existed.
+alter table public.users add column if not exists reminder_enabled boolean not null default true;
+alter table public.users add column if not exists reminder_time text not null default '20:00';
+alter table public.users add column if not exists last_reminded_at timestamptz;
+alter table public.users add column if not exists timezone text not null default 'UTC';
+
 create table if not exists public.photos (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references public.users (id) on delete cascade,
@@ -213,11 +227,12 @@ security definer
 set search_path = public
 as $$
 begin
-  insert into public.users (id, email, full_name)
+  insert into public.users (id, email, full_name, timezone)
   values (
     new.id,
     new.email,
-    new.raw_user_meta_data ->> 'full_name'
+    new.raw_user_meta_data ->> 'full_name',
+    coalesce(new.raw_user_meta_data ->> 'timezone', 'UTC')
   );
   return new;
 end;
