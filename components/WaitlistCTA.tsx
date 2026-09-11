@@ -81,18 +81,18 @@ export default function WaitlistCTA() {
         variants={container}
       >
         <motion.div variants={item} className="inline-flex items-center gap-2 border border-[#F4C430]/30 text-[#F4C430] text-[11px] font-semibold tracking-[0.18em] uppercase px-4 py-2 rounded-full bg-[#F4C430]/[0.06] mb-8">
-          ✦ &nbsp;Limited Early Access
+          ✦ &nbsp;Not ready yet?
         </motion.div>
 
         <motion.h2 variants={item} className="text-4xl md:text-6xl font-manrope mb-5 leading-[1.05] tracking-[-0.02em]">
-          <span className="font-light text-white/85">Be first to</span>{" "}
-          <span className="font-extrabold bg-gradient-to-br from-[#F4C430] via-[#FFD874] to-[#D9A400] bg-clip-text text-transparent">glow.</span>
+          <span className="font-light text-white/85">Stay in the</span>{" "}
+          <span className="font-extrabold bg-gradient-to-br from-[#F4C430] via-[#FFD874] to-[#D9A400] bg-clip-text text-transparent">loop.</span>
         </motion.h2>
 
         <motion.p variants={item} className="text-base md:text-lg text-[#F8F4E3]/55 mb-10 max-w-md mx-auto leading-relaxed">
-          Join the waitlist. Get early access +{" "}
-          <span className="text-[#F4C430] font-medium">a personalized 90-day glow-up plan</span>{" "}
-          on launch day.
+          Not ready to create an account? Drop your email and we&apos;ll send{" "}
+          <span className="text-[#F4C430] font-medium">tips, updates, and launch news</span> —
+          no commitment needed.
         </motion.p>
 
         {submitted ? (
@@ -104,8 +104,8 @@ export default function WaitlistCTA() {
           >
             <Check size={16} className="flex-shrink-0" />
             {alreadyOnList
-              ? "You're already on the list — we'll email you at launch."
-              : "You're on the list — we'll email you at launch."}
+              ? "You're already on the list — we'll keep you posted."
+              : "You're on the list — we'll keep you posted."}
           </motion.div>
         ) : (
           <motion.form
@@ -131,7 +131,7 @@ export default function WaitlistCTA() {
                 <Loader2 size={16} className="animate-spin" />
               ) : (
                 <>
-                  Join the Waitlist
+                  Notify Me
                   <ArrowRight size={15} />
                 </>
               )}

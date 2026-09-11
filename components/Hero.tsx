@@ -125,7 +125,7 @@ export default function Hero() {
             className="mt-9 flex flex-col sm:flex-row sm:items-center gap-5"
           >
             <motion.a
-              href="#waitlist"
+              href="/signup"
               whileHover={{
                 scale: 1.03,
                 boxShadow: "0 0 44px rgba(244,196,48,0.55)",
@@ -134,7 +134,7 @@ export default function Hero() {
               whileTap={{ scale: 0.97 }}
               className="inline-flex items-center justify-center gap-2.5 bg-[#F4C430] text-[#0A0A0A] font-bold text-base px-8 py-4 rounded-full shadow-[0_0_22px_rgba(244,196,48,0.25)] focus-gold"
             >
-              Join the Waitlist
+              Get Started
               <ArrowRight size={17} className="flex-shrink-0" />
             </motion.a>
 
@@ -155,7 +155,7 @@ export default function Hero() {
             animate="show"
             className="mt-4 text-xs text-[#F8F4E3]/35"
           >
-            No spam. Unsubscribe anytime.
+            Free to start. No credit card required.
           </motion.p>
 
           {/* Social proof — single-accent treatment */}

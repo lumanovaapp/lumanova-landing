@@ -81,7 +81,12 @@ const linkColumns = [
   {
     heading: "Company",
     links: [
-      ...(SHOW_PUBLIC_SIGN_IN ? [{ label: "Sign in", href: "/login" }] : []),
+      ...(SHOW_PUBLIC_SIGN_IN
+        ? [
+            { label: "Sign up", href: "/signup" },
+            { label: "Sign in", href: "/login" },
+          ]
+        : []),
       { label: "Join the Waitlist", href: "#waitlist" },
     ],
   },

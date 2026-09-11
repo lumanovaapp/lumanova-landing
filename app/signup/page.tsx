@@ -5,6 +5,7 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { createClient } from "@/utils/supabase/client";
 import { useRouter } from "next/navigation";
+import AuthBackground from "@/components/auth/AuthBackground";
 import AuthLogo from "@/components/auth/AuthLogo";
 import PasswordInput from "@/components/auth/PasswordInput";
 import PasswordStrengthMeter from "@/components/auth/PasswordStrengthMeter";
@@ -84,7 +85,7 @@ export default function SignupPage() {
   }
 
   return (
-    <main className="min-h-screen bg-pure-black flex items-center justify-center px-6 py-10 sm:px-10 [padding-top:max(2.5rem,env(safe-area-inset-top))] [padding-bottom:max(2.5rem,env(safe-area-inset-bottom))]">
+    <AuthBackground>
       <motion.div
         initial={{ opacity: 0, y: 24 }}
         animate={{ opacity: 1, y: 0 }}
@@ -188,6 +189,6 @@ export default function SignupPage() {
           By signing up, you agree to our Terms & Privacy
         </p>
       </motion.div>
-    </main>
+    </AuthBackground>
   );
 }

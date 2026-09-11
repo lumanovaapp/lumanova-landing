@@ -93,10 +93,10 @@ export default function HowItWorks() {
                 A real 90-day coaching system. Not just a one-time scan.
               </p>
               <a
-                href="#waitlist"
+                href="/signup"
                 className="inline-flex items-center gap-2 text-[#F4C430] font-semibold text-sm hover:gap-3 transition-all duration-300 focus-gold"
               >
-                Join the Waitlist
+                Get Started
                 <ArrowRight size={15} />
               </a>
             </div>

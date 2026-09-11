@@ -57,10 +57,10 @@ export default function Navigation() {
             </a>
           )}
           <a
-            href="#waitlist"
+            href="/signup"
             className="hidden lg:inline-flex items-center gap-1.5 bg-[#F4C430] text-[#0A0A0A] font-semibold text-sm px-6 py-2.5 rounded-full hover:bg-[#F4C430]/90 hover:shadow-[0_0_24px_rgba(244,196,48,0.45)] transition-all duration-300 active:scale-95 focus-gold"
           >
-            Join the Waitlist
+            Sign up free
             <ArrowRight size={15} />
           </a>
           <button
@@ -95,11 +95,11 @@ export default function Navigation() {
                 </a>
               )}
               <a
-                href="#waitlist"
+                href="/signup"
                 onClick={() => setMenuOpen(false)}
                 className="flex items-center justify-center gap-1.5 min-h-[48px] bg-[#F4C430] text-[#0A0A0A] font-semibold text-sm px-6 rounded-full hover:bg-[#F4C430]/90 transition-colors duration-200 active:scale-95 focus-gold"
               >
-                Join the Waitlist
+                Sign up free
                 <ArrowRight size={15} />
               </a>
             </div>
