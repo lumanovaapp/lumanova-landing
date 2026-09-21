@@ -59,6 +59,9 @@ export type User = {
   lemonsqueezy_customer_id: string | null;
   lemonsqueezy_subscription_id: string | null;
   current_period_end: string | null;
+  // Lemon Squeezy `updated_at` of the last subscription event applied — the
+  // webhook's out-of-order guard. Never read by the app itself.
+  subscription_event_at: string | null;
   created_at: string;
   updated_at: string;
 };

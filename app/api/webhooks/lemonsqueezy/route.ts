@@ -1,23 +1,9 @@
 import { NextResponse } from "next/server";
 import crypto from "crypto";
 import { createAdminClient } from "@/utils/supabase/admin";
+import { derivePlan } from "@/lib/subscription";
 
 export const runtime = "nodejs";
-
-// Subscription statuses that still carry paid access. `cancelled` /
-// `past_due` / `paused` / `unpaid` are included here on purpose — Lemon
-// Squeezy keeps `ends_at`/`renews_at` pointing at the end of the period the
-// customer already paid for, so derivePlan() below still correctly flips
-// them to "free" once that timestamp passes. Only `expired` (Lemon
-// Squeezy's own terminal state) is unconditionally free.
-const PRO_STATUSES = new Set([
-  "active",
-  "on_trial",
-  "past_due",
-  "cancelled",
-  "paused",
-  "unpaid",
-]);
 
 interface LemonSqueezyWebhookBody {
   meta?: {
@@ -42,19 +28,6 @@ function verifySignature(
   const signatureBuffer = Buffer.from(signatureHeader, "utf8");
   if (digestBuffer.length !== signatureBuffer.length) return false;
   return crypto.timingSafeEqual(digestBuffer, signatureBuffer);
-}
-
-// Maps a raw Lemon Squeezy subscription status + its period-end timestamp
-// to our `plan` column. This is the write-time mirror of
-// lib/subscription.ts's isPro() (the read-time check) — kept as two
-// separate small functions rather than one shared one because they run in
-// different places (webhook vs. every gated request) for different
-// reasons, but they must agree: a status that isPro() would treat as free
-// must never be written as "pro" here, or the two would drift.
-function derivePlan(status: string, periodEnd: string | null): "pro" | "free" {
-  if (!PRO_STATUSES.has(status)) return "free";
-  if (periodEnd && new Date(periodEnd).getTime() < Date.now()) return "free";
-  return "pro";
 }
 
 function asString(value: unknown): string | null {
@@ -111,28 +84,52 @@ export async function POST(request: Request) {
     return NextResponse.json({ received: true, ignored: true });
   }
 
-  const attrs = body.data?.attributes;
-  const status = attrs ? asString(attrs.status) : null;
-  const subscriptionId = body.data?.id;
-
-  // subscription_payment_success / _failed / _recovered carry a
-  // "subscription-invoices" payload, not the subscription resource itself —
-  // no active/cancelled/etc. status enum to key plan state off. Lemon
-  // Squeezy always sends a paired subscription_updated event with the
-  // subscription's fresh renews_at on a successful renewal, which is what
-  // actually drives plan/status/current_period_end below — so an
-  // invoice-shaped payload (detected generically by the missing `status`
-  // string, rather than hardcoding which event names look like this) is
-  // safe to acknowledge and skip.
-  if (!status || !subscriptionId) {
+  // Only the subscription resource itself drives plan state. The payment
+  // events (subscription_payment_success / _failed / _recovered / _refunded)
+  // carry a "subscription-invoices" payload: its `status` is an INVOICE
+  // status ("paid", "open", "void", "refunded"), its `id` is the INVOICE id
+  // (the subscription's id is `attributes.subscription_id`), and it has no
+  // renews_at/ends_at. Treating that as a subscription wrote status="paid",
+  // a null period end and plan="free", and overwrote the stored
+  // subscription id with an invoice id. Key off the resource type, not off
+  // "has a status string". Lemon Squeezy sends a paired subscription_updated
+  // (fresh renews_at) alongside each successful renewal, so skipping the
+  // invoice events loses nothing.
+  if (body.data?.type !== "subscriptions") {
     return NextResponse.json({ received: true, ignored: true });
   }
 
-  const renewsAt = asString(attrs?.renews_at ?? null);
-  const endsAt = asString(attrs?.ends_at ?? null);
+  const attrs = body.data.attributes;
+  const status = attrs ? asString(attrs.status) : null;
+  const subscriptionId = body.data.id;
+
+  if (!attrs || !status || !subscriptionId) {
+    return NextResponse.json({ received: true, ignored: true });
+  }
+
+  const renewsAt = asString(attrs.renews_at);
+  const endsAt = asString(attrs.ends_at);
   const periodEnd = endsAt ?? renewsAt;
   const plan = derivePlan(status, periodEnd);
-  const customerId = attrs?.customer_id != null ? String(attrs.customer_id) : null;
+
+  if (plan === null) {
+    // Not one of Lemon Squeezy's subscription statuses. Never guess "free"
+    // for something we don't understand — leave the user's row untouched.
+    console.error(
+      "LEMONSQUEEZY WEBHOOK ERROR: unrecognised subscription status",
+      JSON.stringify(status),
+      "event",
+      eventName,
+      "subscription",
+      subscriptionId
+    );
+    return NextResponse.json({ received: true, ignored: true });
+  }
+
+  const customerId = attrs.customer_id != null ? String(attrs.customer_id) : null;
+  // Lemon Squeezy's own last-modified time for this subscription — the
+  // ordering key for the stale-event guard below.
+  const eventAt = asString(attrs.updated_at);
 
   let userId = asString(body.meta?.custom_data?.user_id ?? null);
 
@@ -160,7 +157,30 @@ export async function POST(request: Request) {
     return NextResponse.json({ received: true, unmatched: true });
   }
 
-  const { error: updateError } = await admin
+  // Out-of-order guard, part 1: a different (older) subscription must not
+  // downgrade a user whose current subscription is live. Happens when someone
+  // cancels, resubscribes, and the old subscription's `expired` arrives late.
+  if (plan === "free") {
+    const { data: current } = await admin
+      .from("users")
+      .select("plan, lemonsqueezy_subscription_id")
+      .eq("id", userId)
+      .maybeSingle();
+    if (
+      current?.plan === "pro" &&
+      current.lemonsqueezy_subscription_id &&
+      current.lemonsqueezy_subscription_id !== subscriptionId
+    ) {
+      return NextResponse.json({ received: true, ignored: true, stale: true });
+    }
+  }
+
+  // Out-of-order guard, part 2: only apply this event if it is at least as
+  // new as the last one applied. Done inside the UPDATE's WHERE clause so
+  // two concurrent deliveries can't both pass a read-then-write check.
+  // `lte` (not `lt`) keeps equal timestamps applying, so a resent/retried
+  // event and events sharing an updated_at still go through.
+  let query = admin
     .from("users")
     .update({
       plan,
@@ -168,8 +188,15 @@ export async function POST(request: Request) {
       lemonsqueezy_customer_id: customerId,
       lemonsqueezy_subscription_id: subscriptionId,
       current_period_end: periodEnd,
+      subscription_event_at: eventAt,
     })
     .eq("id", userId);
+
+  if (eventAt) {
+    query = query.or(`subscription_event_at.is.null,subscription_event_at.lte.${eventAt}`);
+  }
+
+  const { data: updatedRows, error: updateError } = await query.select("id");
 
   if (updateError) {
     console.error("LEMONSQUEEZY WEBHOOK ERROR: could not update user:", updateError);
@@ -177,6 +204,12 @@ export async function POST(request: Request) {
     // processed instead of being swallowed as a "duplicate" above.
     await admin.from("lemonsqueezy_webhook_events").delete().eq("id", eventHash);
     return NextResponse.json({ error: "Could not update user" }, { status: 500 });
+  }
+
+  if (!updatedRows || updatedRows.length === 0) {
+    // The user row exists (we matched it above), so nothing updated means a
+    // newer event was already applied. Acknowledge — retrying can't help.
+    return NextResponse.json({ received: true, ignored: true, stale: true });
   }
 
   return NextResponse.json({ received: true });

@@ -238,6 +238,10 @@ alter table public.users add column if not exists subscription_status text;
 alter table public.users add column if not exists lemonsqueezy_customer_id text;
 alter table public.users add column if not exists lemonsqueezy_subscription_id text;
 alter table public.users add column if not exists current_period_end timestamptz;
+-- Lemon Squeezy's `updated_at` of the last subscription event applied. The
+-- webhook only applies an event at least this new, so a late/stale delivery
+-- can't overwrite newer state (out-of-order guard).
+alter table public.users add column if not exists subscription_event_at timestamptz;
 
 create index if not exists users_lemonsqueezy_subscription_id_idx on public.users (lemonsqueezy_subscription_id);
 
@@ -273,6 +277,7 @@ begin
     or new.lemonsqueezy_customer_id is distinct from old.lemonsqueezy_customer_id
     or new.lemonsqueezy_subscription_id is distinct from old.lemonsqueezy_subscription_id
     or new.current_period_end is distinct from old.current_period_end
+    or new.subscription_event_at is distinct from old.subscription_event_at
   ) then
     raise exception 'Billing columns can only be changed by the billing webhook';
   end if;
