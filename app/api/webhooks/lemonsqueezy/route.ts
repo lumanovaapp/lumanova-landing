@@ -58,6 +58,17 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
+  // The billing columns are locked by the protect_billing_columns trigger
+  // (supabase/schema.sql) against the anon/authenticated roles, so this route
+  // must run as the service role. createAdminClient() non-null-asserts the
+  // key, so a missing one would surface later as an opaque auth/update
+  // error — fail loudly and specifically here instead.
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    console.error(
+      "LEMONSQUEEZY WEBHOOK ERROR: NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY is not set in this environment."
+    );
+    return NextResponse.json({ error: "Webhook not configured" }, { status: 500 });
+  }
   const admin = createAdminClient();
 
   // Idempotency: Lemon Squeezy doesn't send a unique event id, so dedupe on
@@ -199,7 +210,24 @@ export async function POST(request: Request) {
   const { data: updatedRows, error: updateError } = await query.select("id");
 
   if (updateError) {
-    console.error("LEMONSQUEEZY WEBHOOK ERROR: could not update user:", updateError);
+    // Log the real Postgres/PostgREST error — code, message, details, hint —
+    // plus what we were trying to write. Typical codes: 42703/PGRST204
+    // (column missing — schema.sql migration not applied), P0001 (the
+    // protect_billing_columns trigger raised, i.e. not running as the
+    // service role), 42501 (permission denied).
+    console.error("LEMONSQUEEZY WEBHOOK ERROR: could not update user", {
+      event: eventName,
+      userId,
+      subscriptionId,
+      status,
+      plan,
+      periodEnd,
+      eventAt,
+      code: updateError.code,
+      message: updateError.message,
+      details: updateError.details,
+      hint: updateError.hint,
+    });
     // Release the dedupe claim so Lemon Squeezy's retry of this 500 is
     // processed instead of being swallowed as a "duplicate" above.
     await admin.from("lemonsqueezy_webhook_events").delete().eq("id", eventHash);
@@ -207,10 +235,39 @@ export async function POST(request: Request) {
   }
 
   if (!updatedRows || updatedRows.length === 0) {
-    // The user row exists (we matched it above), so nothing updated means a
-    // newer event was already applied. Acknowledge — retrying can't help.
+    // Zero rows updated: either custom_data.user_id points at no real user,
+    // or a newer event was already applied. Tell them apart in the log.
+    const { data: existing } = await admin
+      .from("users")
+      .select("id")
+      .eq("id", userId)
+      .maybeSingle();
+
+    if (!existing) {
+      console.error(
+        "LEMONSQUEEZY WEBHOOK ERROR: user row not found for custom_data.user_id",
+        { event: eventName, userId, subscriptionId }
+      );
+      // Retrying can't create the row, so acknowledge.
+      return NextResponse.json({ received: true, unmatched: true });
+    }
+
+    console.log("LEMONSQUEEZY WEBHOOK: stale event ignored", {
+      event: eventName,
+      userId,
+      subscriptionId,
+      eventAt,
+    });
     return NextResponse.json({ received: true, ignored: true, stale: true });
   }
 
+  console.log("LEMONSQUEEZY WEBHOOK: applied", {
+    event: eventName,
+    userId,
+    subscriptionId,
+    status,
+    plan,
+    periodEnd,
+  });
   return NextResponse.json({ received: true });
 }
