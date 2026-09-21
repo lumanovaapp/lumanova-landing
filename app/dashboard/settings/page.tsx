@@ -1,10 +1,12 @@
 import { redirect } from "next/navigation";
 import { createClient, getUser } from "@/utils/supabase/server";
+import { isPro } from "@/lib/subscription";
 import EditNameCard from "@/components/dashboard/settings/EditNameCard";
 import ChangeEmailCard from "@/components/dashboard/settings/ChangeEmailCard";
 import LogoutCard from "@/components/dashboard/settings/LogoutCard";
 import RemindersCard from "@/components/dashboard/settings/RemindersCard";
 import PlanAnalysisCard from "@/components/dashboard/settings/PlanAnalysisCard";
+import SubscriptionCard from "@/components/dashboard/settings/SubscriptionCard";
 import AboutCard from "@/components/dashboard/settings/AboutCard";
 import SettingsMenuItem from "@/components/dashboard/settings/SettingsMenuItem";
 import packageJson from "@/package.json";
@@ -24,7 +26,13 @@ const soloCardClass = "md:col-span-2";
 // on load instead of popping in all at once.
 const STAGGER_STEP = 0.06;
 
-export default async function SettingsPage() {
+export default async function SettingsPage({
+  searchParams,
+}: {
+  // `?billing=unavailable` is set by /api/billing/portal when it couldn't
+  // open the customer portal — surfaced by SubscriptionCard.
+  searchParams?: { billing?: string };
+}) {
   const supabase = createClient();
 
   const {
@@ -38,11 +46,17 @@ export default async function SettingsPage() {
   const [{ data: profile }, { data: planRow }] = await Promise.all([
     supabase
       .from("users")
-      .select("full_name, reminder_enabled, reminder_time, timezone")
+      .select(
+        "full_name, reminder_enabled, reminder_time, timezone, plan, subscription_status, current_period_end, lemonsqueezy_subscription_id"
+      )
       .eq("id", user.id)
       .single(),
     supabase.from("plans").select("user_id").eq("user_id", user.id).maybeSingle(),
   ]);
+
+  // Resolved once here and passed down — SubscriptionCard is presentation
+  // only and never re-derives Pro status from `plan` on its own.
+  const userIsPro = isPro(profile);
 
   return (
     <div>
@@ -83,12 +97,31 @@ export default async function SettingsPage() {
           </div>
         </section>
 
+        {/* Subscription — sits directly under Profile because "what am I"
+            belongs with "who am I", and a Pro user should see their status
+            confirmed before any of the controls below it. */}
+        <section>
+          <h2 className={sectionLabelClass}>Subscription</h2>
+          <div className={cardGridClass}>
+            <div className={soloCardClass}>
+              <SubscriptionCard
+                isPro={userIsPro}
+                subscriptionStatus={profile?.subscription_status}
+                currentPeriodEnd={profile?.current_period_end}
+                hasSubscription={!!profile?.lemonsqueezy_subscription_id}
+                portalUnavailable={searchParams?.billing === "unavailable"}
+                delay={2 * STAGGER_STEP}
+              />
+            </div>
+          </div>
+        </section>
+
         {/* Preferences */}
         <section>
           <h2 className={sectionLabelClass}>Preferences</h2>
           <div className={cardGridClass}>
             <div className={soloCardClass}>
-              <PlanAnalysisCard delay={2 * STAGGER_STEP} hasPlan={!!planRow} />
+              <PlanAnalysisCard delay={3 * STAGGER_STEP} hasPlan={!!planRow} />
             </div>
           </div>
         </section>
@@ -103,7 +136,7 @@ export default async function SettingsPage() {
                 initialReminderEnabled={profile?.reminder_enabled ?? true}
                 initialReminderTime={profile?.reminder_time ?? "20:00"}
                 initialTimezone={profile?.timezone ?? "UTC"}
-                delay={3 * STAGGER_STEP}
+                delay={4 * STAGGER_STEP}
               />
             </div>
           </div>
@@ -113,8 +146,8 @@ export default async function SettingsPage() {
         <section>
           <h2 className={sectionLabelClass}>General</h2>
           <div className={cardGridClass}>
-            <AboutCard appVersion={packageJson.version} delay={4 * STAGGER_STEP} />
-            <LogoutCard delay={5 * STAGGER_STEP} />
+            <AboutCard appVersion={packageJson.version} delay={5 * STAGGER_STEP} />
+            <LogoutCard delay={6 * STAGGER_STEP} />
           </div>
         </section>
 
@@ -127,7 +160,7 @@ export default async function SettingsPage() {
               icon="key-round"
               label="Security"
               description="Password and account protection."
-              delay={6 * STAGGER_STEP}
+              delay={7 * STAGGER_STEP}
             />
           </div>
         </section>
@@ -147,7 +180,7 @@ export default async function SettingsPage() {
               label="Danger Zone"
               description="Delete your account and all associated data."
               variant="danger"
-              delay={7 * STAGGER_STEP}
+              delay={8 * STAGGER_STEP}
             />
           </div>
         </section>

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { createClient } from "@/utils/supabase/server";
 import { buildContextBlock } from "@/lib/coach-context";
+import { isPro } from "@/lib/subscription";
 
 export const runtime = "nodejs";
 
@@ -30,6 +31,24 @@ export async function POST(request: Request) {
 
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { data: profile } = await supabase
+      .from("users")
+      .select("plan, current_period_end")
+      .eq("id", user.id)
+      .single();
+
+    // The AI coach is a Pro feature. Checked before touching chat_messages
+    // at all — a free user hitting this route directly shouldn't get a
+    // message persisted for nothing. Returned as plain text (status 402),
+    // matching every other response this route sends — see CoachChat.tsx's
+    // apiErrorFromText.
+    if (!isPro(profile)) {
+      return new NextResponse(
+        "Upgrade to Pro to unlock your AI coach.",
+        { status: 402, headers: { "Content-Type": "text/plain; charset=utf-8" } }
+      );
     }
 
     const body = (await request.json()) as { message?: string };

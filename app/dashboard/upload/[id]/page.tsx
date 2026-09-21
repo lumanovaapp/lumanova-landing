@@ -3,6 +3,7 @@ import { createClient, getUser } from "@/utils/supabase/server";
 import AnalyzingStatus from "@/components/dashboard/upload/AnalyzingStatus";
 import RetryAnalysis from "@/components/dashboard/upload/RetryAnalysis";
 import AnalysisReveal from "@/components/AnalysisReveal";
+import { isPro } from "@/lib/subscription";
 
 interface UploadResultPageProps {
   params: { id: string };
@@ -42,7 +43,7 @@ export default async function UploadResultPage({
 
   // Independent of each other — fetched together instead of one after the
   // other now that both only depend on `photo`, not on each other.
-  const [{ data: signed }, { data: planRow }] = await Promise.all([
+  const [{ data: signed }, { data: planRow }, { data: profile }] = await Promise.all([
     supabase.storage.from("selfies").createSignedUrl(photo.storage_path, 3600),
     // Milestone photos (day_30/60/90) never reach here in practice — they
     // never get an `analysis` written (only a baseline/comparison), so
@@ -53,6 +54,11 @@ export default async function UploadResultPage({
     photo.photo_type
       ? Promise.resolve({ data: null })
       : supabase.from("plans").select("plan_json").eq("user_id", user.id).maybeSingle(),
+    supabase
+      .from("users")
+      .select("plan, current_period_end")
+      .eq("id", user.id)
+      .maybeSingle(),
   ]);
 
   const hasPlan = !!planRow;
@@ -70,6 +76,7 @@ export default async function UploadResultPage({
       analysis={photo.analysis}
       hasPlan={hasPlan}
       offerPlanUpdate={offerPlanUpdate}
+      isPro={isPro(profile)}
     />
   );
 }

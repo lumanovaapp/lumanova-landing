@@ -11,6 +11,9 @@ interface DashboardShellProps {
   userId: string;
   onboarded: boolean;
   hasPlan: boolean;
+  // Display only — drives the gold Pro badge beside the user's name in the
+  // sidebar and mobile drawer. Resolved by isPro() in the layout.
+  isPro: boolean;
   children: ReactNode;
 }
 
@@ -20,6 +23,7 @@ export default function DashboardShell({
   userId,
   onboarded,
   hasPlan,
+  isPro,
   children,
 }: DashboardShellProps) {
   return (
@@ -32,8 +36,8 @@ export default function DashboardShell({
           drift={26}
         />
 
-        <Sidebar fullName={fullName} email={email} />
-        <MobileNav fullName={fullName} email={email} />
+        <Sidebar fullName={fullName} email={email} isPro={isPro} />
+        <MobileNav fullName={fullName} email={email} isPro={isPro} />
 
         <div className="lg:pl-64">
           <main className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-10 xl:px-14 py-6 lg:py-10 [padding-bottom:max(2rem,env(safe-area-inset-bottom))]">

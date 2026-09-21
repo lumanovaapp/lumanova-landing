@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import {
   Check,
@@ -13,10 +14,18 @@ import {
   Shirt,
   Wand2,
   Sparkles,
+  Play,
   LucideIcon,
 } from "lucide-react";
 import { DailyHabit, HabitCategory, HabitDifficulty } from "@/lib/types";
 import { TimeOfDaySectionTheme } from "@/lib/time-of-day";
+import { useTechniqueVideo } from "@/lib/technique-videos";
+import TechniqueVideoPanel from "./TechniqueVideoPanel";
+import TechniqueVideoModal from "./TechniqueVideoModal";
+
+// Below this width there's no room for the side player — "Watch how" opens
+// the video straight into the full modal instead. Matches Tailwind's `sm`.
+const DESKTOP_QUERY = "(min-width: 640px)";
 
 // One glanceable icon per habit dimension — falls back to a neutral spark
 // when the plan predates habit `category` tagging or the value was dropped
@@ -76,6 +85,33 @@ export default function HabitCard({
   // compact row regardless.
   const canExpand = !done && (hasStructured || !!habit.detail);
   const showBody = canExpand && expanded;
+
+  // Reusable technique-video library match — see lib/technique-videos.ts.
+  // `available` also confirms the file actually exists in
+  // public/videos/techniques/, so the affordance stays hidden until a video
+  // is dropped in for this technique.
+  const { src: videoSrc } = useTechniqueVideo({
+    label: habit.label,
+    detail: habit.detail,
+    category: habit.category,
+    steps: habit.steps,
+    why_it_works: habit.why_it_works,
+  });
+  const hasVideo = !!videoSrc;
+  // Side player visibility (desktop only — see handleWatchHow).
+  const [panelOpen, setPanelOpen] = useState(false);
+  // Non-null while the enlarge modal (or the mobile "Watch how" tap) is open.
+  const [modalOpen, setModalOpen] = useState(false);
+
+  function handleWatchHow() {
+    const isDesktop =
+      typeof window !== "undefined" && window.matchMedia(DESKTOP_QUERY).matches;
+    if (isDesktop) {
+      setPanelOpen((open) => !open);
+    } else {
+      setModalOpen(true);
+    }
+  }
 
   return (
     <div>
@@ -187,77 +223,108 @@ export default function HabitCard({
               }}
               className="overflow-hidden"
             >
-              <div className="px-3.5 sm:px-4 pb-3.5 sm:pb-4 pl-[3.4rem] space-y-3">
-                {hasStructured ? (
-                  <>
-                    {steps.length > 0 && (
-                      <ol className="space-y-1.5">
-                        {steps.map((step, i) => (
-                          <li
-                            key={i}
-                            className="flex gap-2 text-[13px] leading-relaxed text-cream-ivory/75"
-                          >
-                            <span
-                              className={`flex-shrink-0 font-semibold tabular-nums ${theme.text}`}
+              <div className="px-3.5 sm:px-4 pb-3.5 sm:pb-4 pl-[3.4rem] flex flex-col sm:flex-row gap-3 sm:gap-4">
+                <div className="flex-1 min-w-0 space-y-3">
+                  {hasVideo && (
+                    <button
+                      type="button"
+                      onClick={handleWatchHow}
+                      aria-pressed={panelOpen}
+                      className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12px] font-semibold transition-colors focus-gold ${
+                        panelOpen
+                          ? "border-lumen-gold/50 bg-lumen-gold/15 text-lumen-gold"
+                          : "border-lumen-gold/30 bg-lumen-gold/10 text-lumen-gold hover:bg-lumen-gold/15"
+                      }`}
+                    >
+                      <Play className="w-3 h-3 fill-lumen-gold" />
+                      Watch how
+                    </button>
+                  )}
+
+                  {hasStructured ? (
+                    <>
+                      {steps.length > 0 && (
+                        <ol className="space-y-1.5">
+                          {steps.map((step, i) => (
+                            <li
+                              key={i}
+                              className="flex gap-2 text-[13px] leading-relaxed text-cream-ivory/75"
                             >
-                              {i + 1}.
-                            </span>
-                            <span>{step}</span>
-                          </li>
-                        ))}
-                      </ol>
-                    )}
+                              <span
+                                className={`flex-shrink-0 font-semibold tabular-nums ${theme.text}`}
+                              >
+                                {i + 1}.
+                              </span>
+                              <span>{step}</span>
+                            </li>
+                          ))}
+                        </ol>
+                      )}
 
-                    {habit.why_it_works && (
-                      <p className="text-[13px] leading-relaxed text-cream-ivory/60">
-                        <span className="font-semibold text-cream-ivory/80">
-                          Why it works —{" "}
-                        </span>
-                        {habit.why_it_works}
-                      </p>
-                    )}
-
-                    {(habit.natural_option || habit.product_option) && (
-                      <div className="space-y-1.5">
-                        <p className="text-[10px] font-bold uppercase tracking-widest text-cream-ivory/40">
-                          What to use
+                      {habit.why_it_works && (
+                        <p className="text-[13px] leading-relaxed text-cream-ivory/60">
+                          <span className="font-semibold text-cream-ivory/80">
+                            Why it works —{" "}
+                          </span>
+                          {habit.why_it_works}
                         </p>
+                      )}
 
-                        {habit.natural_option && (
-                          <div className="flex items-start gap-2 rounded-xl border border-aurora-mist/25 bg-aurora-mist/[0.07] px-2.5 py-2">
-                            <Leaf className="w-3.5 h-3.5 text-aurora-mist flex-shrink-0 mt-0.5" />
-                            <p className="text-[12px] leading-relaxed text-cream-ivory/85">
-                              <span className="font-semibold text-aurora-mist">
-                                Free ·{" "}
-                              </span>
-                              {habit.natural_option.text}
-                            </p>
-                          </div>
-                        )}
+                      {(habit.natural_option || habit.product_option) && (
+                        <div className="space-y-1.5">
+                          <p className="text-[10px] font-bold uppercase tracking-widest text-cream-ivory/40">
+                            What to use
+                          </p>
 
-                        {habit.product_option && (
-                          <div className="flex items-start gap-2 rounded-xl border border-white/[0.07] bg-white/[0.02] px-2.5 py-2">
-                            <ShoppingBag className="w-3.5 h-3.5 text-cream-ivory/40 flex-shrink-0 mt-0.5" />
-                            <p className="text-[12px] leading-relaxed text-cream-ivory/55">
-                              <span className="font-semibold text-cream-ivory/70">
-                                Optional ·{" "}
-                              </span>
-                              {habit.product_option.category}
-                              {habit.product_option.budget
-                                ? ` (${habit.product_option.budget})`
-                                : ""}
-                            </p>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </>
-                ) : (
-                  habit.detail && (
-                    <p className="text-[13px] leading-relaxed text-cream-ivory/60">
-                      {habit.detail}
-                    </p>
-                  )
+                          {habit.natural_option && (
+                            <div className="flex items-start gap-2 rounded-xl border border-aurora-mist/25 bg-aurora-mist/[0.07] px-2.5 py-2">
+                              <Leaf className="w-3.5 h-3.5 text-aurora-mist flex-shrink-0 mt-0.5" />
+                              <p className="text-[12px] leading-relaxed text-cream-ivory/85">
+                                <span className="font-semibold text-aurora-mist">
+                                  Free ·{" "}
+                                </span>
+                                {habit.natural_option.text}
+                              </p>
+                            </div>
+                          )}
+
+                          {habit.product_option && (
+                            <div className="flex items-start gap-2 rounded-xl border border-white/[0.07] bg-white/[0.02] px-2.5 py-2">
+                              <ShoppingBag className="w-3.5 h-3.5 text-cream-ivory/40 flex-shrink-0 mt-0.5" />
+                              <p className="text-[12px] leading-relaxed text-cream-ivory/55">
+                                <span className="font-semibold text-cream-ivory/70">
+                                  Optional ·{" "}
+                                </span>
+                                {habit.product_option.category}
+                                {habit.product_option.budget
+                                  ? ` (${habit.product_option.budget})`
+                                  : ""}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    habit.detail && (
+                      <p className="text-[13px] leading-relaxed text-cream-ivory/60">
+                        {habit.detail}
+                      </p>
+                    )
+                  )}
+                </div>
+
+                {/* Side player — desktop only. On mobile, "Watch how" opens
+                    the video straight into the modal instead (no room here),
+                    see handleWatchHow. */}
+                {hasVideo && panelOpen && (
+                  <div className="hidden sm:block">
+                    <TechniqueVideoPanel
+                      src={videoSrc!}
+                      label={habit.label}
+                      onEnlarge={() => setModalOpen(true)}
+                    />
+                  </div>
                 )}
               </div>
             </motion.div>
@@ -269,6 +336,14 @@ export default function HabitCard({
         <p className="mt-1 px-1 text-[10px] text-warm-coral">
           Couldn&apos;t save — reverted. Try again.
         </p>
+      )}
+
+      {hasVideo && (
+        <TechniqueVideoModal
+          src={modalOpen ? videoSrc : null}
+          label={habit.label}
+          onClose={() => setModalOpen(false)}
+        />
       )}
     </div>
   );

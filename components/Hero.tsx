@@ -1,10 +1,8 @@
 "use client";
 
-import { useState } from "react";
-import Image from "next/image";
 import { motion } from "framer-motion";
 import { ArrowRight, Star } from "lucide-react";
-import { useReducedMotion } from "@/lib/use-reduced-motion";
+import HeroBackgroundVideo from "@/components/HeroBackgroundVideo";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 28 },
@@ -20,52 +18,10 @@ const fadeUp = {
 };
 
 export default function Hero() {
-  const [videoError, setVideoError] = useState(false);
-  const [videoReady, setVideoReady] = useState(false);
-  const reducedMotion = useReducedMotion();
-  const showVideo = !videoError && !reducedMotion;
-
   return (
     <section className="relative min-h-screen flex items-center overflow-hidden bg-[#0A0A0A]">
       {/* Cinematic background — the AI glow-up footage as the hero itself */}
-      <div className="absolute inset-0 z-0">
-        {showVideo ? (
-          <video
-            src="/background_hero_clip.mp4"
-            autoPlay
-            muted
-            loop
-            playsInline
-            preload="auto"
-            poster="/hero-banner.png"
-            onError={() => setVideoError(true)}
-            onCanPlay={() => setVideoReady(true)}
-            className={`w-full h-full object-cover transition-opacity duration-1000 ${
-              videoReady ? "opacity-100" : "opacity-0"
-            }`}
-          />
-        ) : (
-          <Image
-            src="/hero-banner.png"
-            alt="Lumanova transformation"
-            fill
-            priority
-            className="object-cover"
-          />
-        )}
-        {/* Poster/base layer beneath the fading-in video */}
-        {showVideo && !videoReady && (
-          <Image
-            src="/hero-banner.png"
-            alt=""
-            fill
-            priority
-            aria-hidden="true"
-            className="object-cover"
-          />
-        )}
-        <div className="absolute inset-0 hero-scrim" />
-      </div>
+      <HeroBackgroundVideo />
 
       {/* Content */}
       <div className="relative z-10 w-full max-w-7xl mx-auto px-6 lg:px-8 pt-28 pb-20 lg:pt-24 lg:pb-24">

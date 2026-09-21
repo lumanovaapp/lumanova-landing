@@ -4,6 +4,7 @@ import { createClient } from "@/utils/supabase/server";
 import { DailyHabit, HabitCategory, HabitDifficulty, Plan, TimeOfDay } from "@/lib/types";
 import { Ethnicity, Goal } from "@/types/database";
 import { parseModelJson } from "@/lib/parse-json";
+import { isPro, REQUIRES_PRO_CODE } from "@/lib/subscription";
 
 export const runtime = "nodejs";
 
@@ -254,6 +255,25 @@ export async function POST() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  const { data: profile } = await supabase
+    .from("users")
+    .select("age, ethnicity, goals, plan, current_period_end")
+    .eq("id", user.id)
+    .single();
+
+  // Building the 90-day plan is a Pro feature — the free tier stops after
+  // the one included analysis. Checked server-side (not just hidden behind
+  // UI) so a free user can't reach this by calling the API directly.
+  if (!isPro(profile)) {
+    return NextResponse.json(
+      {
+        error: "Upgrade to Pro to generate your personalized 90-day plan.",
+        code: REQUIRES_PRO_CODE,
+      },
+      { status: 402 }
+    );
+  }
+
   const { data: photo, error: photoError } = await supabase
     .from("photos")
     .select("id, analysis")
@@ -274,12 +294,6 @@ export async function POST() {
       { status: 400 }
     );
   }
-
-  const { data: profile } = await supabase
-    .from("users")
-    .select("age, ethnicity, goals")
-    .eq("id", user.id)
-    .single();
 
   const profileContext = buildProfileContext(
     profile?.age,

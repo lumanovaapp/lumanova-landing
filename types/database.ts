@@ -47,6 +47,18 @@ export type User = {
   // Set by app/api/cron/reminders when a daily nudge is sent — guards
   // against sending twice in the same UTC day. Null until the first reminder.
   last_reminded_at: string | null;
+  // Lemon Squeezy billing state, synced by
+  // app/api/webhooks/lemonsqueezy/route.ts. Don't read `plan` alone to gate
+  // a feature — use lib/subscription.ts's isPro(), which also checks
+  // `current_period_end` so a stale/missed webhook can't leave someone pro
+  // forever. `subscription_status` is Lemon Squeezy's raw status string
+  // (active/on_trial/past_due/cancelled/paused/unpaid/expired) kept for
+  // display and debugging, not for gating directly.
+  plan: "free" | "pro";
+  subscription_status: string | null;
+  lemonsqueezy_customer_id: string | null;
+  lemonsqueezy_subscription_id: string | null;
+  current_period_end: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -114,6 +126,15 @@ export type WaitlistRow = {
   id: string;
   email: string;
   created_at: string;
+};
+
+// Idempotency ledger for Lemon Squeezy webhook deliveries — `id` is a hash
+// of the raw request body, not an event id from Lemon Squeezy (it doesn't
+// send one). See app/api/webhooks/lemonsqueezy/route.ts.
+export type LemonsqueezyWebhookEventRow = {
+  id: string;
+  event_name: string | null;
+  received_at: string;
 };
 
 export interface Database {
@@ -184,6 +205,12 @@ export interface Database {
         Row: WaitlistRow;
         Insert: Partial<WaitlistRow> & { email: string };
         Update: Partial<WaitlistRow>;
+        Relationships: [];
+      };
+      lemonsqueezy_webhook_events: {
+        Row: LemonsqueezyWebhookEventRow;
+        Insert: Partial<LemonsqueezyWebhookEventRow> & { id: string };
+        Update: Partial<LemonsqueezyWebhookEventRow>;
         Relationships: [];
       };
     };

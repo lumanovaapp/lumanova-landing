@@ -12,6 +12,7 @@ import {
   ScanLine,
   ChevronDown,
   ChevronUp,
+  ArrowRight,
   LucideIcon,
 } from "lucide-react";
 import {
@@ -34,6 +35,12 @@ interface AnalysisRevealProps {
   // Only meaningful when hasPlan is true; swaps the bottom CTA from
   // "generate a plan" to "update your existing one."
   offerPlanUpdate?: boolean;
+  // False for a free-tier user (or a lapsed Pro whose current_period_end
+  // has passed). It no longer changes WHETHER the bottom CTA appears —
+  // every tier gets the same "Generate my 90-day plan" button — only where
+  // it points and whether the plan-update prompts are eligible. A free user
+  // meets the paywall on the plan page itself, one intentional step later.
+  isPro?: boolean;
 }
 
 // Fallback marker positions for analyses saved before "zone" was tracked.
@@ -75,6 +82,7 @@ export default function AnalysisReveal({
   analysis,
   hasPlan = false,
   offerPlanUpdate = false,
+  isPro = false,
 }: AnalysisRevealProps) {
   const reduceMotion = !!useReducedMotion();
 
@@ -111,6 +119,17 @@ export default function AnalysisReveal({
   }
 
   const topQuickWins = analysis.quick_wins.slice(0, 3);
+
+  // Only a Pro user with no plan yet should land on the plan page already
+  // generating (?generate=1 -> GeneratePlanButton's autoStart). A free user
+  // gets the same button pointed at the bare page, where the paywall is
+  // waiting for them; the flag would be ignored there anyway, since the
+  // page's isPro() gate returns the wall before the generate screen renders.
+  const planHref =
+    isPro && !hasPlan ? "/dashboard/plan?generate=1" : "/dashboard/plan";
+  const planCtaLabel = hasPlan
+    ? "View my 90-day plan"
+    : "Generate my 90-day plan";
 
   return (
     <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
@@ -282,13 +301,21 @@ export default function AnalysisReveal({
         ))}
       </div>
 
-      {/* CTA — three states: no plan yet offers to generate one; an
-          existing plan that hasn't seen this analysis offers to update it
-          without resetting progress (see UpdatePlanPrompt); an existing
-          plan already built from this exact analysis just links onward. */}
-      {offerPlanUpdate ? (
+      {/* CTA — every tier ends on the same single forward step. A Pro user
+          with a plan gets the update/view prompts; everyone else (free
+          users included) gets "Generate my 90-day plan", which routes to
+          the 90-Day Plan page. For a free user THAT page is the wall — the
+          paywall lives there now rather than inline here, so the analysis
+          reads as a complete, finished deliverable end to end and the
+          upgrade ask arrives as its own moment.
+
+          This is placement only, not access: /dashboard/plan re-checks
+          isPro() server-side before it renders anything (see
+          app/dashboard/plan/page.tsx), and /api/generate-plan checks again
+          before it writes, so this CTA can't hand out a plan on its own. */}
+      {isPro && offerPlanUpdate ? (
         <UpdatePlanPrompt />
-      ) : hasPlan ? (
+      ) : isPro && hasPlan ? (
         <div className="mt-10 rounded-3xl border border-white/[0.08] bg-gradient-to-b from-white/[0.05] to-white/[0.02] p-8 sm:p-10 text-center">
           <p className="font-manrope font-semibold text-lg sm:text-xl text-cream-ivory mb-6">
             Your plan already reflects this analysis.
@@ -303,16 +330,16 @@ export default function AnalysisReveal({
       ) : (
         <div className="mt-10 rounded-3xl border border-lumen-gold/20 bg-gradient-to-br from-lumen-gold/[0.07] to-lumen-gold/[0.02] p-8 sm:p-10 text-center">
           <p className="font-manrope font-semibold text-lg sm:text-xl text-cream-ivory mb-6">
-            Ready to turn this into your plan?
+            {hasPlan
+              ? "Your 90-day plan is waiting."
+              : "Ready to turn this into your plan?"}
           </p>
-          {/* Routes to the 90-Day Plan page and generates there (see
-              app/dashboard/plan/page.tsx + GeneratePlanButton's autoStart) —
-              the user lands on the Today tab with their finished plan. */}
           <Link
-            href="/dashboard/plan?generate=1"
+            href={planHref}
             className="inline-flex w-full sm:w-auto sm:min-w-[280px] h-14 px-8 rounded-full bg-lumen-gold text-pure-black font-manrope font-bold items-center justify-center gap-2 hover:bg-lumen-gold/90 hover:shadow-[0_0_24px_rgba(244,196,48,0.35)] active:scale-95 transition-all duration-300 focus-gold"
           >
-            Generate my 90-day plan
+            {planCtaLabel}
+            <ArrowRight className="w-4 h-4" />
           </Link>
         </div>
       )}

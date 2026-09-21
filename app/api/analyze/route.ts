@@ -5,6 +5,7 @@ import { Analysis } from "@/lib/types";
 import { Ethnicity, Goal } from "@/types/database";
 import { parseModelJson } from "@/lib/parse-json";
 import { checkAndAwardAchievements } from "@/lib/check-achievements";
+import { isPro, REQUIRES_PRO_CODE } from "@/lib/subscription";
 
 export const runtime = "nodejs";
 
@@ -129,6 +130,36 @@ export async function POST(request: Request) {
 
   if (photo.user_id !== user.id) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  const { data: profileGate } = await supabase
+    .from("users")
+    .select("plan, current_period_end")
+    .eq("id", user.id)
+    .single();
+
+  if (!isPro(profileGate)) {
+    // Free plan = 1 analysis, ever. Excludes this photoId so a retry of a
+    // still-uncompleted analysis (RetryAnalysis.tsx re-posts the same
+    // photoId after a failure) never counts against the limit — only a
+    // DIFFERENT photo that already finished analyzing does.
+    const { count: completedCount } = await supabase
+      .from("photos")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", user.id)
+      .not("analysis", "is", null)
+      .neq("id", photoId);
+
+    if ((completedCount ?? 0) > 0) {
+      return NextResponse.json(
+        {
+          error:
+            "Your free analysis is already used. Upgrade to Pro for unlimited analyses.",
+          code: REQUIRES_PRO_CODE,
+        },
+        { status: 402 }
+      );
+    }
   }
 
   const { data: imageBlob, error: downloadError } = await supabase.storage

@@ -224,7 +224,69 @@ create policy "Anyone can join the waitlist" on public.waitlist
   with check (true);
 
 -- ============================================================
--- 3. AUTO-CREATE public.users ROW ON SIGNUP
+-- 3. LEMON SQUEEZY BILLING
+-- ============================================================
+
+-- Subscription/plan state, synced from Lemon Squeezy webhooks (see
+-- app/api/webhooks/lemonsqueezy/route.ts). `plan` is the fast gate almost
+-- every server-side check reads (see lib/subscription.ts's isPro()); the
+-- other four columns are the Lemon Squeezy-sourced detail behind it, plus a
+-- `current_period_end` safety net so a lapsed/cancelled subscription reads
+-- as free even if a webhook is ever missed or delayed.
+alter table public.users add column if not exists plan text not null default 'free' check (plan in ('free', 'pro'));
+alter table public.users add column if not exists subscription_status text;
+alter table public.users add column if not exists lemonsqueezy_customer_id text;
+alter table public.users add column if not exists lemonsqueezy_subscription_id text;
+alter table public.users add column if not exists current_period_end timestamptz;
+
+create index if not exists users_lemonsqueezy_subscription_id_idx on public.users (lemonsqueezy_subscription_id);
+
+-- Idempotency ledger for Lemon Squeezy webhook deliveries. Lemon Squeezy
+-- doesn't send a unique event id, so each delivery is deduped on a hash of
+-- its raw request body instead (see the webhook route). No RLS policies:
+-- only ever touched by the webhook route using the service-role client
+-- (utils/supabase/admin.ts), which bypasses RLS anyway — RLS is enabled
+-- purely so it default-denies anon/authenticated access like every other
+-- table here.
+create table if not exists public.lemonsqueezy_webhook_events (
+  id text primary key,
+  event_name text,
+  received_at timestamptz not null default now()
+);
+
+alter table public.lemonsqueezy_webhook_events enable row level security;
+
+-- "Users can update own row" (above) has no column restriction, so without
+-- this a signed-in user could set their own plan = 'pro' straight from the
+-- browser with the anon key. Client roles (anon/authenticated — i.e. every
+-- PostgREST request made with a user session) may not change billing
+-- columns; the webhook's service-role client and the SQL editor (postgres)
+-- still can.
+create or replace function public.protect_billing_columns()
+returns trigger
+language plpgsql
+as $$
+begin
+  if current_user in ('anon', 'authenticated') and (
+    new.plan is distinct from old.plan
+    or new.subscription_status is distinct from old.subscription_status
+    or new.lemonsqueezy_customer_id is distinct from old.lemonsqueezy_customer_id
+    or new.lemonsqueezy_subscription_id is distinct from old.lemonsqueezy_subscription_id
+    or new.current_period_end is distinct from old.current_period_end
+  ) then
+    raise exception 'Billing columns can only be changed by the billing webhook';
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists protect_billing_columns on public.users;
+create trigger protect_billing_columns
+  before update on public.users
+  for each row execute function public.protect_billing_columns();
+
+-- ============================================================
+-- 4. AUTO-CREATE public.users ROW ON SIGNUP
 -- ============================================================
 
 create or replace function public.handle_new_user()

@@ -4,6 +4,7 @@ import { createClient } from "@/utils/supabase/server";
 import { Comparison } from "@/lib/types";
 import { parseModelJson } from "@/lib/parse-json";
 import { checkAndAwardAchievements } from "@/lib/check-achievements";
+import { isPro, REQUIRES_PRO_CODE } from "@/lib/subscription";
 
 export const runtime = "nodejs";
 
@@ -18,6 +19,23 @@ export async function POST(request: Request) {
 
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const { data: profile } = await supabase
+    .from("users")
+    .select("plan, current_period_end")
+    .eq("id", user.id)
+    .single();
+
+  // Progress/milestone comparisons are a Pro feature.
+  if (!isPro(profile)) {
+    return NextResponse.json(
+      {
+        error: "Upgrade to Pro to unlock progress comparisons.",
+        code: REQUIRES_PRO_CODE,
+      },
+      { status: 402 }
+    );
   }
 
   const { photoId } = (await request.json()) as { photoId?: string };

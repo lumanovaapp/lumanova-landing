@@ -6,9 +6,10 @@ import UserFooter from "./UserFooter";
 interface SidebarProps {
   fullName: string;
   email?: string | null;
+  isPro?: boolean;
 }
 
-export default function Sidebar({ fullName, email }: SidebarProps) {
+export default function Sidebar({ fullName, email, isPro = false }: SidebarProps) {
   return (
     <aside className="hidden lg:flex lg:flex-col lg:fixed lg:inset-y-0 lg:w-64 lg:border-r lg:border-white/[0.08] lg:bg-gradient-to-b lg:from-[#0B0906] lg:to-[#0A0A0A] lg:px-4 lg:py-6">
       <Link href="/dashboard" className="flex items-center gap-2 px-2 mb-8 focus-gold">
@@ -28,7 +29,7 @@ export default function Sidebar({ fullName, email }: SidebarProps) {
         <NavList />
       </div>
 
-      <UserFooter fullName={fullName} email={email} />
+      <UserFooter fullName={fullName} email={email} isPro={isPro} />
     </aside>
   );
 }

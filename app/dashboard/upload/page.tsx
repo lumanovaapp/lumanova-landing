@@ -3,7 +3,9 @@ import { redirect } from "next/navigation";
 import { ArrowRight, Scissors, Shirt, Sparkles, Wind, LucideIcon } from "lucide-react";
 import { createClient, getUser } from "@/utils/supabase/server";
 import { getUserState } from "@/lib/user-state";
+import { isPro } from "@/lib/subscription";
 import UploadForm from "@/components/dashboard/upload/UploadForm";
+import Paywall from "@/components/billing/Paywall";
 
 const WHAT_HAPPENS_NEXT = [
   "Upload a clear, well-lit selfie",
@@ -30,6 +32,17 @@ export default async function UploadPage() {
   }
 
   const state = await getUserState(supabase, user.id);
+
+  const { data: profile } = await supabase
+    .from("users")
+    .select("plan, current_period_end")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  // Free plan = 1 analysis, ever (enforced server-side in /api/analyze).
+  // Mirror it here so a free user who's already used it sees the upgrade
+  // card instead of filling out a form that would only 402.
+  const freeLimitReached = !isPro(profile) && state.hasAnalysis;
 
   return (
     <div className="max-w-5xl mx-auto">
@@ -60,6 +73,12 @@ export default async function UploadPage() {
         </div>
       )}
 
+      {freeLimitReached ? (
+        <Paywall
+          title="You've used your free analysis"
+          description="Upgrade to Pro to run unlimited analyses and track your progress over time."
+        />
+      ) : (
       <div className="mt-10 grid grid-cols-1 lg:grid-cols-[340px_1fr] gap-8 lg:gap-10 items-start">
         {/* Explainer panel — what happens next / what we analyze */}
         <div className="order-2 lg:order-1 bg-gradient-to-b from-white/[0.05] to-white/[0.02] border border-white/[0.08] rounded-3xl shadow-[0_2px_4px_rgba(0,0,0,.3),0_16px_32px_rgba(0,0,0,.35)] p-6 sm:p-7">
@@ -105,6 +124,7 @@ export default async function UploadPage() {
           <UploadForm />
         </div>
       </div>
+      )}
     </div>
   );
 }

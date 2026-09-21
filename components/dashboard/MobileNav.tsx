@@ -12,6 +12,7 @@ import { useTour } from "./onboarding/TourProvider";
 interface MobileNavProps {
   fullName: string;
   email?: string | null;
+  isPro?: boolean;
 }
 
 // Tour steps whose target lives inside the sidebar/mobile-nav link list —
@@ -23,7 +24,7 @@ const NAV_DRAWER_TOUR_TARGETS = new Set([
   "tour-nav-achievements",
 ]);
 
-export default function MobileNav({ fullName, email }: MobileNavProps) {
+export default function MobileNav({ fullName, email, isPro = false }: MobileNavProps) {
   const [open, setOpen] = useState(false);
   const { activeTarget } = useTour();
 
@@ -114,7 +115,7 @@ export default function MobileNav({ fullName, email }: MobileNavProps) {
                 </button>
               </div>
 
-              <UserFooter fullName={fullName} email={email} />
+              <UserFooter fullName={fullName} email={email} isPro={isPro} />
 
               <div className="flex-1 overflow-y-auto mt-6 pt-4 border-t border-white/[0.08]">
                 <NavList onNavigate={() => setOpen(false)} />

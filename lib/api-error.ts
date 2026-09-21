@@ -51,6 +51,11 @@ function isBillingError(message: string): boolean {
 export function toFriendlyMessage(err: unknown): string {
   if (err instanceof TimeoutError) return TIMEOUT_MESSAGE;
   if (err instanceof ApiError) {
+    // 402 only ever comes from a Pro-gated route (see lib/subscription.ts),
+    // and its message is always our own self-authored upgrade copy — safe
+    // to show as-is, unlike a 500's message which can carry raw
+    // billing/SDK/stack text.
+    if (err.status === 402) return err.message;
     return isBillingError(err.message) ? UNAVAILABLE_MESSAGE : GENERIC_MESSAGE;
   }
   if (err instanceof Error && err.message) return err.message;

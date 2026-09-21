@@ -6,7 +6,10 @@ import { motion } from "framer-motion";
 interface SettingsCardProps {
   children: ReactNode;
   delay?: number;
-  variant?: "default" | "danger";
+  // "pro" is the gold-lit treatment reserved for the Lumanova Pro status
+  // card — the one card on the page that's meant to feel like a reward
+  // rather than a control. See settings/SubscriptionCard.tsx.
+  variant?: "default" | "danger" | "pro";
   className?: string;
 }
 
@@ -19,6 +22,8 @@ export default function SettingsCard({
   const variantClass =
     variant === "danger"
       ? "border-red-500/20 bg-gradient-to-b from-red-500/[0.06] to-red-500/[0.02] hover:border-red-500/35 hover:from-red-500/[0.08]"
+      : variant === "pro"
+      ? "border-lumen-gold/30 bg-gradient-to-br from-lumen-gold/[0.10] via-lumen-gold/[0.04] to-transparent hover:border-lumen-gold/50 shadow-[0_0_28px_rgba(244,196,48,0.10)]"
       : "border-white/[0.08] bg-gradient-to-b from-white/[0.05] to-white/[0.02] hover:border-white/[0.16] hover:from-white/[0.07]";
 
   return (

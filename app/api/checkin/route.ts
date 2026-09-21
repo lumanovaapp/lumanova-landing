@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
 import { buildDoneFlags, computeStreakState, dateToStr } from "@/lib/streak";
 import { checkAndAwardAchievements } from "@/lib/check-achievements";
+import { isPro, REQUIRES_PRO_CODE } from "@/lib/subscription";
 
 export const runtime = "nodejs";
 
@@ -17,6 +18,26 @@ export async function POST(request: Request) {
 
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { data: profile } = await supabase
+      .from("users")
+      .select("plan, current_period_end")
+      .eq("id", user.id)
+      .single();
+
+    // Daily habit tracking is part of the 90-day plan, a Pro feature — a
+    // free user has no plan to check in against, but this also covers a
+    // downgrade mid-plan (subscription lapses, current_period_end passes)
+    // so old habit ids can't keep writing check-ins after that.
+    if (!isPro(profile)) {
+      return NextResponse.json(
+        {
+          error: "Upgrade to Pro to track daily check-ins.",
+          code: REQUIRES_PRO_CODE,
+        },
+        { status: 402 }
+      );
     }
 
     const body = (await request.json()) as {

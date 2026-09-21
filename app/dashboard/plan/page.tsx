@@ -6,8 +6,10 @@ import { getUserState } from "@/lib/user-state";
 import { MilestonePhotoSummary, PhotoMilestone } from "@/lib/types";
 import { buildDoneFlags, computeStreakState } from "@/lib/streak";
 import { getOrCreateDailyCoachLine } from "@/lib/daily-coach-line";
+import { isPro } from "@/lib/subscription";
 import GeneratePlanButton from "@/components/dashboard/plan/GeneratePlanButton";
 import PlanView from "@/components/PlanView";
+import Paywall from "@/components/billing/Paywall";
 
 const SIGNED_URL_TTL_SECONDS = 3600;
 
@@ -30,7 +32,44 @@ export default async function PlanPage({
     redirect("/login");
   }
 
-  const state = await getUserState(supabase, user.id);
+  const [state, { data: profile }] = await Promise.all([
+    getUserState(supabase, user.id),
+    supabase.from("users").select("plan, current_period_end").eq("id", user.id).maybeSingle(),
+  ]);
+
+  // Gated ahead of both branches below — a free (or lapsed-Pro) user is
+  // paywalled the moment they have anything past the included analysis to
+  // be locked out of, whether or not a plan already exists (a downgrade
+  // after generating one doesn't grandfather them back in).
+  //
+  // This is the one place the wall is shown in the plan flow: the analysis
+  // page now sends every tier here with a plain "Generate my 90-day plan"
+  // CTA (see components/AnalysisReveal.tsx), so a free user meets the
+  // upgrade ask here, as its own moment, instead of hitting it inline at
+  // the bottom of their analysis. Note this check runs before ?generate=1
+  // is ever read — arriving with the flag set can't skip it — and
+  // /api/generate-plan re-checks isPro() before writing anything either
+  // way, so the wall is presentation over an already-closed door.
+  if (!isPro(profile) && (state.hasPlan || state.hasAnalysis)) {
+    return (
+      <div className="max-w-2xl mx-auto py-10 sm:py-16 text-center">
+        <p className="text-[10px] font-bold tracking-[0.22em] uppercase text-lumen-gold/70 mb-3">
+          Your 90-Day Plan
+        </p>
+        <h1 className="font-manrope leading-tight text-2xl sm:text-3xl">
+          <span className="font-light text-cream-ivory/80">Your plan is </span>
+          <span className="font-extrabold text-lumen-gold">waiting</span>
+        </h1>
+        <p className="font-inter text-base text-cream-ivory/55 mt-3">
+          Your analysis is done — here&apos;s what Pro turns it into.
+        </p>
+        <Paywall
+          title="Unlock your personalized 90-day plan"
+          description="Your plan, your AI coach, and your progress tracking — upgrade to Pro and we'll build all three from the analysis you already have."
+        />
+      </div>
+    );
+  }
 
   if (state.hasPlan && state.plan && state.planCreatedAt) {
     // These five reads are all independent of one another (the baseline
