@@ -95,6 +95,7 @@ const linkColumns = [
     links: [
       { label: "Privacy Policy", href: "/privacy" },
       { label: "Terms of Service", href: "/terms" },
+      { label: "Refund Policy", href: "/refund-policy" },
     ],
   },
 ];

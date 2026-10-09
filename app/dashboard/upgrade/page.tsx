@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { getUser } from "@/utils/supabase/server";
 import PricingCards from "@/components/billing/PricingCards";
+import { PAYMENTS_ENABLED } from "@/lib/subscription";
 
 export default async function UpgradePage() {
   const {
@@ -9,6 +10,11 @@ export default async function UpgradePage() {
 
   if (!user) {
     redirect("/login");
+  }
+
+  // Free mode: everyone already has Pro and checkout has nowhere to go.
+  if (!PAYMENTS_ENABLED) {
+    redirect("/dashboard");
   }
 
   return (

@@ -2,10 +2,19 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
 import { createCheckout, BillingPlan } from "@/lib/lemonsqueezy";
 import { appUrl } from "@/lib/app-url";
+import { PAYMENTS_ENABLED } from "@/lib/subscription";
 
 export const runtime = "nodejs";
 
 export async function POST(request: Request) {
+  // Free mode: no payment processor is connected, so never start a checkout.
+  if (!PAYMENTS_ENABLED) {
+    return NextResponse.json(
+      { error: "Payments are currently disabled." },
+      { status: 503 }
+    );
+  }
+
   const supabase = createClient();
 
   const {

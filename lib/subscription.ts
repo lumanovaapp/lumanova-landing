@@ -8,6 +8,16 @@
 // missed — see derivePlan() below and app/api/webhooks/lemonsqueezy/route.ts
 // for the write side.
 
+// Global "free mode" switch. While no payment processor is connected, every
+// user is treated as Pro: isPro() short-circuits to true, so every gate
+// (pages, API routes, the analysis -> plan flow) lets them through and no
+// paywall renders. All billing code, the webhook and the plan/period columns
+// stay in place untouched — set NEXT_PUBLIC_PAYMENTS_ENABLED=true (and
+// redeploy, since NEXT_PUBLIC_* is inlined at build time) to bring the
+// paywall back. Anything other than the exact string "true" means free mode.
+export const PAYMENTS_ENABLED =
+  process.env.NEXT_PUBLIC_PAYMENTS_ENABLED === "true";
+
 export interface SubscriptionFields {
   plan: "free" | "pro";
   current_period_end: string | null;
@@ -16,6 +26,7 @@ export interface SubscriptionFields {
 export function isPro(
   user: SubscriptionFields | null | undefined
 ): boolean {
+  if (!PAYMENTS_ENABLED) return true;
   if (!user || user.plan !== "pro") return false;
   if (
     user.current_period_end &&
